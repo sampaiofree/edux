@@ -29,6 +29,7 @@ class LessonScreen extends Component
     public ?string $errorMessage = null;
     public bool $canRename;
     public bool $hasPaidCertificate = false;
+    public bool $showPaymentModal = false;
 
     private $user;
     private $enrollment;
@@ -135,6 +136,11 @@ class LessonScreen extends Component
         $this->statusMessage = 'Certificado emitido com sucesso!';
 
         $this->redirectRoute('learning.courses.certificate.show', [$this->course, $certificate]);
+    }
+
+    public function closePaymentModal(): void
+    {
+        $this->showPaymentModal = false;
     }
 
     public function getYoutubeIdProperty(): ?string

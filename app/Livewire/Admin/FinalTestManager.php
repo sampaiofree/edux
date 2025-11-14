@@ -113,7 +113,7 @@ class FinalTestManager extends Component
         abort(403);
     }
 
-    private function refreshFinalTest(): void
+    public function refreshFinalTest(): void
     {
         $this->course->refresh();
         $this->course->load('finalTest.questions.options');

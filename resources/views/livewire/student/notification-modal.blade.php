@@ -1,7 +1,8 @@
-@if ($open && $notification)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-        <div class="absolute inset-0" wire:click="dismiss"></div>
-        <div class="relative z-10 w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+<div>
+    @if ($open && $notification)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+            <div class="absolute inset-0" wire:click="dismiss"></div>
+            <div class="relative z-10 w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-xs uppercase tracking-wide text-edux-primary">Aviso</p>
@@ -35,4 +36,5 @@
             </div>
         </div>
     </div>
-@endif
+    @endif
+</div>

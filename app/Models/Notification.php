@@ -1,1 +1,47 @@
-<?php\n\nnamespace App\\Models;\n\nuse Illuminate\\Database\\Eloquent\\Factories\\HasFactory;\nuse Illuminate\\Database\\Eloquent\\Model;\nuse Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany;\nuse Illuminate\\Database\\Eloquent\\Relations\\HasMany;\n\nclass Notification extends Model\n{\n    use HasFactory;\n\n    protected \ = [\n        'title',\n        'body',\n        'image_path',\n        'video_url',\n        'button_label',\n        'button_url',\n        'published_at',\n    ];\n\n    protected function casts(): array\n    {\n        return [\n            'published_at' => 'datetime',\n        ];\n    }\n\n    public function scopePublished(\)\n    {\n        return \->whereNotNull('published_at')->where('published_at', '<=', now());\n    }\n\n    public function views(): HasMany\n    {\n        return \->hasMany(NotificationView::class);\n    }\n\n    public function viewers(): BelongsToMany\n    {\n        return \->belongsToMany(User::class, 'notification_user')\n            ->withPivot('dismissed_at')\n            ->withTimestamps();\n    }\n}\n
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Notification extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'title',
+        'body',
+        'image_path',
+        'video_url',
+        'button_label',
+        'button_url',
+        'published_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+        ];
+    }
+
+    public function scopePublished($query)
+    {
+        return $query->whereNotNull('published_at')->where('published_at', '<=', now());
+    }
+
+    public function views(): HasMany
+    {
+        return $this->hasMany(NotificationView::class);
+    }
+
+    public function viewers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'notification_user')
+            ->withPivot('dismissed_at')
+            ->withTimestamps();
+    }
+}

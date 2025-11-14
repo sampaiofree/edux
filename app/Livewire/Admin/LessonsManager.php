@@ -97,7 +97,7 @@ class LessonsManager extends Component
         $this->normalizeLessons();
         $this->closeForm();
         session()->flash('status', $message);
-        $this->emitUp('moduleLessonsChanged');
+        $this->dispatch('moduleLessonsChanged')->to(ModulesManager::class);
     }
 
     public function deleteLesson(int $lessonId): void
@@ -112,7 +112,7 @@ class LessonsManager extends Component
         $this->normalizeLessons();
         $this->closeForm();
         session()->flash('status', 'Aula removida.');
-        $this->emitUp('moduleLessonsChanged');
+        $this->dispatch('moduleLessonsChanged')->to(ModulesManager::class);
     }
 
     public function moveLesson(int $lessonId, string $direction): void
@@ -140,7 +140,7 @@ class LessonsManager extends Component
         });
 
         $this->refreshModule();
-        $this->emitUp('moduleLessonsChanged');
+        $this->dispatch('moduleLessonsChanged')->to(ModulesManager::class);
     }
 
     public function closeForm(): void

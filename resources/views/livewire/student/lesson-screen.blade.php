@@ -131,6 +131,46 @@
     </div>
 </section>
 
+@if ($showPaymentModal)
+    @php
+        $formattedPrice = $course->certificate_price ? number_format($course->certificate_price, 2, ',', '.') : null;
+    @endphp
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-edux-primary">Pagamento pendente</p>
+                    <h3 class="text-2xl font-display text-edux-primary">Finalize para liberar o certificado</h3>
+                </div>
+                <button type="button" class="text-sm font-semibold text-slate-500 hover:text-edux-primary" wire:click="closePaymentModal">
+                    Fechar
+                </button>
+            </div>
+            <p class="text-sm text-slate-600">
+                Antes de emitir o certificado e necessario concluir o pagamento referente a este curso.
+                @if ($formattedPrice)
+                    O valor informado e de <strong>R$ {{ $formattedPrice }}</strong>.
+                @endif
+            </p>
+            <div class="flex flex-wrap gap-3">
+                @if ($course->certificate_payment_url)
+                    <a href="{{ $course->certificate_payment_url }}" target="_blank" rel="noopener" class="edux-btn">
+                        Ir para pagamento
+                    </a>
+                @endif
+                <button type="button" class="edux-btn bg-white text-edux-primary" wire:click="closePaymentModal">
+                    Entendi
+                </button>
+            </div>
+            @unless ($course->certificate_payment_url)
+                <p class="text-xs text-slate-500">
+                    Entre em contato com o suporte para receber o link de pagamento do certificado.
+                </p>
+            @endunless
+        </div>
+    </div>
+@endif
+
 @if ($this->youtubeId)
     @push('styles')
         <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
