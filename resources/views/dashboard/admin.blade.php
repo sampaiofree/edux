@@ -3,5 +3,8 @@
 @section('title', 'Dashboard')
 
 @section('content')
-    <livewire:admin.dashboard />
+    <div class="space-y-10">
+        <livewire:admin.dashboard />
+        <livewire:admin.notifications-manager />
+    </div>
 @endsection

@@ -13,6 +13,7 @@ class NotificationsManager extends Component
     use WithPagination, WithFileUploads;
 
     public ?Notification $editing = null;
+    public bool $showModal = false;
 
     public string $title = '';
     public ?string $body = null;
@@ -52,8 +53,14 @@ class NotificationsManager extends Component
 
         $this->editing->save();
 
+        session()->flash('status', 'Notificacao salva.');
+        $this->closeModal();
+    }
+
+    public function newNotification(): void
+    {
         $this->resetForm();
-        session()->flash('status', 'Notificação salva.');
+        $this->showModal = true;
     }
 
     public function edit(int $notificationId): void
@@ -73,6 +80,8 @@ class NotificationsManager extends Component
             'button_url' => $notification->button_url,
             'published_at' => optional($notification->published_at)->format('Y-m-d\TH:i'),
         ]);
+
+        $this->showModal = true;
     }
 
     public function delete(int $notificationId): void
@@ -88,12 +97,19 @@ class NotificationsManager extends Component
         }
 
         $notification->delete();
-        $this->resetForm();
-        session()->flash('status', 'Notificação removida.');
+
+        if ($this->showModal) {
+            $this->closeModal();
+        } else {
+            $this->resetForm();
+        }
+
+        session()->flash('status', 'Notificacao removida.');
     }
 
-    public function cancelEdit(): void
+    public function closeModal(): void
     {
+        $this->showModal = false;
         $this->resetForm();
     }
 

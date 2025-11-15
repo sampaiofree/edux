@@ -10,11 +10,19 @@
         </div>
     </div>
 
+    @php
+        $defaultCourseCover = \App\Models\SystemSetting::current()->assetUrl('default_course_cover_path');
+    @endphp
     <div class="grid gap-4 md:grid-cols-2">
         @forelse ($courses as $course)
             <article class="rounded-card bg-white shadow-card overflow-hidden flex flex-col">
                 @if ($course->coverImageUrl())
                     <img src="{{ $course->coverImageUrl() }}" alt="{{ $course->title }}" class="h-40 w-full object-cover">
+                @php
+                    $coverUrl = $course->coverImageUrl() ?? $defaultCourseCover;
+                @endphp
+                @if ($coverUrl)
+                    <img src="{{ $coverUrl }}" alt="{{ $course->title }}" class="h-40 w-full object-cover">
                 @endif
                 <div class="flex flex-1 flex-col gap-3 p-5">
                     <div>

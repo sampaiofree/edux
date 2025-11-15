@@ -29,7 +29,7 @@
         </div>
 
         <div x-show="tab === 'vitrine'" x-cloak>
-            <livewire:student.catalog />
+            <livewire:student.catalog /> 
         </div>
 
         <div x-show="tab === 'notificacoes'" x-cloak>

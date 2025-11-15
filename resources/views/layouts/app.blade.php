@@ -40,13 +40,10 @@
                         </a>
                         @if (auth()->user()->isAdmin())
                             <a href="{{ route('admin.users.index') }}" class="edux-btn bg-white text-edux-primary">
-                                Usuarios
-                            </a>
-                            <a href="{{ route('admin.users.create') }}" class="edux-btn bg-white text-edux-primary">
-                                Novo usuario
+                             👥 Usuarios
                             </a>
                             <a href="{{ route('admin.identity') }}" class="edux-btn bg-white text-edux-primary">
-                               Identidade
+                              🎨 Identidade
                             </a>
                         @endif
                         @if (auth()->user()->isStudent())
@@ -76,11 +73,9 @@
                 <nav class="space-y-3 bg-edux-primary/95 px-4 pb-4 text-white">
                     @auth
                         <a href="{{ route('account.edit') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">⚙️ Minha conta</a>
-                        <a href="{{ route('dashboard') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">🏠 Painel</a>
                         <a href="{{ route('dashboard') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">📚 Dashboard</a>
                         @if (auth()->user()->isAdmin())
                             <a href="{{ route('admin.users.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Usuarios</a>
-                            <a href="{{ route('admin.users.create') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Novo usuario</a>
                             <a href="{{ route('admin.identity') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Identidade visual</a>
                         @endif
                         @if (auth()->user()->isStudent())
