@@ -53,7 +53,7 @@
                     <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-[#F0F0F0] text-3xl">
                         🛒
                     </div>
-                    <span class="mt-3 font-bold text-sm text-[#333] text-center">Vitrine</span>
+                    <span class="mt-3 font-bold text-sm text-[#333] text-center">+Cursos</span>
                 </div>
             </a>
         </section>

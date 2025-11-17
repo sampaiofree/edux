@@ -10,13 +10,13 @@
                 <span class="text-sm font-semibold">Meus cursos</span> 
             </a>
 
-            <a href="{{ route('dashboard', ['tab' => 'vitrine']) }}" @click.prevent="$dispatch('set-tab', 'vitrine')" class="flex flex-col items-center gap-2 rounded-2xl border border-edux-line/60 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <a href="{{ route('dashboard', ['tab' => '+Cursos']) }}" @click.prevent="$dispatch('set-tab', '+Cursos')" class="flex flex-col items-center gap-2 rounded-2xl border border-edux-line/60 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <span class="flex h-10 w-10 items-center justify-center rounded-full bg-edux-background text-edux-primary">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M6 6h12l-1 12H7L6 6zM9 6V4a3 3 0 016 0v2" />
                     </svg>
                 </span>
-                <span class="text-sm font-semibold">Vitrine</span>
+                <span class="text-sm font-semibold">+Cursos</span>
             </a>
 
             <a href="{{ route('dashboard', ['tab' => 'notificacoes']) }}" @click.prevent="$dispatch('set-tab', 'notificacoes')" class="flex flex-col items-center gap-2 rounded-2xl border border-edux-line/60 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">

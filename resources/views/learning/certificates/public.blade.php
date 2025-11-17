@@ -33,7 +33,7 @@
             <li><strong>Aluno:</strong> {{ $user->display_name ?? $user->name }}</li>
             <li><strong>Curso:</strong> {{ $course->title }}</li>
             <li><strong>Emitido em:</strong> {{ $certificate->issued_at->format('d/m/Y') }}</li>
-            <li><strong>Carga horária:</strong> {{ $course->duration_minutes ?? '---' }} min</li>
+            <li><strong>Carga horária:</strong> {{ $course->duration_minutes ?? '600' }} min</li>
         </ul>
         <p style="margin:0;">Este certificado foi emitido pela plataforma EduX e pode ser confirmado pelo código <strong>{{ $certificate->number }}</strong>.</p>
     </div>

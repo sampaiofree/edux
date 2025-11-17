@@ -1,15 +1,18 @@
-@props(['status' => null, 'errors' => []])
+@props(['status' => null, 'errors' => [], 'error' => null])
 
 <div
     x-data="{
         toasts: [],
         counter: 0,
-        init(initial = null, errs = []) {
+        init(initial = null, errs = [], singleError = null) {
             if (initial) {
                 this.add({ message: initial, type: 'success' });
             }
             if (errs && errs.length) {
                 errs.forEach(msg => this.add({ message: msg, type: 'error', timeout: 6000 }));
+            }
+            if (singleError) {
+                this.add({ message: singleError, type: 'error', timeout: 6000 });
             }
         },
         add({ message, type = 'info', timeout = 4000 }) {

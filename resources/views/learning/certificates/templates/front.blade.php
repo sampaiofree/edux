@@ -7,11 +7,11 @@
     $titlePx = (($settings->certificate_title_size ?? 68)) . 'px'; // nome do aluno
     $subtitlePx = (($settings->certificate_subtitle_size ?? 52)) . 'px'; // nome do curso
     $bodyPx = (($settings->certificate_body_size ?? 40)) . 'px'; // demais linhas
-    $courseStart = optional($course->created_at)->format('d/m/Y') ?? '---';
+    $courseStart = optional($course->created_at)->format('d/m/Y') ?? '01/01/2024';
     $courseEnd = $issuedAt->format('d/m/Y');
     $durationHours = $course->duration_minutes
         ? round($course->duration_minutes / 60, 1) . ' horas'
-        : '---';
+        : 'x horas';
 @endphp
 
 <div style="{{ $frontStyle }}">

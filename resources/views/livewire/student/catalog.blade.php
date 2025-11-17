@@ -2,7 +2,7 @@
     <div class="rounded-card bg-white p-5 shadow-card">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <p class="text-sm uppercase tracking-wide text-edux-primary">Vitrine</p>
+                <p class="text-sm uppercase tracking-wide text-edux-primary">+Cursos</p>
                 <h2 class="text-2xl font-display text-edux-primary">Cursos disponíveis</h2>
             </div>
             <input type="search" wire:model.debounce.400ms="search" placeholder="Buscar curso"
@@ -16,9 +16,6 @@
     <div class="grid gap-4 md:grid-cols-2">
         @forelse ($courses as $course)
             <article class="rounded-card bg-white shadow-card overflow-hidden flex flex-col">
-                @if ($course->coverImageUrl())
-                    <img src="{{ $course->coverImageUrl() }}" alt="{{ $course->title }}" class="h-40 w-full object-cover">
-                @endif
                 @php
                     $coverUrl = $course->coverImageUrl() ?? $defaultCourseCover;
                 @endphp

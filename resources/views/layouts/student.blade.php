@@ -69,9 +69,9 @@
                     <!-- A├º├Áes do Usu├írio (Desktop) -->
                     <div class="hidden md:flex items-center gap-4">
                         <nav class="flex items-center gap-4">
-                            <a href="{{ route('dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">In├¡cio</a>
+                            <a href="{{ route('dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Início</a>
                             <a href="{{ route('dashboard', ['tab' => 'cursos']) }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Meus Cursos</a>
-                            <a href="{{ route('dashboard', ['tab' => 'vitrine']) }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Vitrine</a>
+                            <a href="{{ route('dashboard', ['tab' => 'vitrine']) }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">+Cursos</a>
                         </nav>
                         
                         <div class="h-6 w-px bg-gray-200"></div>

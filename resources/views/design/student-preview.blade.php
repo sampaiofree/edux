@@ -26,7 +26,7 @@
 
             <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center justify-center">
                 <div class="text-4xl mb-2">🛒</div>
-                <span class="text-sm font-semibold">Vitrine</span>
+                <span class="text-sm font-semibold">+Cursos</span>
             </div>
 
             <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center justify-center">
@@ -110,7 +110,7 @@
 
             <div class="flex flex-col items-center text-[#666]">
                 <div class="text-2xl">🛒</div>
-                <span class="text-xs">Vitrine</span>
+                <span class="text-xs"></span>
             </div>
 
             <div class="flex flex-col items-center text-[#666]">

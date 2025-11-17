@@ -219,9 +219,9 @@
                 return (text || '')
                     .replaceAll('{student}', data.student || 'Aluno')
                     .replaceAll('{course}', data.course || 'Curso')
-                    .replaceAll('{duration}', data.duration || '---')
-                    .replaceAll('{start}', data.start || '---')
-                    .replaceAll('{end}', data.end || '---');
+                    .replaceAll('{duration}', data.duration || 'X horas')
+                    .replaceAll('{start}', data.start || '01/01/2024')
+                    .replaceAll('{end}', data.end || '01/06/2024');
             };
 
             const drawFront = (ctx, canvas, opts) => {

@@ -436,7 +436,7 @@ Ao propor mudanças no design system:
 
   * Meus cursos
   * Certificados
-  * Vitrine de cursos
+  * +Cursos
   * Notificações
   * Duxes (moeda virtual)
 
@@ -521,7 +521,7 @@ Sempre presente no app (exceto em tela de vídeo full screen):
 
 1. 🏠 **Home**
 2. 🎓 **Meus cursos**
-3. 🛒 **Vitrine**
+3. 🛒 **+Cursos**
 4. ☰ **Mais** (perfil, notificações, ajuda, sair)
 
 **Regras:**
@@ -545,7 +545,7 @@ Cards padrão:
 
 1. 🎓 **Meus cursos**
 2. 📜 **Certificados**
-3. 🛒 **Vitrine**
+3. 🛒 **+Cursos**
 4. 🔔 **Notificações**
 5. 💰 **Meus duxes**
 
@@ -568,7 +568,7 @@ Exemplos de texto:
 
 * “Meus cursos”
 * “Certificados”
-* “Ver vitrine”
+* “+Cursos”
 * “Alertas”
 * “Meus duxes”
 
@@ -607,7 +607,7 @@ Usar sempre os mesmos ícones para manter hábito visual:
 * Home: 🏠
 * Meus cursos: 🎓
 * Certificados: 📜
-* Vitrine: 🛒
+* +Cursos: 🛒
 * Notificações: 🔔
 * Perfil: 👤
 * Ajuda / suporte: ❓
@@ -624,7 +624,7 @@ Se depois criar um ícone gráfico próprio para “Duxes”, manter o mesmo con
 
 * “Meus cursos”
 * “Certificados”
-* “Vitrine de cursos”
+* “+Cursos”
 * “Notificações”
 * “Meus duxes”
 
@@ -643,7 +643,7 @@ Se depois criar um ícone gráfico próprio para “Duxes”, manter o mesmo con
 * Sem cursos:
 
   * “Você ainda não tem cursos.”
-  * Botão: “Ver cursos na vitrine”
+  * Botão: “Ver +cursos”
 
 * Sem certificados:
 

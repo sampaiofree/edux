@@ -10,11 +10,11 @@
         $titleSize = $settings->certificate_title_size ?? 68;
         $subtitleSize = $settings->certificate_subtitle_size ?? 52;
         $bodySize = $settings->certificate_body_size ?? 40;
-        $courseStart = optional($course->created_at)->format('d/m/Y') ?? '---';
+        $courseStart = optional($course->created_at)->format('d/m/Y') ?? '01/01/2024';
         $courseEnd = now()->format('d/m/Y');
         $durationHours = $course->duration_minutes
             ? round($course->duration_minutes / 60, 1) . ' horas'
-            : '---';
+            : 'x horas';
         $studentName = auth()->check() ? auth()->user()->preferredName() : 'Seu nome aqui';
         $programText = $course->modules->flatMap(fn ($module) => [
             "Modulo {$module->position} - {$module->title}",
@@ -38,7 +38,7 @@
                 <p class="text-slate-600">{{ $course->description }}</p>
                 <div class="flex flex-wrap gap-4 text-sm text-slate-500">
                     <span>Alunos: <strong class="text-edux-primary">{{ $studentCount }}</strong></span>
-                    <span>Carga horaria: <strong class="text-edux-primary">{{ $course->duration_minutes ?? '---' }} min</strong></span>
+                    <span>Carga horaria: <strong class="text-edux-primary">{{ $course->duration_minutes ?? '600' }} min</strong></span>
                 </div>
                 @auth
                     <form method="POST" action="{{ route('learning.courses.enroll', $course) }}" class="mt-4">
@@ -148,7 +148,7 @@
 
                             y += bodyPx * 1.4;
                             ctx.font = `${bodyPx}px "Inter", Arial, sans-serif`;
-                            const line6 = `Com carga horária de ${opts.duration || '---'}, no período de ${opts.start || '---'} a ${opts.end || '---'}, promovido pelo portal de cursos EDUX.`;
+                            const line6 = `Com carga horária de ${opts.duration || 'x horas'}, no período de ${opts.start || '01/01/2024'} a ${opts.end || '01/06/2024'}, promovido pelo portal de cursos EDUX.`;
                             const maxWidth = canvas.width * 0.86;
                             const lines = splitLines(ctx, line6, maxWidth);
                             const lineHeight = Math.round(bodyPx * 1.2);
