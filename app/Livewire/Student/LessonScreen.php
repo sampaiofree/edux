@@ -32,9 +32,11 @@ class LessonScreen extends Component
     public bool $canRename;
     public bool $hasPaidCertificate = false;
     public bool $showPaymentModal = false;
+    public ?int $duxEarnedAmount = null;
 
     private $user;
     private $enrollment;
+    private bool $shouldDispatchDuxEarned = false;
 
     public function mount(int $courseId, int $lessonId): void
     {
@@ -47,28 +49,49 @@ class LessonScreen extends Component
 
         $this->lesson = Lesson::with('module')->findOrFail($lessonId);
 
-        abort_if($this->lesson->module->course_id !== $this->course->id, 404);
+        abort_if(! $this->lesson->module || $this->lesson->module->course_id !== $this->course->id, 404);
 
         $this->enrollment = $this->ensureEnrollment($this->user, $this->course);
         $this->canRename = $this->user->name_change_available ?? false;
+        $this->duxEarnedAmount = session()->pull('dux_earned_amount');
+        $this->shouldDispatchDuxEarned = (bool) $this->duxEarnedAmount;
 
         $this->refreshState();
     }
 
+    public function hydrate(): void
+    {
+        $this->user = Auth::user();
+
+        if ($this->user && $this->course) {
+            $this->enrollment = $this->ensureEnrollment($this->user, $this->course);
+        }
+    }
+
     public function completeLesson(): void
     {
+        if (! $this->user) {
+            $this->errorMessage = "Sessao expirada. Entre novamente.";
+            return;
+        }
+
+        if (! $this->lesson) {
+            $this->errorMessage = "Aula nao encontrada.";
+            return;
+        }
+
         if ($this->isCompleted) {
-            $this->statusMessage = 'Esta aula já está marcada como concluída.';
+            $this->statusMessage = "Esta aula ja esta marcada como concluida.";
             return;
         }
 
         LessonCompletion::updateOrCreate(
             [
-                'lesson_id' => $this->lesson->id,
-                'user_id' => $this->user->id,
+                "lesson_id" => $this->lesson->id,
+                "user_id" => $this->user->id,
             ],
             [
-                'completed_at' => now(),
+                "completed_at" => now(),
             ]
         );
 
@@ -78,26 +101,34 @@ class LessonScreen extends Component
         $this->refreshState();
 
         try {
-            app(DuxWalletService::class)->applyRule($this->user, 'lesson_completed', [
-                'lesson_id' => $this->lesson->id,
-                'course_id' => $this->course->id,
+            $earned = 1;
+
+            app(DuxWalletService::class)->applyRule($this->user, "lesson_completed", [
+                "lesson_id" => $this->lesson->id,
+                "course_id" => $this->course->id,
             ]);
-        } catch (\Throwable $e) {
+
+            // dispara evento imediato e persiste para proxima navegao
+            $this->dispatch("dux-earned", ["amount" => $earned]);
+            session()->flash('dux_earned_amount', $earned);
+            $this->duxEarnedAmount = null;
+            $this->shouldDispatchDuxEarned = false;
+        } catch (Throwable $e) {
             // nao bloqueia fluxo se regra nao existir ou falhar
         }
 
         if ($nextLesson && $nextLesson->id !== $this->lesson->id) {
-            $this->redirectRoute('learning.courses.lessons.show', [$this->course, $nextLesson], navigate: true);
+            $this->redirectRoute("learning.courses.lessons.show", [$this->course, $nextLesson], navigate: true);
             return;
         }
 
-        $this->statusMessage = 'Parabéns! Todas as aulas foram concluídas. Você já pode solicitar o certificado.';
+        $this->statusMessage = "Parabens! Todas as aulas foram concluidas. Voce ja pode solicitar o certificado.";
     }
 
     public function requestCertificate(): void
     {
         if (! $this->certificate && ! $this->hasPaidCertificate) {
-            $this->errorMessage = 'Antes de emitir o certificado finalize o pagamento. Use a aba "Suporte" para receber instruções.';
+            $this->errorMessage = 'Antes de emitir o certificado finalize o pagamento. Use a aba "Suporte" para receber instruÃ§Ãµes.';
             return;
         }
 
@@ -188,6 +219,12 @@ class LessonScreen extends Component
 
     public function render()
     {
+        if ($this->shouldDispatchDuxEarned && $this->duxEarnedAmount) {
+            $this->dispatch('dux-earned', ['amount' => $this->duxEarnedAmount]);
+            $this->duxEarnedAmount = null;
+            $this->shouldDispatchDuxEarned = false;
+        }
+
         return view('livewire.student.lesson-screen');
     }
 
@@ -236,7 +273,7 @@ class LessonScreen extends Component
             ->count();
 
         if ($totalLessons === 0) {
-            return [false, 'Este curso ainda não possui aulas cadastradas.'];
+            return [false, 'Este curso ainda nÃ£o possui aulas cadastradas.'];
         }
 
         if ($completedLessons < $totalLessons) {
@@ -251,7 +288,7 @@ class LessonScreen extends Component
                 ->exists();
 
             if (! $passed) {
-                return [false, 'Você precisa atingir a nota mínima no teste final para liberar o certificado.'];
+                return [false, 'VocÃª precisa atingir a nota mÃ­nima no teste final para liberar o certificado.'];
             }
         }
 

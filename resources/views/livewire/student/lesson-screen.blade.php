@@ -5,6 +5,28 @@
     videoReady: false 
 }" class="min-h-screen bg-gray-50 pb-6">
 
+    <div x-data="{ show:false, amount:0, timeout:null }"
+         x-show="show"
+         x-transition.opacity
+         x-transition.duration.300ms
+         @dux-earned.window="
+            amount = $event.detail?.amount || 0;
+            show = true;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => show = false, 2500);
+         "
+         class="fixed right-4 top-4 z-50">
+        <div class="flex items-center gap-3 rounded-xl bg-amber-100 px-4 py-3 shadow-lg border border-amber-200">
+            <svg class="h-6 w-6 text-amber-500 animate-spin-slow" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L10 14.77l-4.78 2.51.91-5.32L2.27 7.62l5.34-.78L10 2z"/>
+            </svg>
+            <div>
+                <p class="text-sm font-bold text-amber-800">🪙 Você ganhou <span x-text="amount"></span> DUX!</p>
+                <p class="text-xs text-amber-700">Parabéns por concluir a aula</p>
+            </div>
+        </div>
+    </div>
+
     {{-- Header compacto e informativo --}}
     <header class="sticky top-0 z-30 bg-white shadow-sm border-b">
         <div class="max-w-4xl mx-auto px-4 py-3">
@@ -118,8 +140,8 @@
                     </svg>
                     Marcar aula como concluída
                 </span>
-                <span wire:loading wire:target="completeLesson" class="flex items-center justify-center gap-2">
-                    <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <span wire:loading wire:target="completeLesson" class="inline-flex items-center justify-center gap-2 whitespace-nowrap">
+                    <svg class="animate-spin h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
