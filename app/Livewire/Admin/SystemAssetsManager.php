@@ -106,10 +106,7 @@ class SystemAssetsManager extends Component
         if (! $file) {
             $message = 'Selecione um arquivo para continuar.';
             session()->flash('status', $message);
-            $this->dispatch('notify', [
-                'type' => 'error',
-                'message' => $message,
-            ]);
+            $this->dispatch('notify', type: 'error', message: $message);
             return;
         }
 
@@ -126,10 +123,7 @@ class SystemAssetsManager extends Component
 
         $successMessage = $this->fieldMap[$field]['label'].' atualizado.';
         session()->flash('status', $successMessage);
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => $successMessage,
-        ]);
+        $this->dispatch('notify', type: 'success', message: $successMessage);
     }
 
     public function render()

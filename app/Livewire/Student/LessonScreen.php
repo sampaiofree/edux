@@ -8,6 +8,7 @@ use App\Models\CertificatePayment;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\LessonCompletion;
+use App\Models\SystemSetting;
 use App\Services\DuxWalletService;
 use App\Support\EnsuresStudentEnrollment;
 use Illuminate\Support\Facades\Auth;
@@ -150,6 +151,7 @@ class LessonScreen extends Component
         $branding = $this->resolveBranding($this->course);
         $issuedAt = now();
         $displayName = $this->user->preferredName();
+        $settings = SystemSetting::current();
 
         if (! $certificate->exists) {
             $certificate->number = 'EDUX-' . strtoupper(Str::random(8));
@@ -162,11 +164,13 @@ class LessonScreen extends Component
                 'displayName' => $displayName,
                 'issuedAt' => $issuedAt,
                 'publicUrl' => $publicUrl,
+                'settings' => $settings,
             ])->render();
 
             $certificate->back_content = view('learning.certificates.templates.back', [
                 'course' => $this->course,
                 'branding' => $branding,
+                'settings' => $settings,
             ])->render();
 
             $certificate->issued_at = $issuedAt;

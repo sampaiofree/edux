@@ -19,6 +19,12 @@ class SystemSetting extends Model
         'default_lesson_cover_path',
         'default_certificate_front_path',
         'default_certificate_back_path',
+        'certificate_title_size',
+        'certificate_subtitle_size',
+        'certificate_body_size',
+        'certificate_front_line1',
+        'certificate_front_line3',
+        'certificate_front_line6',
     ];
 
     public static function current(): self

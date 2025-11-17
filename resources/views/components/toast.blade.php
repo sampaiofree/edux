@@ -14,9 +14,16 @@
         },
         add({ message, type = 'info', timeout = 4000 }) {
             if (!message) return;
+            // Avoid duplicating the same toast (e.g. session + Livewire dispatch).
+            if (this.toasts.some(t => t.message === message && t.type === type)) return;
             const id = ++this.counter;
             this.toasts.push({ id, message, type });
             setTimeout(() => this.remove(id), timeout);
+        },
+        hookLivewire() {
+            if (window.Livewire?.on) {
+                Livewire.on('notify', (detail = {}) => this.show(detail));
+            }
         },
         remove(id) {
             this.toasts = this.toasts.filter(t => t.id !== id);
@@ -31,7 +38,7 @@
             return { bg: 'bg-slate-100', text: 'text-slate-900', accent: 'bg-slate-500' };
         },
     }"
-    x-init="init({{ json_encode($status) }}, {{ json_encode($errors) }})"
+    x-init="init({{ json_encode($status) }}, {{ json_encode($errors) }}); hookLivewire();"
     @notify.window="show($event.detail)"
     class="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-3 sm:right-6 sm:top-6 sm:max-w-md"
 >

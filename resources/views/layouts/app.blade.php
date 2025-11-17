@@ -48,6 +48,7 @@
                 @if ($isAdmin)
                     <a href="{{ route('admin.users.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Usuarios</a>
                     <a href="{{ route('admin.identity') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Identidade</a>
+                    <a href="{{ route('certificates.branding.edit') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Certificados</a>
                     <a href="{{ route('admin.dux.rules.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Regras Duxes</a>
                     <!--<a href="{{ route('admin.dux.packs.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Pacotes Duxes</a>-->
                     <a href="{{ route('admin.certificates.payments') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Pagamentos certificados</a>
@@ -68,6 +69,7 @@
                     <ul class="space-y-2 text-sm font-semibold text-slate-700">
                         <li><a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Usuarios</a></li>
                         <li><a href="{{ route('admin.identity') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Identidade</a></li>
+                        <li><a href="{{ route('certificates.branding.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados</a></li>
                         <li><a href="{{ route('admin.dux.rules.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Regras Duxes</a></li>
                         <!--<li><a href="{{ route('admin.dux.packs.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Pacotes Duxes</a></li>-->
                         <li><a href="{{ route('dashboard', ['tab' => 'cursos']) }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Cursos cadastrados</a></li>

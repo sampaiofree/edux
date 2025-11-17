@@ -37,12 +37,9 @@ class ProfileForm extends Component
         $user = Auth::user();
 
         if (! $this->canRename && $this->name !== $user->name) {
-            $message = 'Você já utilizou sua troca de nome.';
+            $message = 'Voce ja utilizou sua troca de nome.';
             $this->addError('name', $message);
-            $this->dispatch('notify', [
-                'type' => 'error',
-                'message' => $message,
-            ]);
+            $this->dispatch('notify', type: 'error', message: $message);
             return;
         }
 
@@ -81,10 +78,7 @@ class ProfileForm extends Component
         $user->save();
 
         $successMessage = 'Perfil atualizado com sucesso.';
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => $successMessage,
-        ]);
+        $this->dispatch('notify', type: 'success', message: $successMessage);
         session()->flash('status', $successMessage);
         $this->reset(['password', 'password_confirmation']);
     }
