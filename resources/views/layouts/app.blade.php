@@ -59,22 +59,7 @@
     </header>
 
     <main class="mx-auto max-w-6xl px-4 py-10 pb-28">
-        @if (session('status'))
-            <div class="mb-4 rounded-2xl border-l-4 border-emerald-500 bg-emerald-50 p-5 text-emerald-900 shadow-card">
-                {{ session('status') }}
-            </div>
-        @endif
-
-        @if ($errors->any())
-            <div class="mb-4 rounded-2xl border-l-4 border-red-500 bg-red-50 p-5 text-red-900 shadow-card">
-                <strong class="font-semibold">Atencao</strong>
-                <ul class="mt-2 list-disc space-y-1 pl-5">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        <x-toast :status="session('status')" :errors="$errors->all()" />
 
         <div class="flex gap-6">
             @if ($isAdmin)

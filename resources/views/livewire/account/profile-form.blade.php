@@ -45,8 +45,7 @@
 
         <div class="space-y-2 text-sm font-semibold text-slate-600">
             <span>Qualificação</span>
-            <input id="qualification-editor" type="hidden" wire:model.defer="qualification">
-            <trix-editor input="qualification-editor" class="rounded-xl border border-edux-line bg-edux-background" wire:ignore></trix-editor>
+            <textarea id="qualification" wire:model.defer="qualification" rows="4" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30" placeholder="Descreva sua qualificação..."></textarea>
             @error('qualification') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
         </div>
 

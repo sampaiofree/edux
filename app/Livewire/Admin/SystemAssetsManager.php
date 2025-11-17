@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Admin;
 
@@ -29,42 +29,42 @@ class SystemAssetsManager extends Component
         'favicon' => [
             'column' => 'favicon_path',
             'label' => 'Favicon',
-            'hint' => 'PNG/SVG até 256 KB',
+            'hint' => 'PNG/SVG atÃ© 256 KB',
         ],
         'logo' => [
             'column' => 'default_logo_path',
-            'label' => 'Logo padrão',
-            'hint' => 'PNG transparente até 512 KB',
+            'label' => 'Logo padrÃ£o',
+            'hint' => 'PNG transparente atÃ© 512 KB',
         ],
         'logo_dark' => [
             'column' => 'default_logo_dark_path',
-            'label' => 'Logo (versão dark)',
-            'hint' => 'PNG branco translúcido para fundos escuros',
+            'label' => 'Logo (versÃ£o dark)',
+            'hint' => 'PNG branco translÃºcido para fundos escuros',
         ],
         'course' => [
             'column' => 'default_course_cover_path',
-            'label' => 'Imagem padrão do curso',
-            'hint' => 'Sugestão 1280x720 px',
+            'label' => 'Imagem padrÃ£o do curso',
+            'hint' => 'SugestÃ£o 1280x720 px',
         ],
         'module' => [
             'column' => 'default_module_cover_path',
-            'label' => 'Imagem padrão do módulo',
-            'hint' => 'Sugestão 800x400 px',
+            'label' => 'Imagem padrÃ£o do mÃ³dulo',
+            'hint' => 'SugestÃ£o 800x400 px',
         ],
         'lesson' => [
             'column' => 'default_lesson_cover_path',
-            'label' => 'Imagem padrão da aula',
-            'hint' => 'Sugestão 800x400 px',
+            'label' => 'Imagem padrÃ£o da aula',
+            'hint' => 'SugestÃ£o 800x400 px',
         ],
         'certificate_front' => [
             'column' => 'default_certificate_front_path',
             'label' => 'Fundo frente do certificado',
-            'hint' => 'Sugestão A4 paisagem',
+            'hint' => 'SugestÃ£o A4 paisagem',
         ],
         'certificate_back' => [
             'column' => 'default_certificate_back_path',
             'label' => 'Fundo verso do certificado',
-            'hint' => 'Sugestão A4 paisagem',
+            'hint' => 'SugestÃ£o A4 paisagem',
         ],
     ];
 
@@ -89,7 +89,7 @@ class SystemAssetsManager extends Component
 
     public function updatedUploads(): void
     {
-        // Reseta mensagens de sucesso sempre que novo arquivo é escolhido.
+        // Reseta mensagens de sucesso sempre que novo arquivo Ã© escolhido.
         session()->forget('status');
     }
 
@@ -104,7 +104,12 @@ class SystemAssetsManager extends Component
         $file = $this->uploads[$field];
 
         if (! $file) {
-            session()->flash('status', 'Selecione um arquivo para continuar.');
+            $message = 'Selecione um arquivo para continuar.';
+            session()->flash('status', $message);
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => $message,
+            ]);
             return;
         }
 
@@ -119,7 +124,12 @@ class SystemAssetsManager extends Component
 
         $this->uploads[$field] = null;
 
-        session()->flash('status', $this->fieldMap[$field]['label'].' atualizado.');
+        $successMessage = $this->fieldMap[$field]['label'].' atualizado.';
+        session()->flash('status', $successMessage);
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $successMessage,
+        ]);
     }
 
     public function render()
@@ -130,3 +140,4 @@ class SystemAssetsManager extends Component
         ]);
     }
 }
+

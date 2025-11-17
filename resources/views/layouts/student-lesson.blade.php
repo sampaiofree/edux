@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR" x-data="{ mobileMenu: false }">
     <head>
         <meta charset="utf-8">
@@ -34,31 +34,16 @@
             $navActive = 'cursos';
         @endphp
         <main class="mx-auto max-w-6xl space-y-6 px-4 py-10">
-            @if (session('status'))
-                <div class="rounded-2xl border-l-4 border-emerald-500 bg-emerald-50 p-5 text-emerald-900 shadow-card">
-                    âœ… {{ session('status') }}
-                </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="rounded-2xl border-l-4 border-red-500 bg-red-50 p-5 text-red-900 shadow-card">
-                    <strong class="font-semibold">âš ï¸ AtenÃ§Ã£o</strong>
-                    <ul class="mt-2 list-disc space-y-1 pl-5">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+            <x-toast :status="session('status')" :errors="$errors->all()" />
 
             @yield('content')
         </main>
 
     <footer class="bg-edux-primary text-white">
         <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-center md:flex-row md:text-left">
-            <p class="font-semibold">Â© {{ now()->year }} EduX Â· Aprender Ã© simples.</p>
+            <p class="font-semibold">�� {{ now()->year }} EduX �� Aprender Ǹ simples.</p>
             <div class="flex gap-4 text-sm opacity-80">
-                <a href="#">PolÃ­ticas</a>
+                <a href="#">Pol��ticas</a>
                 <a href="#">Suporte</a>
                 <a href="#">Status</a>
             </div>
@@ -71,7 +56,7 @@
         @endauth
         @livewireScripts
         @stack('scripts')
-        <!-- Adicione preload de fontes crÃ­ticas -->
+        <!-- Adicione preload de fontes cr��ticas -->
         <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" as="style">
 
         <!-- Lazy load de componentes pesados -->
@@ -91,4 +76,4 @@
         @endpush
     </body>
 </html> 
-
+ 

@@ -1,15 +1,10 @@
-<section class="rounded-card bg-white p-6 shadow-card space-y-6">
+﻿<section class="rounded-card bg-white p-6 shadow-card space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <p class="text-sm uppercase tracking-wide text-edux-primary">Identidade visual</p>
-            <h2 class="text-2xl font-display text-edux-primary">Padrões do sistema</h2>
+            <h2 class="text-2xl font-display text-edux-primary">PadrÃµes do sistema</h2>
             <p class="text-sm text-slate-600">Envie arquivos base para manter todos os cursos com a mesma cara.</p>
         </div>
-        @if (session('status'))
-            <span class="rounded-full bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-700">
-                {{ session('status') }}
-            </span>
-        @endif
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -55,3 +50,4 @@
         @endforeach
     </div>
 </section>
+

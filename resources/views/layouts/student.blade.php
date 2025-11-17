@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR" x-data="studentLayout()" x-init="init()">
     <head>
         <meta charset="utf-8">
@@ -66,10 +66,10 @@
                         @endif
                     </a>
 
-                    <!-- Ações do Usuário (Desktop) -->
+                    <!-- A├º├Áes do Usu├írio (Desktop) -->
                     <div class="hidden md:flex items-center gap-4">
                         <nav class="flex items-center gap-4">
-                            <a href="{{ route('dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Início</a>
+                            <a href="{{ route('dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">In├¡cio</a>
                             <a href="{{ route('dashboard', ['tab' => 'cursos']) }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Meus Cursos</a>
                             <a href="{{ route('dashboard', ['tab' => 'vitrine']) }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Vitrine</a>
                         </nav>
@@ -77,11 +77,11 @@
                         <div class="h-6 w-px bg-gray-200"></div>
 
                         <div class="flex items-center gap-2">
-                            <!-- Ícone DUX com Badge -->
+                            <!-- ├ìcone DUX com Badge -->
                             <div class="relative">
                                 <button type="button" class="p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none" title="Seus DUX" aria-label="Saldo de DUX">
                                     <span class="sr-only">Saldo de DUX</span>
-                                    <span aria-hidden="true" class="text-2xl">🪙</span>
+                                    <span aria-hidden="true" class="text-2xl">­ƒ¬Ö</span>
                                 </button>
                                 <div x-text="duxBalance"
                                      :class="bump ? 'scale-125' : ''"
@@ -90,9 +90,9 @@
                                 </div>
                             </div>
                             
-                            <!-- Ícone Notificações com Badge -->
-                            <a href="{{ route('learning.notifications.index') }}" class="relative p-2 rounded-full text-gray-500 hover:bg-gray-100" title="Notificações" aria-label="Notificações">
-                                <span class="sr-only">Notificações</span>
+                            <!-- ├ìcone Notifica├º├Áes com Badge -->
+                            <a href="{{ route('learning.notifications.index') }}" class="relative p-2 rounded-full text-gray-500 hover:bg-gray-100" title="Notifica├º├Áes" aria-label="Notifica├º├Áes">
+                                <span class="sr-only">Notifica├º├Áes</span>
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                                 @if ($unreadCount > 0)
                                     <span class="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow">
@@ -118,9 +118,9 @@
                         </div>
                     </div>
 
-                    <!-- Ações do Usuário (Mobile) -->
+                    <!-- A├º├Áes do Usu├írio (Mobile) -->
                     <div class="flex items-center gap-2 md:hidden">
-                         <!-- Ícone DUX com Badge -->
+                         <!-- ├ìcone DUX com Badge -->
                         <div class="relative">
                             <button
                                 type="button"
@@ -139,13 +139,13 @@
                             <div x-text="duxBalance" :class="bump ? 'scale-125' : ''" style="transition: transform 0.3s;" class="absolute -top-1 -right-2 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-400 px-1 text-xs font-bold text-white"></div>
                         </div>
                         
-                        <!-- Ícone Notificações com Badge -->
+                        <!-- ├ìcone Notifica├º├Áes com Badge -->
                         <a
                             href="{{ route('learning.notifications.index') }}"
                             class="relative flex h-10 w-10 items-center justify-center rounded-md  bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-blue-600"
-                            aria-label="Notificações"
+                            aria-label="Notifica├º├Áes"
                         >
-                            <span class="sr-only">Notificações</span>
+                            <span class="sr-only">Notifica├º├Áes</span>
                             <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                             @if ($unreadCount > 0)
                                 <span class="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{{ $unreadCount }}</span>
@@ -156,24 +156,8 @@
             </div>
         </header>
 
-        <main class="mx-auto max-w-6xl space-y-6 px-4 py-8">
-            @if (session('status'))
-                <div class="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 p-4 text-emerald-900">
-                    {{ session('status') }}
-                </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 text-red-900">
-                    <strong class="font-semibold">Atenção</strong>
-                    <ul class="mt-2 list-disc space-y-1 pl-5">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
+        <main class="mx-auto max-w-6xl space-y-6 py-8">
+            <x-toast :status="session('status')" :errors="$errors->all()" />
             @yield('content')
         </main>
 
@@ -247,3 +231,4 @@
         @endif
     </body>
 </html>
+

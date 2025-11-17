@@ -20,6 +20,4 @@
     </section>
 @endsection
 
-@push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/trix@2.1.0/dist/trix.umd.min.js" defer></script>
-@endpush
+
