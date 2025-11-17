@@ -157,7 +157,7 @@
         </header>
 
         <main class="mx-auto max-w-6xl space-y-6 px-2 py-8">
-            <x-toast :status="session('status')" :errors="$errors->all()" />
+            <x-toast :status="session('status')" :errors="$errors->all()" :error="session('error')" />
             @yield('content')
         </main>
 

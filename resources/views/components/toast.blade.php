@@ -41,7 +41,7 @@
             return { bg: 'bg-slate-100', text: 'text-slate-900', accent: 'bg-slate-500' };
         },
     }"
-    x-init="init({{ json_encode($status) }}, {{ json_encode($errors) }}); hookLivewire();"
+    x-init="init({{ json_encode($status) }}, {{ json_encode($errors) }}, {{ json_encode($error ?? null) }}); hookLivewire();"
     @notify.window="show($event.detail)"
     class="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-3 sm:right-6 sm:top-6 sm:max-w-md"
 >

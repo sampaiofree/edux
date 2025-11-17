@@ -3,11 +3,11 @@
 @endphp
 
 <section class="space-y-4">
-    <div class="rounded-card bg-white p-5 shadow-card">
+    <!--<div class="rounded-card bg-white p-5 shadow-card">
         <p class="text-sm uppercase tracking-wide text-edux-primary">Notificacoes</p>
         <h2 class="text-2xl font-display text-edux-primary">Mensagens para voce</h2>
         <p class="text-slate-600 text-sm">Fique por dentro de tudo o que acontece no EduX.</p>
-    </div>
+    </div>-->
 
     <div class="space-y-4">
         @forelse ($notifications as $notification)
