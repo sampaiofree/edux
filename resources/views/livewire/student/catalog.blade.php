@@ -16,6 +16,12 @@
     <div class="grid gap-4 md:grid-cols-2">
         @forelse ($courses as $course)
             <article class="rounded-card bg-white shadow-card overflow-hidden flex flex-col">
+<<<<<<< Updated upstream
+=======
+                @if ($course->coverImageUrl())
+                    <img src="{{ $course->coverImageUrl() }}" alt="{{ $course->title }}" class="h-40 w-full object-cover">
+                @endif
+>>>>>>> Stashed changes
                 @php
                     $coverUrl = $course->coverImageUrl() ?? $defaultCourseCover;
                 @endphp
