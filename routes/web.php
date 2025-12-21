@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\SystemIdentityController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\CourseCertificateController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
@@ -20,6 +21,8 @@ Route::view('design/student-courses', 'student.courses')->name('design.student.c
 
 
 Route::redirect('/', '/dashboard');
+Route::get('/certificado', [CertificadoController::class, 'index'])->name('certificado.index');
+Route::get('/certificado/download', [CertificadoController::class, 'download'])->name('certificado.download');
 Route::get('/certificates/verify/{token}', PublicCertificateController::class)->name('certificates.verify');
 Route::get('/catalogo/{course:slug}', PublicCoursePageController::class)->name('courses.public.show');
 
