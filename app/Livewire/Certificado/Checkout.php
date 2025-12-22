@@ -3,6 +3,7 @@
 namespace App\Livewire\Certificado;
 
 use App\Models\Course;
+use App\Services\CertificadoService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Component;
@@ -21,10 +22,24 @@ class Checkout extends Component
     public string $whatsapp = '';
     public string $email = '';
     public int $workload = 160;
+    public ?Course $course = null;
+    public array $preview = [
+        'front' => null,
+        'back'  => null,
+    ];
+    public ?string $cpf = null;
+    public ?string $previewError = null;
 
     public function mount(?string $course = null): void
     {
-        $this->courseName = $course ?? '';
+        if ($course) {
+            $this->course = Course::where('slug', $course)->firstOrFail();
+        } else {
+            $this->course = Course::query()->orderBy('title')->firstOrFail();
+        }
+
+        $this->courseName = $this->course->title;
+        $this->selectedCourseId = $this->course->id;
         $this->completionDate = Carbon::now()->format('Y-m-d');
     }
 
@@ -55,12 +70,19 @@ class Checkout extends Component
         }
 
         $this->selectedCourseId = $course->id;
+        $this->course = $course;
         $this->courseName = $course->title;
+        $this->preview = ['front' => null, 'back' => null];
+        $this->previewError = null;
         $this->showCourseModal = false;
     }
 
     public function nextStep(): void
     {
+        if ($this->step === 1 && ! $this->canAdvanceFromStepOne()) {
+            return;
+        }
+
         $this->validateStep();
 
         if ($this->step < 5) {
@@ -85,9 +107,76 @@ class Checkout extends Component
         $this->showSuccess = true;
     }
 
-    public function formattedCompletionDate(): string
+    public function generatePreview(CertificadoService $service): void
     {
-        return Carbon::parse($this->completionDate)->format('d/m/Y');
+        $this->validate([
+            'certificateName' => ['required', 'string'],
+            'completionDate' => ['required', 'date'],
+        ]);
+
+        if (! $this->course) {
+            return;
+        }
+
+        $this->previewError = null;
+        $data = [
+            'student_name' => $this->certificateName,
+            'course_name' => $this->course->title,
+            'completed_at' => $this->completionDate,
+        ];
+
+        $frontPreview = $service->previewFrente($data, true);
+        $backPreview = $service->previewVerso($this->course, true);
+
+        $this->preview['front'] = $frontPreview;
+        $this->preview['back'] = $backPreview;
+
+        if (! $frontPreview || ! $backPreview) {
+            $this->previewError = 'Não foi possível gerar o preview agora. Tente novamente.';
+        }
+    }
+
+    public function updatedCertificateName(): void
+    {
+        $this->preview = ['front' => null, 'back' => null];
+        $this->previewError = null;
+    }
+
+    public function updatedCompletionDate(): void
+    {
+        $this->preview = ['front' => null, 'back' => null];
+        $this->previewError = null;
+    }
+
+    public function updatedCpf(?string $value): void
+    {
+        $sanitized = preg_replace('/\D/', '', $value ?: '');
+        $this->cpf = $sanitized !== '' ? $sanitized : null;
+    }
+
+    public function canGeneratePreview(): bool
+    {
+        return $this->certificateName !== '' && $this->completionDate !== '';
+    }
+
+    public function canAdvanceFromStepOne(): bool
+    {
+        return $this->course !== null;
+    }
+
+    public function getFormattedCpfProperty(): ?string
+    {
+        if (! $this->cpf || mb_strlen($this->cpf) !== 11) {
+            return null;
+        }
+
+        return sprintf(
+            '%s.%s.%s-%s',
+            substr($this->cpf, 0, 3),
+            substr($this->cpf, 3, 3),
+            substr($this->cpf, 6, 3),
+            substr($this->cpf, 9, 2),
+        );
     }
 
     private function validateStep(): void
@@ -95,14 +184,20 @@ class Checkout extends Component
         if ($this->step === 2) {
             $this->validate([
                 'certificateName' => ['required', 'string'],
+                'completionDate' => ['required', 'date'],
             ]);
         }
 
         if ($this->step === 3) {
             $this->validate([
-                'completionDate' => ['required', 'date'],
-                'whatsapp' => ['required', 'digits_between:10,11'],
+                'whatsapp' => ['required', 'regex:/^\+\d{10,15}$/'],
                 'email' => ['required', 'string'],
+            ]);
+        }
+
+        if ($this->step === 4 && empty($this->cpf)) {
+            $this->validate([
+                'cpf' => ['required', 'digits:11'],
             ]);
         }
     }

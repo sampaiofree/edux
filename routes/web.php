@@ -20,6 +20,15 @@ Route::view('design', 'design.student-preview')->name('design.student.preview');
 Route::view('design/student-dashboard', 'student.dashboard')->name('design.student.dashboard');
 Route::view('design/student-courses', 'student.courses')->name('design.student.courses');
 
+Route::get('/test-gs', function () {
+    return [
+        'shell' => shell_exec('which gs'),
+        'version' => shell_exec('gs --version'),
+        'env_path' => getenv('PATH'),
+    ];
+});
+
+
 
 Route::redirect('/', '/dashboard');
 Route::get('/certificado', [CertificadoController::class, 'index'])->name('certificado.index');

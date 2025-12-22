@@ -73,7 +73,7 @@
         <div class="space-y-6">
             <div class="space-y-2 text-center">
                 <p class="text-sm text-gray-500 font-['Inter']">Passo {{ $step }} de 5</p>
-                <h1 class="text-2xl font-bold text-black font-['Poppins']">Comprar certificado</h1>
+                <h1 class="text-2xl font-bold text-black font-['Poppins']">Emitir certificado</h1>
             </div>
 
             @if ($step === 1)
@@ -92,7 +92,12 @@
                         Declaro que concluí este curso e assisti todas as aulas.
                     </div>
 
-                    <button type="button" wire:click="nextStep" class="edux-btn w-full flex items-center justify-center">
+                    <button
+                        type="button"
+                        wire:click="nextStep"
+                        @disabled(! $this->canAdvanceFromStepOne())
+                        class="edux-btn w-full flex items-center justify-center"
+                    >
                         Confirmar conclusão
                     </button>
                 </div>
@@ -104,7 +109,7 @@
                         <label class="text-sm font-semibold text-black font-['Inter']">Nome no certificado</label>
                         <input
                             type="text"
-                            wire:model.defer="certificateName"
+                            wire:model.live.debounce.300ms="certificateName"
                             class="w-full rounded-lg border border-gray-300 px-3 py-3 font-['Inter']"
                             placeholder="Digite seu nome completo"
                         />
@@ -112,35 +117,15 @@
                             <p class="text-xs text-red-500 font-['Inter']">{{ $message }}</p>
                         @enderror
                         <p class="text-xs text-gray-500 font-['Inter']">
-                            Confira o nome. Não será possível alterar depois do pagamento.
+                            Confira o nome — depois do pagamento não será possível alterar.
                         </p>
                     </div>
 
-                    <div class="space-y-3">
-                        <p class="text-sm font-semibold text-black font-['Inter']">Pré-visualização</p>
-                        <div class="relative h-48 w-full rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            <div class="absolute top-4 left-4 text-xs text-gray-500 font-['Inter']">Prévia do certificado</div>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center space-y-1">
-                                <span class="text-base font-semibold text-black font-['Poppins']">
-                                    {{ $certificateName !== '' ? $certificateName : 'Seu nome aqui' }}
-                                </span>
-                                <span class="text-sm text-gray-700 font-['Inter']">
-                                    {{ $courseName !== '' ? $courseName : 'Nome do curso' }}
-                                </span>
-                                <span class="text-xs text-gray-500 font-['Inter']">{{ $this->formattedCompletionDate() }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            @if ($step === 3)
-                <div class="space-y-4">
                     <div class="space-y-2">
                         <label class="text-sm font-semibold text-black font-['Inter']">Data de conclusão</label>
                         <input
                             type="date"
-                            wire:model.defer="completionDate"
+                            wire:model.live="completionDate"
                             class="w-full rounded-lg border border-gray-300 px-3 py-3 font-['Inter']"
                         />
                         @error('completionDate')
@@ -149,24 +134,91 @@
                     </div>
 
                     <div class="space-y-2">
+                        <label class="text-sm font-semibold text-black font-['Inter']">CPF (opcional)</label>
+                        <input
+                            type="text"
+                            wire:model.defer="cpf"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-3 font-['Inter']"
+                            placeholder="Somente números"
+                        />
+                        <p class="text-xs text-gray-500 font-['Inter']">
+                            Informe agora para agilizar o PIX. Se preferir, adiciona no próximo passo.
+                        </p>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm font-semibold text-black font-['Inter']">Pré-visualização</p>
+                            <button
+                                type="button"
+                                wire:click="generatePreview"
+                                wire:loading.attr="disabled"
+                                class="text-sm font-semibold text-white bg-blue-600 rounded-xl px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                @disabled(! $this->canGeneratePreview())
+                            >
+                                Gerar preview
+                            </button>
+                        </div>
+
+                        <div class="relative min-h-[220px] w-full rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            @if ($preview['front'] && $preview['back'])
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <img src="{{ $preview['front'] }}" alt="Preview da frente" class="rounded-lg shadow" />
+                                    <img src="{{ $preview['back'] }}" alt="Preview do verso" class="rounded-lg shadow" />
+                                </div>
+                            @elseif ($previewError)
+                                <div class="flex h-full flex-col items-center justify-center text-center gap-2">
+                                    <p class="text-sm font-semibold text-red-600 font-['Inter']">
+                                        {{ $previewError }}
+                                    </p>
+                                    <p class="text-xs text-gray-500 font-['Inter']">
+                                        Verifique sua conexão e tente novamente em instantes.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        wire:click="generatePreview"
+                                        wire:loading.attr="disabled"
+                                        class="text-sm font-semibold text-white bg-blue-600 rounded-xl px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Tentar novamente
+                                    </button>
+                                </div>
+                            @else
+                                <div class="flex h-full flex-col items-center justify-center text-center gap-1">
+                                    <p class="text-sm font-semibold text-gray-700 font-['Inter']">
+                                        Gere o preview para ver a frente e o verso
+                                    </p>
+                                    <p class="text-xs text-gray-500 font-['Inter']">
+                                        Informe nome e data e clique em “Gerar preview”
+                                    </p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            @if ($step === 3)
+                <div class="space-y-4">
+                    <div class="space-y-2">
                         <label class="text-sm font-semibold text-black font-['Inter']">WhatsApp</label>
-                        <div class="flex gap-2">
-                            <select class="rounded-lg border border-gray-300 px-3 py-3 font-['Inter']">
-                                <option value="+55">+55</option>
-                            </select>
-                            <input
-                                type="text"
-                                inputmode="numeric"
-                                wire:model.defer="whatsapp"
-                                class="flex-1 rounded-lg border border-gray-300 px-3 py-3 font-['Inter']"
-                                placeholder="Somente números"
-                            />
+                        <div class="relative">
+                            <div wire:ignore>
+                                <input
+                                    type="tel"
+                                    id="whatsapp-intl"
+                                    class="js-intl-phone w-full rounded-lg border border-gray-300 px-3 py-3 font-['Inter'] focus:ring-2 focus:ring-blue-200"
+                                    placeholder="+55 (11) 99999-9999"
+                                    data-target="whatsapp-hidden"
+                                />
+                            </div>
+                            <input type="hidden" id="whatsapp-hidden" wire:model.defer="whatsapp" />
                         </div>
                         @error('whatsapp')
                             <p class="text-xs text-red-500 font-['Inter']">{{ $message }}</p>
                         @enderror
                         <p class="text-xs text-gray-500 font-['Inter']">
-                            O certificado será enviado neste WhatsApp.
+                            Informe o telefone com o DDI. Usaremos para enviar o certificado.
                         </p>
                     </div>
 
@@ -217,6 +269,28 @@
                             </button>
                         @endforeach
                     </div>
+
+                    @if (! $cpf)
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-black font-['Inter']">CPF (obrigatório para PIX)</label>
+                            <input
+                                type="text"
+                                wire:model.defer="cpf"
+                                class="w-full rounded-lg border border-gray-300 px-3 py-3 font-['Inter']"
+                                placeholder="Somente números"
+                            />
+                            @error('cpf')
+                                <p class="text-xs text-red-500 font-['Inter']">{{ $message }}</p>
+                            @enderror
+                            <p class="text-xs text-gray-500 font-['Inter']">
+                                Precisamos do CPF para processar o pagamento via PIX. Preencha aqui para avançar.
+                            </p>
+                        </div>
+                    @else
+                        <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 font-['Inter']">
+                            ✅ CPF informado: {{ $formattedCpf ?? $cpf }}
+                        </div>
+                    @endif
                 </div>
             @endif
 
