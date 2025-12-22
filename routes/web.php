@@ -8,6 +8,7 @@ use App\Http\Controllers\CourseCertificateController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LessonProgressController;
+use App\Http\Controllers\PublicLessonController;
 use App\Http\Controllers\PublicCertificateController;
 use App\Http\Controllers\PublicCoursePageController;
 use App\Http\Controllers\StudentCourseController;
@@ -25,6 +26,13 @@ Route::get('/certificado', [CertificadoController::class, 'index'])->name('certi
 Route::get('/certificado/download', [CertificadoController::class, 'download'])->name('certificado.download');
 Route::get('/certificates/verify/{token}', PublicCertificateController::class)->name('certificates.verify');
 Route::get('/catalogo/{course:slug}', PublicCoursePageController::class)->name('courses.public.show');
+Route::view('/termos', 'legal.terms')->name('legal.terms');
+Route::view('/privacidade', 'legal.privacy')->name('legal.privacy');
+Route::get('/assistir/{course:slug}', [PublicLessonController::class, 'show'])->name('public.lessons.show');
+Route::post('/assistir/whatsapp/enviar', [PublicLessonController::class, 'sendOtp'])->name('public.lessons.otp.send');
+Route::post('/assistir/whatsapp/confirmar', [PublicLessonController::class, 'verifyOtp'])->name('public.lessons.otp.verify');
+Route::post('/assistir/{course:slug}/aulas/{lesson}/concluir', [PublicLessonController::class, 'complete'])
+    ->name('public.lessons.complete');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
