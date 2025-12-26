@@ -21,6 +21,7 @@
                     <p class="text-xs uppercase text-slate-500">Status</p>
                     <p class="mt-1 text-xl font-semibold text-edux-primary">{{ ucfirst($course->status) }}</p>
                     <p class="text-xs text-slate-500">Duração total: {{ $course->duration_minutes ?? '—' }} min</p>
+                    <p class="text-xs text-slate-500">Slug: <span class="font-mono">{{ $course->slug ?? '—' }}</span></p>
                 </div>
                 <div class="rounded-2xl border border-edux-line/50 p-4">
                     <p class="text-xs uppercase text-slate-500">Responsável</p>
@@ -53,6 +54,10 @@
                 'user' => $user,
                 'formClasses' => 'space-y-5'
             ])
+        </section>
+
+        <section class="space-y-4 rounded-card bg-white p-6 shadow-card">
+            <livewire:admin.course-checkouts-manager :course-id="$course->id" />
         </section>
     </div>
 @endsection

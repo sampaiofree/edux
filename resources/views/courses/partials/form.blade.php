@@ -85,22 +85,6 @@
         </label>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2">
-        <label class="space-y-1 text-sm font-semibold text-slate-600">
-            <span>URL de pagamento do certificado</span>
-            <input type="url" name="certificate_payment_url" value="{{ old('certificate_payment_url', $course->certificate_payment_url) }}" class="w-full rounded-xl border border-edux-line px-4 py-3">
-            @error('certificate_payment_url') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
-        </label>
-        <label class="space-y-1 text-sm font-semibold text-slate-600">
-            <span>Preco do certificado</span>
-            <div class="relative">
-                <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">R$</span>
-                <input type="number" step="0.01" min="0" name="certificate_price" value="{{ old('certificate_price', $course->certificate_price) }}" class="w-full rounded-xl border border-edux-line px-4 py-3 pl-10 focus:border-edux-primary focus:ring-edux-primary/30">
-            </div>
-            @error('certificate_price') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
-        </label>
-    </div>
-
     <div class="rounded-2xl border border-dashed border-edux-line p-4 space-y-4">
         <p class="font-semibold text-slate-700">Fundos personalizados do certificado</p>
         <div class="grid gap-4 md:grid-cols-2">

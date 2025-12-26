@@ -29,7 +29,7 @@
 
     {{-- Header compacto e informativo --}}
     <header class="sticky top-0 z-30 bg-white shadow-sm border-b">
-        <div class="max-w-4xl mx-auto px-4 py-3">
+        <div class="max-w-[420px] mx-auto w-full px-4 py-3">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex-1 min-w-0">
                     <p class="text-xs text-gray-500 truncate">{{ $course->title }}</p>
@@ -53,7 +53,7 @@
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto px-4 py-4 space-y-4">
+    <main class="max-w-[420px] mx-auto w-full px-4 py-4 space-y-4">
         
         {{-- Player de vídeo otimizado (com Plyr) --}}
         <div class="relative bg-black rounded-xl overflow-hidden shadow-lg">
@@ -270,15 +270,15 @@
     <div x-show="showLessons" 
          x-transition.opacity
          @click="showLessons = false"
-         class="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+         class="fixed inset-0 z-50 bg-black/60 flex items-end justify-center p-0">
         <div @click.stop 
              x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="translate-y-full sm:translate-y-0 sm:scale-95"
-             x-transition:enter-end="translate-y-0 sm:scale-100"
-             class="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-3xl max-h-[90vh] flex flex-col shadow-2xl" style="padding-bottom: 60px;">
+             x-transition:enter-start="translate-y-full"
+             x-transition:enter-end="translate-y-0"
+             class="bg-white w-full max-w-[420px] rounded-t-3xl max-h-[90vh] flex flex-col shadow-2xl" style="padding-bottom: 60px;">
             
             {{-- Header do modal --}}
-            <div class="flex items-center justify-between p-5 border-b bg-gray-50 sm:rounded-t-2xl rounded-t-3xl sticky top-0">
+            <div class="flex items-center justify-between p-5 border-b bg-gray-50 rounded-t-3xl sticky top-0">
                 <h2 class="text-xl font-bold text-gray-900">Todas as aulas</h2>
                 <button @click="showLessons = false" 
                         class="p-2 hover:bg-gray-200 rounded-lg transition-colors">
@@ -390,33 +390,43 @@
 
                 {{-- Conteúdo do modal --}}
                 <p class="text-sm text-gray-700">
-                    Para emitir seu certificado de conclusão deste curso, é necessário finalizar o pagamento.
-                    @if ($course->certificate_price > 0)
-                        O valor é de <strong>R$ {{ $course->certificate_price }}</strong>.
-                    @endif
+                    Selecione a carga horária desejada para o certificado.
                 </p>
 
-                <div class="flex flex-col gap-3">
-                    @if ($course->certificate_payment_url)
-                        <a href="{{ $course->certificate_payment_url }}" 
-                           target="_blank" 
-                           rel="noopener" 
-                           class="w-full text-center bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all">
-                            Ir para pagamento
-                        </a>
-                    @endif
-                    <button type="button" 
-                            @click="showPayment = false"
-                            class="w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all">
-                        Entendi
-                    </button>
-                </div>
+                @php
+                    $checkouts = $course->checkouts;
+                @endphp
 
-                @unless ($course->certificate_payment_url)
-                    <p class="text-xs text-gray-500 text-center">
-                        Não encontrou o link de pagamento? Entre em contato com o suporte para mais informações.
+                @if ($checkouts->isNotEmpty())
+                    <div class="space-y-3">
+                        @foreach ($checkouts as $checkout)
+                            <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3">
+                                <div>
+                                    <p class="text-base font-semibold text-gray-900">{{ $checkout->hours }}h</p>
+                                    <p class="text-sm text-gray-500">
+                                        R$ {{ number_format($checkout->price, 2, ',', '.') }}
+                                    </p>
+                                </div>
+                                <a href="{{ $checkout->checkout_url }}"
+                                   target="_blank"
+                                   rel="noopener"
+                                   class="text-center bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition-all">
+                                    Ir para pagamento
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-sm text-gray-500">
+                        Nenhuma opção disponível no momento.
                     </p>
-                @endunless
+                @endif
+
+                <button type="button" 
+                        @click="showPayment = false"
+                        class="w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all">
+                    Entendi
+                </button>
             </div>
         </div>
     </div>

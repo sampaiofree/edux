@@ -22,8 +22,6 @@ class Course extends Model
         'description',
         'cover_image_path',
         'promo_video_url',
-        'certificate_payment_url',
-        'certificate_price',
         'status',
         'duration_minutes',
         'published_at',
@@ -85,6 +83,11 @@ class Course extends Model
     public function certificatePayments(): HasMany
     {
         return $this->hasMany(CertificatePayment::class);
+    }
+
+    public function checkouts(): HasMany
+    {
+        return $this->hasMany(CourseCheckout::class);
     }
 
     public function nextLessonFor(User $user): ?Lesson

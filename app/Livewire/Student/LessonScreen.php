@@ -44,6 +44,7 @@ class LessonScreen extends Component
             'modules.lessons' => fn ($query) => $query->orderBy('position'),
             'finalTest',
             'certificateBranding',
+            'checkouts' => fn ($query) => $query->where('is_active', true)->orderBy('hours'),
         ])->findOrFail($courseId);
 
         $this->lesson = Lesson::with('module')->findOrFail($lessonId);

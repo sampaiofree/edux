@@ -48,7 +48,7 @@
     }
 @endphp
 
-<nav class="fixed inset-x-0 bottom-0 z-50 md:hidden bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
+<nav class="fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
      x-data="{ moreOpen: false }"
      @click.away="moreOpen = false">
     <div class="mx-auto w-full px-2">
@@ -116,4 +116,4 @@
     </div>
 </nav>
 
-<div class="pb-16 md:hidden"></div>
+<div class="pb-16"></div>

@@ -134,4 +134,3 @@ class SystemAssetsManager extends Component
         ]);
     }
 }
-

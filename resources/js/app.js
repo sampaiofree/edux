@@ -47,6 +47,8 @@ const setupIntlPhoneInputs = () => {
         };
 
         input.addEventListener('countrychange', sync);
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
         input.addEventListener('blur', sync);
         input.addEventListener('keyup', () => {
             if (input.value.trim() === '' && hiddenInput) {
@@ -63,12 +65,36 @@ const setupIntlPhoneInputs = () => {
     });
 };
 
-document.addEventListener('livewire:load', () => {
-    setupIntlPhoneInputs();
+let livewireHooksRegistered = false;
 
-    if (window.Livewire) {
-        window.Livewire.hook('message.processed', () => {
+const registerLivewireHooks = () => {
+    if (livewireHooksRegistered || !window.Livewire?.hook) {
+        return;
+    }
+
+    livewireHooksRegistered = true;
+
+    window.Livewire.hook('commit', ({ succeed }) => {
+        succeed(() => {
             setupIntlPhoneInputs();
         });
+    });
+};
+
+document.addEventListener('livewire:init', () => {
+    registerLivewireHooks();
+});
+
+document.addEventListener('livewire:initialized', () => {
+    setupIntlPhoneInputs();
+});
+
+document.addEventListener('livewire:navigated', () => {
+    setupIntlPhoneInputs();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.Livewire) {
+        setupIntlPhoneInputs();
     }
 });

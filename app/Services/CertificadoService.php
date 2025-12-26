@@ -18,6 +18,8 @@ class CertificadoService
 {
     private const INITIAL_FONT_SIZE = 12;
     private const MIN_FONT_SIZE = 7;
+    private const VERSO_BACKGROUND_FALLBACK = 'system-assets/certificate-back-default.png';
+    private const FRENTE_BACKGROUND_FALLBACK = 'system-assets/certificate-front-default.png';
     public function pdfVerso(Course $course): string
     {
         $course->loadMissing(['certificateBranding', 'modules.lessons']);
@@ -326,7 +328,8 @@ class CertificadoService
         $directory = "certificates/back/course-{$course->id}";
         $paragraphs = $this->buildVersoParagraphs($course);
         $backgroundImagePath = $this->resolveBackgroundPath(
-            $course->certificateBranding?->back_background_path
+            $course->certificateBranding?->back_background_path,
+            self::VERSO_BACKGROUND_FALLBACK
         );
 
         return [
@@ -364,7 +367,8 @@ class CertificadoService
             'pngRelative' => "{$directory}/front.png",
             'backgroundImagePath' => $this->resolveBackgroundPath(
                 $brandingPath,
-                $defaultFrontPath
+                $defaultFrontPath,
+                self::FRENTE_BACKGROUND_FALLBACK
             ),
         ];
     }

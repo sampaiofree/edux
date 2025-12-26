@@ -5,8 +5,12 @@
 @section('content')
     @php
         $settings = \App\Models\SystemSetting::current();
-        $frontImage = $settings->assetUrl('default_certificate_front_path');
-        $backImage = $settings->assetUrl('default_certificate_back_path');
+        $branding = $course->certificateBranding
+            ?? \App\Models\CertificateBranding::firstOrCreate(['course_id' => null]);
+        $frontImage = $branding->front_background_url
+            ?: $settings->assetUrl('default_certificate_front_path');
+        $backImage = $branding->back_background_url
+            ?: $settings->assetUrl('default_certificate_back_path');
         $titleSize = $settings->certificate_title_size ?? 68;
         $subtitleSize = $settings->certificate_subtitle_size ?? 52;
         $bodySize = $settings->certificate_body_size ?? 40;

@@ -146,53 +146,32 @@
                         </p>
                     </div>
 
-                    <div class="space-y-5">
+                    <div class="space-y-4">
                         <div class="flex items-center justify-between">
                             <p class="text-sm font-semibold text-black font-['Inter']">Pré-visualização</p>
-                            <button
-                                type="button"
-                                wire:click="generatePreview"
-                                wire:loading.attr="disabled"
-                                class="text-sm font-semibold text-white bg-blue-600 rounded-xl px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                @disabled(! $this->canGeneratePreview())
-                            >
-                                Gerar preview
-                            </button>
+                            <p class="text-xs text-gray-500 font-['Inter']">Layout oficial do certificado</p>
                         </div>
-
-                        <div class="relative min-h-[220px] w-full rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            @if ($preview['front'] && $preview['back'])
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <img src="{{ $preview['front'] }}" alt="Preview da frente" class="rounded-lg shadow" />
-                                    <img src="{{ $preview['back'] }}" alt="Preview do verso" class="rounded-lg shadow" />
-                                </div>
-                            @elseif ($previewError)
-                                <div class="flex h-full flex-col items-center justify-center text-center gap-2">
-                                    <p class="text-sm font-semibold text-red-600 font-['Inter']">
-                                        {{ $previewError }}
-                                    </p>
-                                    <p class="text-xs text-gray-500 font-['Inter']">
-                                        Verifique sua conexão e tente novamente em instantes.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        wire:click="generatePreview"
-                                        wire:loading.attr="disabled"
-                                        class="text-sm font-semibold text-white bg-blue-600 rounded-xl px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Tentar novamente
-                                    </button>
-                                </div>
-                            @else
-                                <div class="flex h-full flex-col items-center justify-center text-center gap-1">
-                                    <p class="text-sm font-semibold text-gray-700 font-['Inter']">
-                                        Gere o preview para ver a frente e o verso
-                                    </p>
-                                    <p class="text-xs text-gray-500 font-['Inter']">
-                                        Informe nome e data e clique em “Gerar preview”
-                                    </p>
-                                </div>
-                            @endif
+                        <div class="flex flex-col gap-6">
+                            <div class="flex justify-center">
+                                <x-certificate.front-preview
+                                    :student-name="$certificateName"
+                                    :course-name="$courseName"
+                                    :completed-at="$formattedCompletionDate"
+                                    :workload="$workload"
+                                    :completed-at-start="$completionPeriodStart"
+                                    :completed-at-end="$completionPeriodEnd"
+                                    :issuer-portal="null"
+                                    :issuer-institution="null"
+                                    :cpf="$formattedCpf"
+                                    :background="$frontBackgroundUrl"
+                                />
+                            </div>
+                            <div class="flex justify-center">
+                                <x-certificate.back-preview
+                                    :paragraphs="$backPreviewParagraphs"
+                                    :background="$backBackgroundUrl"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

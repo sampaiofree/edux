@@ -1,6 +1,10 @@
 @php
-    $frontPreview = $front_background?->temporaryUrl() ?? $branding->front_background_url ?: $settings->assetUrl('default_certificate_front_path');
-    $backPreview = $back_background?->temporaryUrl() ?? $branding->back_background_url ?: $settings->assetUrl('default_certificate_back_path');
+    $frontPreview = $front_background?->temporaryUrl()
+        ?? $branding->front_background_url
+        ?? $settings->assetUrl('default_certificate_front_path');
+    $backPreview = $back_background?->temporaryUrl()
+        ?? $branding->back_background_url
+        ?? $settings->assetUrl('default_certificate_back_path');
 @endphp
 
 <section class="space-y-6 rounded-card bg-white p-6 shadow-card" x-data="{ frontPreviewOpen: false, backPreviewOpen: false }">

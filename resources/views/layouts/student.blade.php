@@ -54,7 +54,7 @@
             };
         @endphp
 
-        <header class="sticky top-0 z-40 bg-blue-600 text-white shadow-md md:bg-white md:text-gray-900">
+        <header class="sticky top-0 z-40 bg-blue-600 text-white shadow-md">
             <div class="mx-auto max-w-7xl px-4 py-3">
                 <div class="flex items-center justify-between gap-4">
                     <!-- Logo -->
@@ -66,60 +66,8 @@
                         @endif
                     </a>
 
-                    <!-- A├º├Áes do Usu├írio (Desktop) -->
-                    <div class="hidden md:flex items-center gap-4">
-                        <nav class="flex items-center gap-4">
-                            <a href="{{ route('dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Início</a>
-                            <a href="{{ route('dashboard', ['tab' => 'cursos']) }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">Meus Cursos</a>
-                            <a href="{{ route('dashboard', ['tab' => 'vitrine']) }}" class="text-sm font-semibold text-gray-600 hover:text-blue-600">+Cursos</a>
-                        </nav>
-                        
-                        <div class="h-6 w-px bg-gray-200"></div>
-
-                        <div class="flex items-center gap-2">
-                            <!-- ├ìcone DUX com Badge -->
-                            <div class="relative">
-                                <button type="button" class="p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none" title="Seus DUX" aria-label="Saldo de DUX">
-                                    <span class="sr-only">Saldo de DUX</span>
-                                    <span aria-hidden="true" class="text-2xl">­ƒ¬Ö</span>
-                                </button>
-                                <div x-text="duxBalance"
-                                     :class="bump ? 'scale-125' : ''"
-                                     style="transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);"
-                                     class="absolute -top-1 -right-2 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-400 px-1 text-xs font-bold text-white shadow">
-                                </div>
-                            </div>
-                            
-                            <!-- ├ìcone Notifica├º├Áes com Badge -->
-                            <a href="{{ route('learning.notifications.index') }}" class="relative p-2 rounded-full text-gray-500 hover:bg-gray-100" title="Notifica├º├Áes" aria-label="Notifica├º├Áes">
-                                <span class="sr-only">Notifica├º├Áes</span>
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                                @if ($unreadCount > 0)
-                                    <span class="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow">
-                                        {{ $unreadCount }}
-                                    </span>
-                                @endif
-                            </a>
-                        </div>
-                        
-                        <!-- Menu de Perfil (Dropdown) -->
-                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
-                            <button @click="open = !open" class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-600 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                {{ $user->initials ?? '' }}
-                            </button>
-                            <div x-show="open" x-transition x-cloak class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5">
-                                <a href="{{ route('account.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Minha Conta</a>
-                                <div class="my-1 h-px bg-gray-100"></div>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">Sair</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- A├º├Áes do Usu├írio (Mobile) -->
-                    <div class="flex items-center gap-2 md:hidden">
+                    <!-- A├º├Áes do Usu├írio -->
+                    <div class="flex items-center gap-2">
                          <!-- ├ìcone DUX com Badge -->
                         <div class="relative">
                             <button
@@ -235,4 +183,3 @@
         @endif
     </body>
 </html>
-

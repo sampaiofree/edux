@@ -19,15 +19,15 @@ class PublicLessonController extends Controller
 {
     public function show(Request $request, Course $course): View
     {
-        $course->load(['modules.lessons' => fn ($query) => $query->orderBy('position')]);
+        $course->load([
+            'modules' => fn ($query) => $query->orderBy('position'),
+            'modules.lessons' => fn ($query) => $query->orderBy('position'),
+        ]);
 
         $lessons = $course->modules
             ->sortBy('position')
             ->flatMap(fn ($module) => $module->lessons->sortBy('position'))
             ->values();
-
-        $lead = $this->leadFromRequest($request);
-        $isAuthenticated = $lead !== null;
 
         if ($lessons->isEmpty()) {
             return view('public.lesson', [
@@ -37,75 +37,33 @@ class PublicLessonController extends Controller
                 'previousLesson' => null,
                 'nextLesson' => null,
                 'youtubeId' => null,
-                'isAuthenticated' => false,
-                'firstLessonId' => null,
                 'completedLessonIds' => [],
-                'showContinueMessage' => false,
                 'isCompleted' => false,
+                'progressPercent' => 0,
             ]);
         }
 
-        $firstLessonId = $lessons->first()->id;
         $requestedLessonId = $request->integer('lesson');
-        $lesson = null;
-
-        if ($isAuthenticated && $requestedLessonId) {
-            $lesson = $lessons->firstWhere('id', $requestedLessonId);
-        }
-
-        $leadCourse = null;
-        if ($isAuthenticated) {
-            $leadCourse = LeadCourse::firstOrCreate([
-                'lead_id' => $lead->id,
-                'course_id' => $course->id,
-            ]);
-
-            if (! $lesson && $leadCourse->last_lesson_id) {
-                $lesson = $lessons->firstWhere('id', $leadCourse->last_lesson_id);
-            }
-        }
+        $lesson = $requestedLessonId
+            ? $lessons->firstWhere('id', $requestedLessonId)
+            : null;
 
         if (! $lesson) {
             $lesson = $lessons->first();
-        }
-
-        if ($isAuthenticated) {
-            $leadCourse->last_lesson_id = $lesson->id;
-            $leadCourse->save();
-
-            $leadLesson = LeadLesson::firstOrCreate(
-                [
-                    'lead_id' => $lead->id,
-                    'lesson_id' => $lesson->id,
-                ],
-                [
-                    'status' => 'nao_concluida',
-                    'started_at' => now(),
-                ]
-            );
-
-            if (! $leadLesson->started_at) {
-                $leadLesson->started_at = now();
-                $leadLesson->save();
-            }
         }
 
         $currentIndex = $lessons->search(fn ($item) => $item->id === $lesson->id);
         $previousLesson = $currentIndex > 0 ? $lessons[$currentIndex - 1] : null;
         $nextLesson = $currentIndex < $lessons->count() - 1 ? $lessons[$currentIndex + 1] : null;
 
+        $lead = $this->leadFromRequest($request);
+
         $completedLessonIds = [];
         $isCompleted = false;
-        $showContinueMessage = false;
 
-        if ($isAuthenticated) {
-            $completedLessonIds = LeadLesson::where('lead_id', $lead->id)
-                ->where('status', 'concluida')
-                ->pluck('lesson_id')
-                ->all();
-
-            $isCompleted = in_array($lesson->id, $completedLessonIds, true);
-            $showContinueMessage = $leadCourse?->last_lesson_id !== null;
+        $certificateStage = $request->boolean('certificate_stage');
+        if ($certificateStage && $nextLesson) {
+            $certificateStage = false;
         }
 
         return view('public.lesson', [
@@ -115,11 +73,12 @@ class PublicLessonController extends Controller
             'previousLesson' => $previousLesson,
             'nextLesson' => $nextLesson,
             'youtubeId' => $this->extractYoutubeId($lesson?->video_url),
-            'isAuthenticated' => $isAuthenticated,
-            'firstLessonId' => $firstLessonId,
             'completedLessonIds' => $completedLessonIds,
-            'showContinueMessage' => $showContinueMessage,
             'isCompleted' => $isCompleted,
+            'progressPercent' => 0,
+            'certificateStage' => $certificateStage,
+            'lead' => $lead,
+            'isLeadAuthenticated' => (bool) $lead,
         ]);
     }
 
