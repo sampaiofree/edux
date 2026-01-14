@@ -25,7 +25,7 @@ class KavooWebhookController extends Controller
         $affiliate = Arr::get($payload, 'affiliate', []);
         $transaction = Arr::get($payload, 'transaction', []);
 
-        $itemProduct = Arr::first($items, []);
+        $itemProduct = Arr::first($items, null, []);
 
         $kavooData = [
             'customer_name' => Arr::get($customer, 'name'),
