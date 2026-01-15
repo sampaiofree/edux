@@ -178,7 +178,9 @@ class CourseController extends Controller
 
         $this->syncBrandingUploads($request, $course);
 
-        return back()->with('status', 'Curso atualizado.');
+        return redirect()
+            ->route('courses.edit', $course)
+            ->with('status', 'Curso atualizado.');
     }
 
     public function destroy(Request $request, Course $course): RedirectResponse
