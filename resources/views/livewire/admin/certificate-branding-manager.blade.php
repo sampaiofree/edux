@@ -103,46 +103,6 @@
             </label>
         </div>
 
-        <div class="md:col-span-2">
-            <div class="flex items-center justify-between gap-3">
-                <h3 class="text-lg font-display text-edux-primary">Pré-visualização ao vivo</h3>
-                <p class="text-xs text-slate-500">Clique nas imagens para ampliar.</p>
-            </div>
-            <div class="mt-3 grid gap-4 md:grid-cols-2">
-                <figure class="overflow-hidden rounded-2xl border border-edux-line/70 bg-edux-background">
-                    <img
-                        data-cert-front
-                        data-base="{{ $frontPreview }}"
-                        data-course="Curso Exemplo"
-                        data-student="Nome do Aluno"
-                        data-title-size="{{ $titleSize }}"
-                        data-subtitle-size="{{ $subtitleSize }}"
-                        data-body-size="{{ $bodySize }}"
-                        data-line1="{{ $line1 }}"
-                        data-line3="{{ $line3 }}"
-                        data-line6="{{ $line6 }}"
-                        data-duration="40 horas"
-                        data-start="01/01/2024"
-                        data-end="31/12/2024"
-                        alt="Prévia frente do certificado"
-                        class="w-full cursor-zoom-in object-cover transition hover:scale-[1.01]">
-                    <figcaption class="px-3 py-2 text-center text-xs text-slate-500">Frente</figcaption>
-                </figure>
-                <figure class="overflow-hidden rounded-2xl border border-edux-line/70 bg-edux-background">
-                    <img
-                        data-cert-back
-                        data-base="{{ $backPreview }}"
-                        data-course="Conteúdo"
-                        data-text="1. Aula exemplo\n2. Outra aula\n3. Conteúdo extra"
-                        data-body-size="{{ $bodySize }}"
-                        alt="Prévia verso do certificado"
-                        class="w-full cursor-zoom-in object-cover transition hover:scale-[1.01]">
-                    <figcaption class="px-3 py-2 text-center text-xs text-slate-500">Verso</figcaption>
-                </figure>
-            </div>
-            <p class="mt-2 text-xs text-slate-500">Se nenhuma imagem aparecer, envie um fundo para visualizar.</p>
-        </div>
-
         <div class="md:col-span-2 flex flex-wrap gap-3">
             <button type="submit" class="edux-btn">Salvar configurações</button>
             <p class="text-xs text-slate-500">Formatos aceitos: JPG, PNG ou WEBP — até 4MB.</p>

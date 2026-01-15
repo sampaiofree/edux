@@ -24,8 +24,8 @@
     $workloadLabel = $workloadLabel ?: '—';
     $startLabel = $completedAtStartLabel ?: 'DATA INICIAL';
     $endLabel = $completedAtEndLabel ?: 'DATA FINAL';
-    $portalLabel = $issuerPortal ?: 'PORTAL DE CURSOS';
-    $institutionLabel = $issuerInstitution ?: 'INSTITUIÇÃO CERTIFICADORA';
+    $portalLabel = $issuerPortal ?: 'PORTAL JOVEM EMPREENDEDOR';
+    $institutionLabel = $issuerInstitution ?: 'PROGRAMA JE CURSOS E TREINAMENTO LTDA'; 
     $cpfLabel = $cpf ? sprintf('CPF %s', $cpf) : null;
     $paragraphs = is_array($paragraphs) ? $paragraphs : [];
     $backgroundStyle = $background ? "background-image:url('{$background}');" : '';

@@ -177,6 +177,7 @@ class Checkout extends Component
         $frontBackgroundUrl = $this->backgroundUrl($this->branding?->front_background_path);
         $backBackgroundUrl = $this->backgroundUrl($this->branding?->back_background_path);
         $backPreviewParagraphs = $this->backPreviewParagraphs($this->course);
+        $certificates = $this->certificates();
 
         return view('livewire.certificado.checkout', [
             'enrollments' => $enrollments,
@@ -190,6 +191,7 @@ class Checkout extends Component
             'frontBackgroundUrl' => $frontBackgroundUrl,
             'backBackgroundUrl' => $backBackgroundUrl,
             'backPreviewParagraphs' => $backPreviewParagraphs,
+            'certificates' => $certificates,
         ]);
     }
 
@@ -342,6 +344,21 @@ class Checkout extends Component
         }
 
         return $paragraphs;
+    }
+
+    private function certificates()
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return collect();
+        }
+
+        return Certificate::with('course')
+            ->where('user_id', $user->id)
+            ->get()
+            ->sortBy(fn (Certificate $certificate) => strtolower($certificate->course?->title ?? ''))
+            ->values();
     }
 
     private function qrDataUri(?string $publicUrl): ?string

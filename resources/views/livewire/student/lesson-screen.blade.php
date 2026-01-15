@@ -218,16 +218,15 @@
                         <div class="flex-1">
                             <p class="font-bold text-yellow-800 mb-1">Certificado disponível!</p>
                             <p class="text-sm text-yellow-700 mb-3">
-                                Você concluiu o curso! Para pegar seu certificado, finalize o pagamento.
+                                Você concluiu o curso! Clique no botão abaixo para gerar seu certificado.
                             </p>
-                            <button 
-                                @click="showPayment = true"
+                            <a href="{{ route('certificado.index') }}"                                
                                 class="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors">
-                                Ver opções de pagamento
+                                Gerar certificado
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                 </svg>
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
