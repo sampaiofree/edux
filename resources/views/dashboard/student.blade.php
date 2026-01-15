@@ -56,5 +56,5 @@
         @endif
     </div>
 
-    <x-student-bottom-nav :active="$tab" />
+    
 @endsection

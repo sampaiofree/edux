@@ -25,7 +25,9 @@ class KavooWebhookController extends Controller
         $affiliate = Arr::get($payload, 'affiliate', []);
         $transaction = Arr::get($payload, 'transaction', []);
 
-        $itemProduct = Arr::first($items, null, []);
+        if (! is_array($items) || $items === []) {
+            return response()->json(['status' => 'ok'], 200);
+        }
 
         $kavooData = [
             'customer_name' => Arr::get($customer, 'name'),
@@ -33,8 +35,6 @@ class KavooWebhookController extends Controller
             'customer_last_name' => Arr::get($customer, 'last_name'),
             'customer_email' => Arr::get($customer, 'email'),
             'customer_phone' => Arr::get($customer, 'phone'),
-            'item_product_id' => Arr::get($itemProduct, 'product_id'),
-            'item_product_name' => Arr::get($itemProduct, 'product_name'),
             'transaction_code' => Arr::get($transaction, 'code'),
             'status_code' => Arr::get(Arr::get($payload, 'status', []), 'code'),
             'customer' => $customer,
@@ -53,13 +53,44 @@ class KavooWebhookController extends Controller
 
         $transactionCode = Arr::get($transaction, 'code');
 
-        $kavoo = $transactionCode
-            ? Kavoo::updateOrCreate(['transaction_code' => $transactionCode], $kavooData)
-            : Kavoo::create($kavooData);
+        $user = null;
 
-        $user = $this->ensureCustomerUser($kavoo);
-        if ($user) {
-            $this->ensureEnrollment($kavoo, $user);
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $itemProductId = Arr::get($item, 'product_id');
+
+            $itemData = $kavooData + [
+                'item_product_id' => $itemProductId,
+                'item_product_name' => Arr::get($item, 'product_name'),
+                'items' => [$item],
+            ];
+
+            try {
+                $kavoo = ($transactionCode && $itemProductId !== null && $itemProductId !== '')
+                    ? Kavoo::updateOrCreate(
+                        ['transaction_code' => $transactionCode, 'item_product_id' => $itemProductId],
+                        $itemData
+                    )
+                    : Kavoo::create($itemData);
+            } catch (\Throwable $exception) {
+                Log::error('Falha ao salvar registro Kavoo', [
+                    'error' => $exception->getMessage(),
+                    'transaction_code' => $transactionCode,
+                    'item_product_id' => $itemProductId,
+                ]);
+                continue;
+            }
+
+            if ($user === null AND  $kavooData['status_code'] == 'SALE_APPROVED') {
+                $user = $this->ensureCustomerUser($kavoo);
+            }
+
+            if ($user) {
+                $this->ensureEnrollment($kavoo, $user);
+            }
         }
 
         return response()->json(['status' => 'ok'], 200);

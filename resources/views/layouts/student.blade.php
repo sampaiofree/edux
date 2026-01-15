@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR" x-data="studentLayout()" x-init="init()">
     <head>
         <meta charset="utf-8">

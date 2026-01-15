@@ -43,7 +43,7 @@ class KavooController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate($this->validationRules());
+        $validated = $request->validate($this->validationRules($request));
 
         Kavoo::create($validated);
 
@@ -59,7 +59,7 @@ class KavooController extends Controller
 
     public function update(Request $request, Kavoo $kavoo): RedirectResponse
     {
-        $validated = $request->validate($this->validationRules($kavoo));
+        $validated = $request->validate($this->validationRules($request, $kavoo));
 
         $kavoo->update($validated);
 
@@ -77,8 +77,18 @@ class KavooController extends Controller
             ->with('status', 'Registro Kavoo removido.');
     }
 
-    private function validationRules(?Kavoo $kavoo = null): array
+    private function validationRules(Request $request, ?Kavoo $kavoo = null): array
     {
+        $itemProductId = $request->input('item_product_id');
+        $transactionCode = $request->input('transaction_code');
+
+        $transactionRules = ['nullable', 'string', 'max:255'];
+        if ($transactionCode && $itemProductId !== null && $itemProductId !== '') {
+            $transactionRules[] = Rule::unique('kavoo', 'transaction_code')
+                ->where('item_product_id', $itemProductId)
+                ->ignore($kavoo?->id);
+        }
+
         return [
             'customer_name' => ['nullable', 'string', 'max:255'],
             'customer_first_name' => ['nullable', 'string', 'max:255'],
@@ -87,13 +97,7 @@ class KavooController extends Controller
             'customer_phone' => ['nullable', 'string', 'max:64'],
             'item_product_id' => ['nullable', 'integer', 'min:0'],
             'item_product_name' => ['nullable', 'string', 'max:255'],
-            'transaction_code' => [
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('kavoo', 'transaction_code')
-                    ->ignore($kavoo?->id),
-            ],
+            'transaction_code' => $transactionRules,
             'status_code' => ['nullable', 'string', 'max:255'],
         ];
     }
