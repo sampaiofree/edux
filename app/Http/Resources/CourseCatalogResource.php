@@ -2,11 +2,22 @@
 
 namespace App\Http\Resources;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CourseCatalogResource extends JsonResource
 {
+    public function jsonOptions(): int
+    {
+        return JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+    }
+
+    public function withResponse(Request $request, JsonResponse $response): void
+    {
+        $response->header('Content-Type', 'application/json; charset=utf-8');
+    }
+
     public function toArray(Request $request): array
     {
         return [
