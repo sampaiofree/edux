@@ -44,6 +44,7 @@ Route::redirect('/', '/dashboard');
 // Valida certificado publicado via token
 Route::get('/certificates/verify/{token}', PublicCertificateController::class)->name('certificates.verify');
 // Página pública do curso
+Route::view('/catalogo', 'courses.catalog')->name('courses.public.index');
 Route::get('/catalogo/{course:slug}', PublicCoursePageController::class)->name('courses.public.show');
 // Termos e condições
 Route::view('/termos', 'legal.terms')->name('legal.terms');
