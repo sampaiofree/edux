@@ -1,22 +1,51 @@
 <section class="space-y-6"
     x-data="{
+        filtersOpen: false,
         modalCourse: null,
         openModal(course) { this.modalCourse = course; document.body.classList.add('overflow-hidden'); },
         closeModal() { this.modalCourse = null; document.body.classList.remove('overflow-hidden'); }
     }">
-    <div class="rounded-card bg-white p-6 shadow-card text-edux-text">
-        <p class="text-sm uppercase tracking-wide text-edux-primary">Meus cursos</p>
-        <h1 class="font-display text-3xl text-edux-primary">Continue de onde parou</h1>
-        <p class="text-slate-600">Use os filtros abaixo para localizar rapidamente uma matricula.</p>
-        <div class="mt-4 grid gap-3 md:grid-cols-3">
+    <div class="rounded-card bg-white p-4 shadow-card text-edux-text">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <p class="text-xs uppercase tracking-wide text-edux-primary">Meus cursos</p>
+                <h1 class="font-display text-2xl text-edux-primary">Continue de onde parou</h1>
+                <p class="mt-1 text-sm text-slate-600">Use o botao de filtros para localizar rapidamente uma matricula.</p>
+            </div>
+            <button type="button"
+                class="inline-flex items-center gap-2 rounded-xl border border-edux-line bg-edux-background px-3 py-2 text-sm font-semibold text-edux-primary"
+                @click="filtersOpen = !filtersOpen"
+                :aria-expanded="filtersOpen.toString()"
+                aria-controls="student-course-filters">
+                <span>Filtros</span>
+                <svg class="h-4 w-4 transition-transform" :class="filtersOpen ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.25a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        @php
+            $filtersActive = ($search ?? '') !== '' || ($status ?? 'all') !== 'all';
+        @endphp
+        @if ($filtersActive)
+            <p class="mt-2 text-xs text-slate-500" x-show="!filtersOpen">
+                Filtros ativos:
+                @if (($search ?? '') !== '')
+                    <span class="font-semibold text-edux-primary">Busca</span>
+                @endif
+                @if (($status ?? 'all') !== 'all')
+                    <span class="font-semibold text-edux-primary">Status</span>
+                @endif
+            </p>
+        @endif
+        <div class="mt-3 grid gap-3" id="student-course-filters" x-show="filtersOpen" x-transition>
             <label class="text-sm font-semibold text-slate-600">
                 <span>Buscar</span>
                 <input type="search" wire:model.live.debounce.500ms="search" placeholder="Titulo do curso"
-                    class="mt-1 w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                    class="mt-1 w-full rounded-xl border border-edux-line px-3 py-2.5 focus:border-edux-primary focus:ring-edux-primary/30">
             </label>
             <label class="text-sm font-semibold text-slate-600">
                 <span>Status</span>
-                <select wire:model.live="status" class="mt-1 w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                <select wire:model.live="status" class="mt-1 w-full rounded-xl border border-edux-line px-3 py-2.5 focus:border-edux-primary focus:ring-edux-primary/30">
                     <option value="all">Todos</option>
                     <option value="running">Em andamento</option>
                     <option value="completed">Concluidos</option>

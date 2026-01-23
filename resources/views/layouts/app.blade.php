@@ -63,10 +63,12 @@
                     <a href="{{ route('admin.users.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Usuarios</a>
                     <a href="{{ route('admin.identity') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Identidade</a>
                     <a href="{{ route('certificates.branding.edit') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Certificados</a>
-                    <a href="{{ route('admin.certificates.payments') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Pagamentos certificados</a>
+                    <a href="{{ route('admin.dashboard') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Cursos cadastrados</a>
+                    <a href="{{ route('admin.categories.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Categorias</a>
+                    <!--<a href="{{ route('admin.certificates.payments') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Pagamentos certificados</a>-->
                     <a href="{{ route('admin.notifications.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Notificacoes</a>
+                    <a href="{{ route('admin.kavoo.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Kavoo</a>
                     <a href="{{ route('admin.enroll.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Matriculas</a>
-                    
                 @endif
             </nav>
         </div>
@@ -84,6 +86,7 @@
                         <li><a href="{{ route('admin.identity') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Identidade</a></li>
                         <li><a href="{{ route('certificates.branding.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados</a></li>
                         <li><a href="{{ route('admin.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Cursos cadastrados</a></li>
+                        <li><a href="{{ route('admin.categories.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Categorias</a></li>
                         <!--<li><a href="{{ route('admin.certificates.payments') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Pagamentos certificados</a></li>-->
                         <li><a href="{{ route('admin.notifications.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Notificacoes</a></li>
                         <li><a href="{{ route('admin.kavoo.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Kavoo</a></li>

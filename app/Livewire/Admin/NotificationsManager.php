@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\SendNotificationPush;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -52,6 +53,7 @@ class NotificationsManager extends Component
         }
 
         $this->editing->save();
+        $this->queuePushIfNeeded($this->editing);
 
         session()->flash('status', 'Notificacao salva.');
         $this->closeModal();
@@ -130,5 +132,20 @@ class NotificationsManager extends Component
         $this->button_label = null;
         $this->button_url = null;
         $this->published_at = null;
+    }
+
+    private function queuePushIfNeeded(Notification $notification): void
+    {
+        if (! $notification->published_at || $notification->pushed_at) {
+            return;
+        }
+
+        if ($notification->published_at->isFuture()) {
+            SendNotificationPush::dispatch($notification->id)->delay($notification->published_at);
+
+            return;
+        }
+
+        SendNotificationPush::dispatch($notification->id);
     }
 }

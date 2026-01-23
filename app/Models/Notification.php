@@ -25,6 +25,7 @@ class Notification extends Model
     {
         return [
             'published_at' => 'datetime',
+            'pushed_at' => 'datetime',
         ];
     }
 

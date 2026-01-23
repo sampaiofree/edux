@@ -3,6 +3,7 @@ import collapse from '@alpinejs/collapse';
 import intlTelInput from 'intl-tel-input';
 import utilsScriptUrl from 'intl-tel-input/build/js/utils.js?url';
 import 'intl-tel-input/build/css/intlTelInput.css';
+import { initPushManager } from './push';
 
 document.addEventListener('alpine:init', () => {
     window.Alpine.plugin(collapse);
@@ -87,14 +88,17 @@ document.addEventListener('livewire:init', () => {
 
 document.addEventListener('livewire:initialized', () => {
     setupIntlPhoneInputs();
+    initPushManager();
 });
 
 document.addEventListener('livewire:navigated', () => {
     setupIntlPhoneInputs();
+    initPushManager();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!window.Livewire) {
         setupIntlPhoneInputs();
     }
+    initPushManager();
 });

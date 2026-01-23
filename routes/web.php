@@ -1,5 +1,6 @@
 ﻿<?php
 
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\KavooController;
 use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\SystemIdentityController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\LessonProgressController;
 use App\Http\Controllers\PublicLessonController;
 use App\Http\Controllers\PublicCertificateController;
 use App\Http\Controllers\PublicCoursePageController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
 
@@ -81,6 +83,15 @@ Route::middleware('auth')->group(function (): void {
     // Edição do perfil do aluno
     Route::view('/conta', 'account.profile')->name('account.edit');
 
+    Route::prefix('push')
+        ->middleware('role:student')
+        ->group(function (): void {
+            Route::post('subscribe', [PushSubscriptionController::class, 'store'])
+                ->name('push.subscribe');
+            Route::delete('subscribe', [PushSubscriptionController::class, 'destroy'])
+                ->name('push.unsubscribe');
+        });
+
     Route::prefix('admin')
         ->middleware('role:admin')
         ->group(function (): void {
@@ -124,6 +135,13 @@ Route::middleware('auth')->group(function (): void {
             // Atualizar dados do usuário
             Route::put('users/{user}', [UserController::class, 'update'])
                 ->name('admin.users.update');
+            // Categorias de cursos
+            Route::get('categories', [CategoryController::class, 'index'])->name('admin.categories.index');
+            Route::get('categories/create', [CategoryController::class, 'create'])->name('admin.categories.create');
+            Route::post('categories', [CategoryController::class, 'store'])->name('admin.categories.store');
+            Route::get('categories/{category}/edit', [CategoryController::class, 'edit'])->name('admin.categories.edit');
+            Route::put('categories/{category}', [CategoryController::class, 'update'])->name('admin.categories.update');
+            Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
             // Lista de pagamentos de certificados
             Route::view('certificates/payments', 'admin.certificates.payments')
                 ->name('admin.certificates.payments');
