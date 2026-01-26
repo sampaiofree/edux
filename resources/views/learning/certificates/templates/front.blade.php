@@ -1,5 +1,6 @@
 @php
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
     $mode = $mode ?? 'preview';
     $studentName = $displayName ?? 'SEU NOME AQUI';
@@ -14,6 +15,13 @@ use Carbon\Carbon;
         : 'x horas';
     $backgroundUrl = $branding?->front_background_url;
     $qrUrl = null;
+
+    if ($mode === 'pdf' && $branding?->front_background_path) {
+        $path = ltrim($branding->front_background_path, '/');
+        if (Storage::disk('public')->exists($path)) {
+            $backgroundUrl = 'file://' . str_replace('\\', '/', Storage::disk('public')->path($path));
+        }
+    }
 
     if (! empty($qrDataUri)) {
         $qrUrl = $qrDataUri;

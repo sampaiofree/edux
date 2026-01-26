@@ -1,7 +1,16 @@
 @php
+use Illuminate\Support\Facades\Storage;
+
     $mode = $mode ?? 'preview';
     $backgroundUrl = $branding?->back_background_url;
     $paragraphs = [];
+
+    if ($mode === 'pdf' && $branding?->back_background_path) {
+        $path = ltrim($branding->back_background_path, '/');
+        if (Storage::disk('public')->exists($path)) {
+            $backgroundUrl = 'file://' . str_replace('\\', '/', Storage::disk('public')->path($path));
+        }
+    }
 
     if ($course?->modules) {
         foreach ($course->modules as $moduleIndex => $module) {
