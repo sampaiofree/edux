@@ -1,9 +1,16 @@
 @php
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
     $mode = $mode ?? 'preview';
     $backgroundUrl = $branding?->back_background_url;
     $paragraphs = [];
+
+    $backgroundResolvedPath = null;
+    $backgroundExists = null;
+    $backgroundMime = null;
+    $backgroundBytes = null;
+    $backgroundSource = null;
 
     if ($mode === 'pdf' && $branding?->back_background_path) {
         $path = ltrim($branding->back_background_path, '/');
@@ -12,13 +19,36 @@ use Illuminate\Support\Facades\Storage;
         }
 
         $disk = Storage::disk('public');
-        if ($disk->exists($path)) {
-            $absolutePath = str_replace('\\', '/', $disk->path($path));
-            if (preg_match('/^[A-Za-z]:\\//', $absolutePath)) {
-                $absolutePath = '/' . $absolutePath;
+        $backgroundExists = $disk->exists($path);
+        $backgroundResolvedPath = $disk->path($path);
+        if ($backgroundExists) {
+            $backgroundBytes = @file_get_contents($backgroundResolvedPath);
+            if ($backgroundBytes !== false) {
+                $backgroundMime = @mime_content_type($backgroundResolvedPath) ?: 'image/jpeg';
+                $backgroundUrl = 'data:' . $backgroundMime . ';base64,' . base64_encode($backgroundBytes);
+                $backgroundSource = 'base64';
+            } else {
+                $absolutePath = str_replace('\\', '/', $backgroundResolvedPath);
+                if (preg_match('/^[A-Za-z]:\\//', $absolutePath)) {
+                    $absolutePath = '/' . $absolutePath;
+                }
+                $backgroundUrl = 'file://' . $absolutePath;
+                $backgroundSource = 'file';
             }
-            $backgroundUrl = 'file://' . $absolutePath;
         }
+    }
+
+    if ($mode === 'pdf') {
+        Log::info('Certificate PDF background (back)', [
+            'course_id' => $course?->id,
+            'branding_id' => $branding?->id,
+            'branding_path' => $branding?->back_background_path,
+            'disk_exists' => $backgroundExists,
+            'disk_path' => $backgroundResolvedPath,
+            'background_source' => $backgroundSource,
+            'background_mime' => $backgroundMime,
+            'background_size' => $backgroundBytes !== null ? strlen($backgroundBytes) : null,
+        ]);
     }
 
     if ($course?->modules) {

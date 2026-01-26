@@ -28,7 +28,10 @@
     $institutionLabel = $issuerInstitution ?: 'PROGRAMA JE CURSOS E TREINAMENTO LTDA'; 
     $cpfLabel = $cpf ? sprintf('CPF %s', $cpf) : null;
     $paragraphs = is_array($paragraphs) ? $paragraphs : [];
-    $backgroundStyle = $background ? "background-image:url('{$background}');" : '';
+    $backgroundStyle = $background && $mode !== 'pdf'
+        ? "background-image:url('{$background}');"
+        : '';
+    $useImageBackground = $background && $mode === 'pdf';
 @endphp
 
 @once
@@ -86,6 +89,15 @@
             background-repeat: no-repeat;
         }
 
+        .certificate-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
         
 
         .certificate-overlay {
@@ -93,6 +105,7 @@
             inset: 0;
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(15, 23, 42, 0.65) 100%);
             mix-blend-mode: multiply;
+            z-index: 1;
         }
 
         .certificate-content {
@@ -105,7 +118,7 @@
             justify-content: center;
             text-align: center;
             color: #0f172a;            
-            z-index: 1;
+            z-index: 2;
         }
 
         .certificate-content-inner {
@@ -124,7 +137,7 @@
             padding: 8px;
             border: 1px solid rgba(0, 0, 0, 0.06);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-            z-index: 2;
+            z-index: 3;
         }
 
         
@@ -248,7 +261,7 @@
             color: #111827;
             font-size: clamp(12px, 1.2vw, 16px);
             line-height: 1.45;
-            z-index: 1;
+            z-index: 2;
             overflow: hidden;
         }
 
@@ -269,7 +282,7 @@
             font-weight: 700;
             transform: rotate(-20deg);
             pointer-events: none;
-            z-index: 2;
+            z-index: 3;
         }
     </style>
 @endonce
@@ -278,6 +291,9 @@
     <div class="certificate-preview-wrapper">
         <div class="certificate-preview-scale">
             <div class="certificate-canvas" style="{{ $backgroundStyle }}">
+                @if ($useImageBackground)
+                    <img src="{{ $background }}" alt="" class="certificate-bg" aria-hidden="true">
+                @endif
                 <div class="certificate-overlay"></div>
 
                 @if ($variant === 'front')
@@ -319,5 +335,4 @@
         </div>
     </div>
 </div>
-
 

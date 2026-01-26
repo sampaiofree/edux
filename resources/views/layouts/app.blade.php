@@ -81,7 +81,7 @@
         <div class="flex gap-6">
             @if ($isAdmin)
                 <aside class="sticky top-20 hidden h-fit min-w-[220px] rounded-2xl bg-white p-4 shadow-card md:block">
-                    <p class="mb-3 text-xs font-semibold uppercase text-slate-500">Menu Administrador</p>
+                    <p class="mb-3 text-xs font-semibold uppercase text-slate-500">Menu Admin</p>
                     <ul class="space-y-2 text-sm font-semibold text-slate-700">
                         <li><a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Usuarios</a></li>
                         <li><a href="{{ route('admin.identity') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Identidade</a></li>
