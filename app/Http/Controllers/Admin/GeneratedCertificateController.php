@@ -19,48 +19,9 @@ class GeneratedCertificateController extends Controller
         $this->middleware('role:admin');
     }
 
-    public function index(Request $request): View
+    public function index(): View
     {
-        $search = (string) $request->query('search', '');
-        $isNumericSearch = $search !== '' && is_numeric($search);
-
-        $certificates = Certificate::query()
-            ->with(['course', 'user'])
-            ->when($search !== '', function ($query) use ($search, $isNumericSearch) {
-                $query->where(function ($sub) use ($search, $isNumericSearch) {
-                    $sub->where('number', 'like', "%{$search}%")
-                        ->orWhere('public_token', 'like', "%{$search}%")
-                        ->orWhereHas('course', function ($course) use ($search, $isNumericSearch) {
-                            $course->where('title', 'like', "%{$search}%")
-                                ->orWhere('slug', 'like', "%{$search}%");
-
-                            if ($isNumericSearch) {
-                                $course->orWhere('id', (int) $search);
-                            }
-                        })
-                        ->orWhereHas('user', function ($user) use ($search, $isNumericSearch) {
-                            $user->where('name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%")
-                                ->orWhere('whatsapp', 'like', "%{$search}%");
-
-                            if ($isNumericSearch) {
-                                $user->orWhere('id', (int) $search);
-                            }
-                        });
-
-                    if ($isNumericSearch) {
-                        $sub->orWhere('id', (int) $search)
-                            ->orWhere('course_id', (int) $search)
-                            ->orWhere('user_id', (int) $search);
-                    }
-                });
-            })
-            ->orderByDesc('issued_at')
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('admin.certificates.generated', compact('certificates', 'search'));
+        return view('admin.certificates.generated');
     }
 
     public function download(Request $request, Certificate $certificate)
