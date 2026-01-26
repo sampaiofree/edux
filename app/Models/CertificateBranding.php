@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Course;
 
 class CertificateBranding extends Model
 {
@@ -22,6 +23,27 @@ class CertificateBranding extends Model
         return $this->belongsTo(Course::class);
     }
 
+    public static function resolveForCourse(Course $course): CertificateBranding
+    {
+        $course->loadMissing('certificateBranding');
+        $courseBranding = $course->certificateBranding;
+        $globalBranding = self::firstOrCreate(['course_id' => null]);
+
+        if (! $courseBranding) {
+            return $globalBranding;
+        }
+
+        if (! $courseBranding->front_background_path) {
+            $courseBranding->setAttribute('front_background_path', $globalBranding->front_background_path);
+        }
+
+        if (! $courseBranding->back_background_path) {
+            $courseBranding->setAttribute('back_background_path', $globalBranding->back_background_path);
+        }
+
+        return $courseBranding;
+    }
+
     public function getFrontBackgroundUrlAttribute(): ?string
     {
         return $this->front_background_path
@@ -36,4 +58,3 @@ class CertificateBranding extends Model
             : null;
     }
 }
-

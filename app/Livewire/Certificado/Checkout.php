@@ -257,8 +257,7 @@ class Checkout extends Component
 
     private function resolveBranding(Course $course): CertificateBranding
     {
-        return $course->certificateBranding
-            ?? CertificateBranding::firstOrCreate(['course_id' => null]);
+        return CertificateBranding::resolveForCourse($course);
     }
 
     private function formatDate(?string $value): ?string

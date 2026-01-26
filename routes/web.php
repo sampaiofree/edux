@@ -44,6 +44,9 @@ Route::get('/test-gs', function () {
 // Redireciona para dashboard (apenas conveniência)
 Route::redirect('/', '/dashboard');
 
+// Download do certificado publico
+Route::get('/certificates/verify/{token}/download', [PublicCertificateController::class, 'download'])
+    ->name('certificates.verify.download');
 // Valida certificado publicado via token
 Route::get('/certificates/verify/{token}', PublicCertificateController::class)->name('certificates.verify');
 // Página pública do curso

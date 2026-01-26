@@ -36,6 +36,16 @@
             <li><strong>Carga horária:</strong> {{ $course->duration_minutes ?? '600' }} min</li>
         </ul>
         <p style="margin:0;">Este certificado foi emitido pela plataforma EduX e pode ser confirmado pelo código <strong>{{ $certificate->number }}</strong>.</p>
+        @if (! empty($downloadUrl))
+            <div style="margin-top:1rem;">
+                <a
+                    href="{{ $downloadUrl }}"
+                    style="display:inline-block; background:#0f172a; color:#fff; text-decoration:none; padding:0.6rem 1.2rem; border-radius:999px; font-weight:600;"
+                >
+                    Baixar certificado
+                </a>
+            </div>
+        @endif
     </div>
 
     <div class="card certificate-frame">

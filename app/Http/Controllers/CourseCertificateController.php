@@ -67,8 +67,7 @@ class CourseCertificateController extends Controller
 
     private function resolveBranding(Course $course): CertificateBranding
     {
-        return $course->certificateBranding
-            ?? CertificateBranding::firstOrCreate(['course_id' => null]);
+        return CertificateBranding::resolveForCourse($course);
     }
 
     private function makePdf(Certificate $certificate, Course $course): Dompdf
