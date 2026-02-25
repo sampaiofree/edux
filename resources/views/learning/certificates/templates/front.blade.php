@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
     $mode = $mode ?? 'preview';
+    $presentation = $presentation ?? 'default';
     $studentName = $displayName ?? 'SEU NOME AQUI';
     $issuedAtInstance = $issuedAt ? Carbon::parse($issuedAt) : Carbon::now();
     $completedAtLabel = $issuedAtInstance
@@ -81,4 +82,5 @@ use Illuminate\Support\Facades\Storage;
     :completed-at-end-label="$courseEndLabel"
     :background="$backgroundUrl"
     :show-watermark="false"
+    :presentation="$presentation"
 />

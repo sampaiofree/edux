@@ -3,6 +3,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
     $mode = $mode ?? 'preview';
+    $presentation = $presentation ?? 'default';
     $backgroundUrl = $branding?->back_background_url;
     $paragraphs = [];
 
@@ -78,4 +79,5 @@ use Illuminate\Support\Facades\Storage;
     :background="$backgroundUrl"
     :paragraphs="$paragraphs"
     :show-watermark="false"
+    :presentation="$presentation"
 />

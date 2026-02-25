@@ -11,6 +11,8 @@ class SystemSetting extends Model
     use HasFactory;
 
     protected $fillable = [
+        'meta_ads_pixel',
+        'carta_estagio',
         'favicon_path',
         'default_logo_path',
         'default_logo_dark_path',

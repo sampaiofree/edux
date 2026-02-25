@@ -14,10 +14,13 @@
     'paragraphs' => [],
     'showWatermark' => false,
     'qrUrl' => null,
+    'presentation' => 'default',
 ])
 
 @php
     $mode = $mode ?: 'preview';
+    $presentation = $presentation ?: 'default';
+    $isMinimalPresentation = $presentation === 'minimal';
     $studentNameLabel = $studentName ?: 'SEU NOME AQUI';
     $courseNameLabel = $courseName ?: 'NOME DO CURSO';
     $completedAtLabel = $completedAtLabel ?: 'DATA DE CONCLUSÃO';
@@ -56,9 +59,28 @@
             transform-origin: top center;
         }
 
+        .certificate-layout.certificate-presentation-minimal .certificate-preview-wrapper {
+            justify-content: flex-start;
+            padding-bottom: 0;
+            overflow: visible;
+            align-items: flex-start;
+        }
+
+        .certificate-layout.certificate-presentation-minimal .certificate-preview-scale {
+            --scale: 0.3;
+            width: calc(1100px * var(--scale));
+            height: calc(780px * var(--scale));
+            transform: none;
+            transform-origin: top left;
+        }
+
         @media (max-width: 1024px) {
             .certificate-preview-scale {
                 --scale: 0.5;
+            }
+
+            .certificate-layout.certificate-presentation-minimal .certificate-preview-scale {
+                --scale: 0.3;
             }
         }
 
@@ -66,11 +88,19 @@
             .certificate-preview-scale {
                 --scale: 0.45;
             }
+
+            .certificate-layout.certificate-presentation-minimal .certificate-preview-scale {
+                --scale: 0.3;
+            }
         }
 
         @media (max-width: 640px) {
             .certificate-preview-scale {
                 --scale: 0.4;
+            }
+
+            .certificate-layout.certificate-presentation-minimal .certificate-preview-scale {
+                --scale: 0.3;
             }
         }
 
@@ -106,6 +136,16 @@
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(15, 23, 42, 0.65) 100%);
             mix-blend-mode: multiply;
             z-index: 1;
+        }
+
+        .certificate-layout.certificate-presentation-minimal .certificate-overlay {
+            display: none;
+        }
+
+        .certificate-layout.certificate-presentation-minimal .certificate-canvas {
+            max-width: none;
+            transform: scale(var(--scale));
+            transform-origin: top left;
         }
 
         .certificate-content {
@@ -287,14 +327,16 @@
     </style>
 @endonce
 
-<div class="certificate-layout certificate-mode-{{ $mode }}">
+<div class="certificate-layout certificate-mode-{{ $mode }} certificate-presentation-{{ $presentation }}">
     <div class="certificate-preview-wrapper">
         <div class="certificate-preview-scale">
             <div class="certificate-canvas" style="{{ $backgroundStyle }}">
                 @if ($useImageBackground)
                     <img src="{{ $background }}" alt="" class="certificate-bg" aria-hidden="true">
                 @endif
-                <div class="certificate-overlay"></div>
+                @unless ($isMinimalPresentation)
+                    <div class="certificate-overlay"></div>
+                @endunless
 
                 @if ($variant === 'front')
                     <div class="certificate-content">
@@ -335,4 +377,3 @@
         </div>
     </div>
 </div>
-

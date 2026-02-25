@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Admin;
 
@@ -12,6 +12,7 @@ class SystemAssetsManager extends Component
     use WithFileUploads;
 
     public SystemSetting $settings;
+    public ?string $meta_ads_pixel = null;
 
     /** @var array<string, mixed> */
     public array $uploads = [
@@ -21,62 +22,89 @@ class SystemAssetsManager extends Component
         'course' => null,
         'module' => null,
         'lesson' => null,
+        'carta_estagio' => null,
     ];
 
     protected array $fieldMap = [
         'favicon' => [
             'column' => 'favicon_path',
             'label' => 'Favicon',
-            'hint' => 'PNG/SVG atÃ© 256 KB',
+            'hint' => 'PNG/SVG até 256 KB',
         ],
         'logo' => [
             'column' => 'default_logo_path',
-            'label' => 'Logo padrÃ£o',
-            'hint' => 'PNG transparente atÃ© 512 KB',
+            'label' => 'Logo padrão',
+            'hint' => 'PNG transparente até 512 KB',
         ],
         'logo_dark' => [
             'column' => 'default_logo_dark_path',
-            'label' => 'Logo (versÃ£o dark)',
-            'hint' => 'PNG branco translÃºcido para fundos escuros',
+            'label' => 'Logo (versão dark)',
+            'hint' => 'PNG branco translúcido para fundos escuros',
         ],
         'course' => [
             'column' => 'default_course_cover_path',
-            'label' => 'Imagem padrÃ£o do curso',
-            'hint' => 'SugestÃ£o 1280x720 px',
+            'label' => 'Imagem padrão do curso',
+            'hint' => 'Sugestão 1280x720 px',
         ],
         'module' => [
             'column' => 'default_module_cover_path',
-            'label' => 'Imagem padrÃ£o do mÃ³dulo',
-            'hint' => 'SugestÃ£o 800x400 px',
+            'label' => 'Imagem padrão do módulo',
+            'hint' => 'Sugestão 800x400 px',
         ],
         'lesson' => [
             'column' => 'default_lesson_cover_path',
-            'label' => 'Imagem padrÃ£o da aula',
-            'hint' => 'SugestÃ£o 800x400 px',
+            'label' => 'Imagem padrão da aula',
+            'hint' => 'Sugestão 800x400 px',
+        ],
+        'carta_estagio' => [
+            'column' => 'carta_estagio',
+            'label' => 'Carta de estagio (modelo)',
+            'hint' => 'Upload em WEBP para uso na LP do curso',
         ],
     ];
 
     protected function rules(): array
     {
         return [
+            'meta_ads_pixel' => ['nullable', 'string', 'max:64'],
             'uploads.favicon' => ['nullable', 'image', 'max:256'],
             'uploads.logo' => ['nullable', 'image', 'max:512'],
             'uploads.logo_dark' => ['nullable', 'image', 'max:512'],
             'uploads.course' => ['nullable', 'image', 'max:1024'],
             'uploads.module' => ['nullable', 'image', 'max:1024'],
             'uploads.lesson' => ['nullable', 'image', 'max:1024'],
+            'uploads.carta_estagio' => ['nullable', 'image', 'mimes:webp,png,jpg,jpeg', 'max:4096'],
         ];
     }
 
     public function mount(): void
     {
         $this->settings = SystemSetting::current();
+        $this->meta_ads_pixel = $this->settings->meta_ads_pixel;
     }
 
     public function updatedUploads(): void
     {
-        // Reseta mensagens de sucesso sempre que novo arquivo Ã© escolhido.
+        // Reseta mensagens de sucesso sempre que novo arquivo é escolhido.
         session()->forget('status');
+    }
+
+    public function saveMetaAdsPixel(): void
+    {
+        $this->validateOnly('meta_ads_pixel');
+
+        $normalized = preg_replace('/\D+/', '', (string) $this->meta_ads_pixel);
+        $value = $normalized !== '' ? $normalized : null;
+
+        $this->settings->update([
+            'meta_ads_pixel' => $value,
+        ]);
+
+        $this->meta_ads_pixel = $this->settings->fresh()->meta_ads_pixel;
+
+        $message = 'Meta Ads Pixel atualizado.';
+        session()->flash('status', $message);
+        $this->dispatch('notify', type: 'success', message: $message);
     }
 
     public function save(string $field): void
@@ -84,6 +112,8 @@ class SystemAssetsManager extends Component
         if (! array_key_exists($field, $this->fieldMap)) {
             return;
         }
+
+        $this->resetErrorBag("uploads.$field");
 
         $this->validateOnly("uploads.$field");
 
@@ -102,14 +132,26 @@ class SystemAssetsManager extends Component
             Storage::disk('public')->delete($old);
         }
 
+        // Garantir diretório e guardar em disco público
+        Storage::disk('public')->makeDirectory('system-assets');
         $path = $file->store('system-assets', 'public');
         $this->settings->update([$column => $path]);
+        // Atualiza o valor em memória para refletir no preview imediatamente.
+        $this->settings->{$column} = $path;
 
         $this->uploads[$field] = null;
 
         $successMessage = $this->fieldMap[$field]['label'].' atualizado.';
-        session()->flash('status', $successMessage);
+        session()->flash("status_{$field}", $successMessage);
         $this->dispatch('notify', type: 'success', message: $successMessage);
+
+        logger()->info('system-assets upload', [
+            'field' => $field,
+            'column' => $column,
+            'stored_as' => $path,
+            'original' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+        ]);
     }
 
     public function render()

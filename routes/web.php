@@ -4,7 +4,6 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\KavooController;
 use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\GeneratedCertificateController;
-use App\Http\Controllers\Admin\SystemIdentityController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CertificadoController;
@@ -121,12 +120,12 @@ Route::middleware('auth')->group(function (): void {
             // Editor de branding de certificados
             Route::view('certificates/branding', 'certificates.branding.edit')
                 ->name('certificates.branding.edit');
-            // Edita identidade institucional
-            Route::get('identity', [SystemIdentityController::class, 'edit'])
+            // Compatibilidade: identidade redireciona para configuracoes do sistema
+            Route::get('identity', fn () => redirect()->route('admin.system.edit'))
                 ->name('admin.identity');
-            // Atualiza identidade
-            Route::put('identity', [SystemIdentityController::class, 'update'])
-                ->name('admin.identity.update');
+            // Configuracoes gerais do sistema (assets + pixel)
+            Route::view('system', 'admin.system.edit')
+                ->name('admin.system.edit');
             // Listagem de usuários
             Route::get('users', [UserController::class, 'index'])
                 ->name('admin.users.index');

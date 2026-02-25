@@ -61,7 +61,7 @@
             <nav class="space-y-2 border-t border-white/10 bg-edux-primary/95 px-4 pb-4 text-white">
                 @if ($isAdmin)
                     <a href="{{ route('admin.users.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Usuarios</a>
-                    <a href="{{ route('admin.identity') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Identidade</a>
+                    <a href="{{ route('admin.system.edit') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Sistema</a>
                     <a href="{{ route('certificates.branding.edit') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Certificados</a>
                     <a href="{{ route('admin.certificates.generated.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Certificados gerados</a>
                     <a href="{{ route('admin.dashboard') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Cursos cadastrados</a>
@@ -84,7 +84,7 @@
                     <p class="mb-3 text-xs font-semibold uppercase text-slate-500">Menu Admin</p>
                     <ul class="space-y-2 text-sm font-semibold text-slate-700">
                         <li><a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Usuarios</a></li>
-                        <li><a href="{{ route('admin.identity') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Identidade</a></li>
+                        <li><a href="{{ route('admin.system.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Sistema</a></li>
                         <li><a href="{{ route('certificates.branding.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados</a></li>
                         <li><a href="{{ route('admin.certificates.generated.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados gerados</a></li>
                         <li><a href="{{ route('admin.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Cursos cadastrados</a></li>

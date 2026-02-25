@@ -59,8 +59,16 @@
                 ($routeName === 'dashboard' && $dashboardTab === 'conta') => 'conta',
                 default => $dashboardTab ?? 'painel',
             };
+            $hideHeader = trim((string) $__env->yieldContent('hide_student_header', '0')) === '1';
+            $hideFooter = trim((string) $__env->yieldContent('hide_student_footer', '0')) === '1';
+            $hideBottomNav = trim((string) $__env->yieldContent('hide_student_bottom_nav', '0')) === '1';
+            $mainClasses = trim((string) $__env->yieldContent('student_main_classes', 'mx-auto max-w-6xl space-y-6 px-2 py-8'));
+            if ($mainClasses === '') {
+                $mainClasses = 'mx-auto max-w-6xl space-y-6 px-2 py-8';
+            }
         @endphp
 
+        @unless ($hideHeader)
         <header class="sticky top-0 z-40 bg-blue-600 text-white shadow-md">
             <div class="mx-auto max-w-7xl px-4 py-3">
                 <div class="flex items-center justify-between gap-4">
@@ -91,12 +99,14 @@
                 </div>
             </div>
         </header>
+        @endunless
 
-        <main class="mx-auto max-w-6xl space-y-6 px-2 py-8">
+        <main class="{{ $mainClasses }}">
             <x-toast :status="session('status')" :errors="$errors->all()" :error="session('error')" />
             @yield('content')
         </main>
 
+        @unless ($hideFooter)
         <footer class="hidden bg-gray-100 text-gray-600 md:block">
             <div class="mx-auto max-w-6xl px-4 py-6 text-center">
                 <p class="font-semibold">
@@ -106,6 +116,7 @@
                 </p>
             </div>
         </footer>
+        @endunless
 
         @auth
             @if (auth()->user()->isStudent())
@@ -115,7 +126,9 @@
 
         @livewireScripts
         @stack('scripts')
-        <x-student-bottom-nav :active="$navActive" />
+        @unless ($hideBottomNav)
+            <x-student-bottom-nav :active="$navActive" />
+        @endunless
         <script>
             function studentLayout() {
                 return {
