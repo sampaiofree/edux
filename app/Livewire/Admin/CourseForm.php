@@ -19,6 +19,8 @@ class CourseForm extends Component
     public string $title = '';
     public ?string $summary = null;
     public ?string $description = null;
+    public ?string $atuacao = null;
+    public ?string $oquefaz = null;
     public string $status = 'draft';
     public ?int $duration_minutes = null;
     public ?string $published_at = null;
@@ -42,6 +44,8 @@ class CourseForm extends Component
                 'title' => $this->course->title,
                 'summary' => $this->course->summary,
                 'description' => $this->course->description,
+                'atuacao' => $this->course->atuacao,
+                'oquefaz' => $this->course->oquefaz,
                 'promo_video_url' => $this->course->promo_video_url,
                 'status' => $this->course->status,
                 'duration_minutes' => $this->course->duration_minutes,
@@ -112,6 +116,8 @@ class CourseForm extends Component
             'title' => ['required', 'string', 'max:255'],
             'summary' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'atuacao' => ['nullable', 'string'],
+            'oquefaz' => ['nullable', 'string'],
             'promo_video_url' => ['nullable', 'url'],
             'status' => ['required', 'in:draft,published,archived'],
             'duration_minutes' => ['nullable', 'integer', 'min:1'],

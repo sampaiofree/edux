@@ -31,6 +31,22 @@
 
         <div class="grid gap-4 md:grid-cols-2">
             <label class="space-y-2 text-sm font-semibold text-slate-600">
+                <span>Onde pode atuar (lista)</span>
+                <textarea wire:model.defer="atuacao" rows="4" placeholder="Ex.: Escritórios; Empresas de comércio; Recepção; Apoio administrativo" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"></textarea>
+                <p class="text-xs font-medium text-slate-500">Separe os itens com <span class="font-semibold">;</span> (ponto e vírgula).</p>
+                @error('atuacao') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+            </label>
+
+            <label class="space-y-2 text-sm font-semibold text-slate-600">
+                <span>O que faz na prática (lista)</span>
+                <textarea wire:model.defer="oquefaz" rows="4" placeholder="Ex.: Organiza documentos; Atende clientes; Preenche planilhas; Dá apoio à equipe" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"></textarea>
+                <p class="text-xs font-medium text-slate-500">Separe os itens com <span class="font-semibold">;</span> (ponto e vírgula).</p>
+                @error('oquefaz') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+            </label>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <label class="space-y-2 text-sm font-semibold text-slate-600">
                 <span>Imagem de destaque</span>
                 <input type="file" wire:model="cover_image" accept="image/*" class="w-full rounded-xl border border-edux-line px-4 py-3">
                 @error('cover_image') <span class="text-sm text-red-500">{{ $message }}</span> @enderror

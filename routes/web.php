@@ -19,6 +19,7 @@ use App\Http\Controllers\PublicCertificateController;
 use App\Http\Controllers\PublicCoursePageController;
 use App\Http\Controllers\PublicCoursePageV2Controller;
 use App\Http\Controllers\PublicCoursePageV3Controller;
+use App\Http\Controllers\PublicCoursePageV4Controller;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
@@ -60,6 +61,8 @@ Route::view('/catalogo-2', 'courses.catalog')->name('courses.public.v2.index');
 Route::get('/catalogo-2/{course:slug}', PublicCoursePageV2Controller::class)->name('courses.public.v2.show');
 Route::view('/catalogo-3', 'courses.catalog')->name('courses.public.v3.index');
 Route::get('/catalogo-3/{course:slug}', PublicCoursePageV3Controller::class)->name('courses.public.v3.show');
+Route::view('/catalogo-4', 'courses.catalog')->name('courses.public.v4.index');
+Route::get('/catalogo-4/{course:slug}', PublicCoursePageV4Controller::class)->name('courses.public.v4.show');
 Route::get('/cidade/{cidade}', CityCampaignController::class)->name('city.campaign.show');
 Route::get('/cidade-2/{cidade}', CityCampaignV2Controller::class)->name('city.campaign.v2.show');
 // Termos e condições

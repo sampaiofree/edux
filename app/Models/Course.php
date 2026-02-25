@@ -28,6 +28,8 @@ class Course extends Model
         'slug',
         'summary',
         'description',
+        'atuacao',
+        'oquefaz',
         'cover_image_path',
         'promo_video_url',
         'status',

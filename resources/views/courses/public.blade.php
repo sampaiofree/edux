@@ -49,6 +49,15 @@
             ? ($stickyCheckout->nome ?: ('Opção ' . $stickyCheckout->hours . 'h'))
             : $primaryCheckoutName;
         $stickyCtaHref = $stickyCheckout?->checkout_url ?: $primaryCtaHref;
+        $courseAtuacaoItems = collect(preg_split('/\s*;\s*/u', (string) ($course->atuacao ?? ''), -1, PREG_SPLIT_NO_EMPTY))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values();
+        $courseOQueFazItems = collect(preg_split('/\s*;\s*/u', (string) ($course->oquefaz ?? ''), -1, PREG_SPLIT_NO_EMPTY))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values();
+        $courseDescriptionTabText = trim((string) ($course->description ?? ''));
     @endphp
 
     <article class="pb-8">
@@ -67,8 +76,22 @@
                     <h1 class="mt-1 font-display text-2xl leading-tight text-edux-primary md:text-3xl">
                         {{ $course->title }}
                     </h1>
+                    <ul class="mt-3 space-y-2">
+                        <li class="flex items-start gap-2">
+                            <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
+                            <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Ideal para quem busca o primeiro emprego</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
+                            <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Formação rápida e 100% online</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
+                            <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Certificado para fortalecer seu currículo</span>
+                        </li>
+                    </ul>
                     @if ($course->summary)
-                        <p class="mt-2 text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary }}</p>
+                        <p class="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary }}</p>
                     @endif
                 </div>
             </div>
@@ -77,26 +100,90 @@
                 <p class="text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary ?: $course->description }}</p>
             @endif
 
-            <div class="rounded-2xl border border-edux-primary/15 bg-gradient-to-br from-white via-white to-edux-primary/5 p-4 ring-1 ring-edux-primary/10">
+            <div
+                class="rounded-2xl border border-edux-primary/15 bg-gradient-to-br from-white via-white to-edux-primary/5 p-4 ring-1 ring-edux-primary/10"
+                x-data="{ activeCourseInfoTab: 'atuacao' }"
+            >
                 <div class="flex flex-wrap gap-2">
-                    <span class="inline-flex items-center rounded-full bg-edux-primary px-3 py-1 text-xs font-bold text-white">Iniciativa social independente</span>
-                    <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Sem vínculo com governo</span>
-                    <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Curso 100% online</span>
-                    @if ($studentCountLabel)
-                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">{{ $studentCountLabel }} matrículas</span>
-                    @endif
+                    <button
+                        type="button"
+                        @click="activeCourseInfoTab = 'atuacao'"
+                        class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition"
+                        :class="activeCourseInfoTab === 'atuacao' ? 'bg-edux-primary text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'"
+                    >
+                        Onde um {{ $course->title }} pode atuar?
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeCourseInfoTab = 'oquefaz'"
+                        class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition"
+                        :class="activeCourseInfoTab === 'oquefaz' ? 'bg-edux-primary text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'"
+                    >
+                        O que faz um {{ $course->title }} na prática?
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeCourseInfoTab = 'descricao'"
+                        class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition"
+                        :class="activeCourseInfoTab === 'descricao' ? 'bg-edux-primary text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'"
+                    >
+                        Como é o curso {{ $course->title }}
+                    </button>
                 </div>
-                <p class="mt-3 text-sm leading-6 text-slate-700 md:text-base">
-                    Nosso foco é ajudar você a se preparar melhor para oportunidades de trabalho com capacitação acessível. O curso fortalece seu currículo e sua prática, mas não garante contratação.
-                </p>
+
+                <div class="mt-3 rounded-2xl bg-white/80 p-4 ring-1 ring-white/70">
+                    <div x-show="activeCourseInfoTab === 'atuacao'">
+                        @if ($courseAtuacaoItems->isNotEmpty())
+                            <ul class="space-y-2">
+                                @foreach ($courseAtuacaoItems as $item)
+                                    <li class="flex items-start gap-2 text-sm leading-6 text-slate-700 md:text-base">
+                                        <span aria-hidden="true" class="mt-0.5 font-black text-edux-primary">•</span>
+                                        <span>{{ $item }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="text-sm leading-6 text-slate-700 md:text-base">
+                                Este curso ajuda você a se preparar para atuar em funções relacionadas à área, com foco em prática e rotina de trabalho.
+                            </p>
+                        @endif
+                    </div>
+
+                    <div x-show="activeCourseInfoTab === 'oquefaz'" style="display: none;">
+                        @if ($courseOQueFazItems->isNotEmpty())
+                            <ul class="space-y-2">
+                                @foreach ($courseOQueFazItems as $item)
+                                    <li class="flex items-start gap-2 text-sm leading-6 text-slate-700 md:text-base">
+                                        <span aria-hidden="true" class="mt-0.5 font-black text-edux-primary">•</span>
+                                        <span>{{ $item }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="text-sm leading-6 text-slate-700 md:text-base">
+                                Você aprende tarefas práticas da área para fortalecer sua rotina, sua organização e sua apresentação profissional.
+                            </p>
+                        @endif
+                    </div>
+
+                    <div x-show="activeCourseInfoTab === 'descricao'" style="display: none;">
+                        @if ($courseDescriptionTabText !== '')
+                            <p class="whitespace-pre-line text-sm leading-6 text-slate-700 md:text-base">{{ $courseDescriptionTabText }}</p>
+                        @else
+                            <p class="text-sm leading-6 text-slate-700 md:text-base">
+                                Curso profissionalizante online com foco em capacitação acessível, linguagem simples e aplicação prática.
+                            </p>
+                        @endif
+                    </div>
+                </div>
             </div>
 
             <div class="grid gap-4 rounded-3xl border border-edux-line/70 bg-white p-4 shadow-sm md:grid-cols-[1.1fr_0.9fr] md:p-5">
                 <div class="space-y-4">
                     <div class="space-y-2">
-                        <h2 class="text-xl font-black leading-tight text-slate-900 md:text-2xl">Comece hoje com valor social</h2>
+                        <h2 class="text-xl font-black leading-tight text-slate-900 md:text-2xl">Capacitação profissional com valor social acessível</h2>
                         <p class="text-sm leading-6 text-slate-600 md:text-base">
-                            Estude no seu ritmo, pelo celular ou computador, com aulas organizadas, certificado e apoio ao aluno.
+                            Este curso faz parte de uma iniciativa de capacitação acessível, criada para ampliar oportunidades de formação profissional a quem deseja entrar na área educacional.
                         </p>
                     </div>
 
@@ -141,17 +228,19 @@
                 </div>
 
                 <div class="rounded-2xl bg-slate-950 p-4 text-white ring-1 ring-white/10 md:p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Valor de entrada</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">Iniciativa de formação com valor social</p>
                     <p class="mt-2 text-3xl font-black leading-none md:text-4xl">
                         {{ $primaryCheckoutPriceLabel ?: 'Consultar' }}
                     </p>
-                    <p class="mt-2 text-sm text-white/75">
+                    <p class="mt-2 text-sm text-white/80">Investimento único para acesso completo ao curso e certificado.</p>
+                    <p class="mt-1 text-xs text-white/60">
                         @if ($lpPrimaryCheckout)
                             {{ $primaryCheckoutName }}{{ $lpPrimaryCheckout?->hours ? ' • ' . $lpPrimaryCheckout->hours . 'h' : '' }}
                         @else
                             Veja as opções disponíveis abaixo.
                         @endif
                     </p>
+                    <p class="mt-1 text-xs text-white/60">Pagamento único da matrícula (não é mensalidade).</p>
 
                     <div class="mt-4 space-y-2">
                         <a
@@ -163,7 +252,7 @@
                             data-checkout-name="{{ $primaryCheckoutName }}"
                             class="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_14px_30px_-18px_rgba(16,185,129,0.9)] transition hover:bg-emerald-600"
                         >
-                            Quero me matricular agora
+                            Quero começar minha formação
                         </a>
                         <a
                             href="#matricula"
@@ -358,21 +447,21 @@
                             data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
                             data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
                             data-checkout-name="{{ $lpPrimaryCheckout?->nome ?? '' }}"
-                            class="group flex w-[150px] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-2xl border border-edux-primary/20 bg-gradient-to-b from-edux-primary/5 via-white to-emerald-50 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                            class="group flex min-h-[220px] w-[150px] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-2xl border border-edux-primary/20 bg-gradient-to-b from-edux-primary/5 via-white to-emerald-50 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                         >
-                            <div class="space-y-2">
+                            <div class="space-y-3">
                                 <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white shadow-sm">
                                     +
                                 </span>
                                 <p class="text-sm font-black leading-5 text-edux-primary">
-                                    Matricule-se e libere {{ $remainingLessonsLabel }}
+                                    Libere o curso completo
                                 </p>
-                                <p class="text-sm leading-5 text-slate-600">
-                                    Continue de onde parou e tenha acesso ao curso completo, certificado e carta de estágio.
+                                <p class="text-xs leading-5 text-slate-600">
+                                    Matricule-se para liberar {{ $remainingLessonsLabel }}, certificado e carta de estágio.
                                 </p>
                             </div>
                             <span class="mt-3 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-2.5 py-2 text-sm font-bold text-white transition group-hover:bg-emerald-600">
-                                Liberar agora
+                                Matricular agora
                             </span>
                         </a>
                     @endif
@@ -415,6 +504,34 @@
                     <button type="button" @click="scroll(-1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Voltar">&lsaquo;</button>
                     <button type="button" @click="scroll(1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Avançar">&rsaquo;</button>
                 </div>
+            </div>
+
+            <div class="rounded-2xl border border-edux-line/70 bg-white p-4 ring-1 ring-slate-100">
+                <p class="text-sm leading-6 text-slate-700 md:text-base">
+                    Ao concluir o curso, você receberá certificado de curso livre com carga horária de {{ $courseHoursLabel }} horas.
+                </p>
+                <p class="mt-3 text-sm font-semibold text-slate-900">O certificado pode ser utilizado para:</p>
+                <ul class="mt-2 space-y-2">
+                    <li class="flex items-start gap-2 text-sm leading-6 text-slate-700 md:text-base">
+                        <span aria-hidden="true" class="mt-0.5 font-black text-edux-primary">•</span>
+                        <span>Complementar currículo</span>
+                    </li>
+                    <li class="flex items-start gap-2 text-sm leading-6 text-slate-700 md:text-base">
+                        <span aria-hidden="true" class="mt-0.5 font-black text-edux-primary">•</span>
+                        <span>Atividades complementares escolares</span>
+                    </li>
+                    <li class="flex items-start gap-2 text-sm leading-6 text-slate-700 md:text-base">
+                        <span aria-hidden="true" class="mt-0.5 font-black text-edux-primary">•</span>
+                        <span>Enriquecimento profissional</span>
+                    </li>
+                    <li class="flex items-start gap-2 text-sm leading-6 text-slate-700 md:text-base">
+                        <span aria-hidden="true" class="mt-0.5 font-black text-edux-primary">•</span>
+                        <span>Apresentação em processos seletivos (conforme critérios da instituição)</span>
+                    </li>
+                </ul>
+                <p class="mt-3 text-sm font-medium leading-6 text-slate-600">
+                    Trata-se de curso livre de qualificação profissional, conforme legislação vigente.
+                </p>
             </div>
 
             <div x-ref="track" class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
@@ -672,6 +789,115 @@
             @endif
         </section>
 
+        <section class="lp-section space-y-5 py-8">
+            <div class="space-y-2">
+                <h2 class="text-2xl font-display text-edux-primary">Garantia e segurança</h2>
+                <p class="text-sm text-slate-600 md:text-base">
+                    Informações importantes para você iniciar sua formação com mais tranquilidade.
+                </p>
+            </div>
+
+            <div class="grid gap-3">
+                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
+                    <div class="flex items-start gap-3">
+                        <x-ui.color-icon name="smartphone" tone="indigo" size="sm" />
+                        <p class="text-sm leading-6 text-slate-700 md:text-base">
+                            Você pode acessar o curso pelo celular ou computador, de forma simples e organizada.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
+                    <div class="flex items-start gap-3">
+                        <x-ui.color-icon name="users" tone="blue" size="sm" />
+                        <p class="text-sm leading-6 text-slate-700 md:text-base">
+                            Caso tenha qualquer dificuldade de acesso, nossa equipe oferece suporte para ajudar.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
+                    <div class="flex items-start gap-3">
+                        <x-ui.color-icon name="shield-check" tone="green" size="sm" />
+                        <p class="text-sm leading-6 text-slate-700 md:text-base">
+                            Pagamento seguro e acesso liberado conforme confirmação.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        @php
+            $studentTestimonialsVideos = [
+                ['id' => 'rejxwJ2lX-Q', 'label' => 'Depoimento de aluno 1'],
+                ['id' => '1hekoAyPVRs', 'label' => 'Depoimento de aluno 2'],
+                ['id' => 'Mnn2yIAlhZk', 'label' => 'Depoimento de aluno 3'],
+                ['id' => '1qWXa9F0qBw', 'label' => 'Depoimento de aluno 4'],
+            ];
+        @endphp
+
+        <section class="lp-section space-y-5 py-8" style="content-visibility:auto; contain-intrinsic-size: 900px;">
+            <div class="space-y-2">
+                <h2 class="text-2xl font-display text-edux-primary">Alunos que já participaram</h2>
+                <p class="text-sm text-slate-600 md:text-base">
+                    Veja relatos em vídeo de alunos. Os vídeos só são carregados quando você clicar em reproduzir, para não atrapalhar o carregamento da página.
+                </p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                @foreach ($studentTestimonialsVideos as $video)
+                    <article
+                        class="overflow-hidden rounded-2xl border border-edux-line/70 bg-white shadow-sm"
+                        x-data="{ loaded: false }"
+                    >
+                        <div class="aspect-video bg-slate-100">
+                            <template x-if="!loaded">
+                                <button
+                                    type="button"
+                                    @click="loaded = true"
+                                    class="group relative flex h-full w-full items-center justify-center overflow-hidden bg-slate-950 text-white"
+                                    aria-label="Reproduzir {{ $video['label'] }}"
+                                >
+                                    <img
+                                        src="https://i.ytimg.com/vi/{{ $video['id'] }}/hqdefault.jpg"
+                                        alt="{{ $video['label'] }}"
+                                        class="h-full w-full object-cover opacity-90 transition duration-300 group-hover:scale-[1.02] group-hover:opacity-100"
+                                        loading="lazy"
+                                        decoding="async"
+                                        fetchpriority="low"
+                                    >
+                                    <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/30"></div>
+                                    <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
+                                        <span class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white text-lg font-black text-edux-primary shadow-lg">
+                                            ▶
+                                        </span>
+                                        <span class="text-sm font-semibold leading-5 text-white/95">Clique para reproduzir</span>
+                                    </div>
+                                </button>
+                            </template>
+
+                            <template x-if="loaded">
+                                <iframe
+                                    class="h-full w-full"
+                                    src="https://www.youtube-nocookie.com/embed/{{ $video['id'] }}?autoplay=1&rel=0&modestbranding=1"
+                                    title="{{ $video['label'] }}"
+                                    loading="lazy"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowfullscreen
+                                    referrerpolicy="strict-origin-when-cross-origin"
+                                ></iframe>
+                            </template>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 px-4 py-3">
+                            <p class="text-sm font-semibold text-slate-800">{{ $video['label'] }}</p>
+                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">Vídeo</span>
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+        </section>
+
         @if ($course->owner)
             <section class="lp-section space-y-5 py-8">
                 <div class="space-y-2">
@@ -749,9 +975,7 @@
                         <p class="text-sm leading-6 text-slate-700 md:text-base">
                             Iniciativa social independente, sem vínculo com governo, com foco em formação acessível para ajudar você a se preparar melhor para oportunidades de trabalho.
                         </p>
-                        <p class="text-sm leading-6 text-slate-600">
-                            O curso ajuda na sua preparação e no fortalecimento do currículo. Não garante emprego.
-                        </p>
+                        <p class="text-sm font-medium leading-6 text-slate-600">Este curso não garante contratação.</p>
                     </div>
 
                     <div class="space-y-2">
@@ -764,7 +988,7 @@
                             data-checkout-name="{{ $primaryCheckoutName }}"
                             class="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_16px_30px_-18px_rgba(16,185,129,0.9)] transition hover:bg-emerald-600"
                         >
-                            Quero me matricular agora
+                            Quero começar minha formação
                         </a>
                         <a
                             href="#matricula"
