@@ -37,6 +37,22 @@
         @error('description') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
     </label>
 
+    <div class="grid gap-4 md:grid-cols-2">
+        <label class="space-y-1 text-sm font-semibold text-slate-600">
+            <span>Onde pode atuar (lista)</span>
+            <textarea name="atuacao" rows="4" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30" placeholder="Ex.: Escolas; Secretarias; Coordenação; Apoio administrativo">{{ old('atuacao', $course->atuacao) }}</textarea>
+            <p class="text-xs text-slate-500">Separe os itens com <span class="font-semibold">;</span> (ponto e vírgula).</p>
+            @error('atuacao') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+        </label>
+
+        <label class="space-y-1 text-sm font-semibold text-slate-600">
+            <span>O que faz na prática (lista)</span>
+            <textarea name="oquefaz" rows="4" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30" placeholder="Ex.: Atende alunos; Organiza documentos; Preenche planilhas; Dá suporte à equipe">{{ old('oquefaz', $course->oquefaz) }}</textarea>
+            <p class="text-xs text-slate-500">Separe os itens com <span class="font-semibold">;</span> (ponto e vírgula).</p>
+            @error('oquefaz') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+        </label>
+    </div>
+
     <div class="grid gap-4 md:grid-cols-3">
         <label class="space-y-1 text-sm font-semibold text-slate-600">
             <span>Duração (min)</span>

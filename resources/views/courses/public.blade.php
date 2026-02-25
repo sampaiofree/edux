@@ -76,24 +76,28 @@
                     <h1 class="mt-1 font-display text-2xl leading-tight text-edux-primary md:text-3xl">
                         {{ $course->title }}
                     </h1>
-                    <ul class="mt-3 space-y-2">
-                        <li class="flex items-start gap-2">
-                            <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
-                            <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Ideal para quem busca o primeiro emprego</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
-                            <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Formação rápida e 100% online</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
-                            <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Certificado para fortalecer seu currículo</span>
-                        </li>
-                    </ul>
-                    @if ($course->summary)
-                        <p class="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary }}</p>
-                    @endif
                 </div>
+            </div>
+
+            <div class="space-y-3">
+                <ul class="space-y-2">
+                    <li class="flex items-start gap-2">
+                        <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
+                        <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Ideal para quem busca o primeiro emprego</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
+                        <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Formação rápida e 100% online</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span aria-hidden="true" class="font-black leading-6 text-emerald-600">✔</span>
+                        <span class="text-sm font-semibold leading-6 text-slate-700 md:text-sm">Certificado para fortalecer seu currículo</span>
+                    </li>
+                </ul>
+
+                @if ($course->summary)
+                    <p class="text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary }}</p>
+                @endif
             </div>
 
             @if (! $course->summary && $course->description)
@@ -108,7 +112,7 @@
                     <button
                         type="button"
                         @click="activeCourseInfoTab = 'atuacao'"
-                        class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition"
+                        class="inline-flex items-center justify-start rounded-full px-3 py-1 text-left text-xs font-bold transition"
                         :class="activeCourseInfoTab === 'atuacao' ? 'bg-edux-primary text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'"
                     >
                         Onde um {{ $course->title }} pode atuar?
@@ -116,7 +120,7 @@
                     <button
                         type="button"
                         @click="activeCourseInfoTab = 'oquefaz'"
-                        class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition"
+                        class="inline-flex items-center justify-start rounded-full px-3 py-1 text-left text-xs font-bold transition"
                         :class="activeCourseInfoTab === 'oquefaz' ? 'bg-edux-primary text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'"
                     >
                         O que faz um {{ $course->title }} na prática?
@@ -124,7 +128,7 @@
                     <button
                         type="button"
                         @click="activeCourseInfoTab = 'descricao'"
-                        class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition"
+                        class="inline-flex items-center justify-start rounded-full px-3 py-1 text-left text-xs font-bold transition"
                         :class="activeCourseInfoTab === 'descricao' ? 'bg-edux-primary text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'"
                     >
                         Como é o curso {{ $course->title }}
@@ -254,12 +258,14 @@
                         >
                             Quero começar minha formação
                         </a>
-                        <a
-                            href="#matricula"
-                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-                        >
-                            Ver opções de matrícula
-                        </a>
+                        @if ($hasMultipleCheckouts)
+                            <a
+                                href="#matricula"
+                                class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+                            >
+                                Ver opções de matrícula
+                            </a>
+                        @endif
                     </div>
 
                     <p class="mt-3 text-sm leading-5 text-white/70">
@@ -766,7 +772,7 @@
                                     >
                                         <span class="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition group-hover:opacity-100"></span>
                                         <span class="relative inline-flex items-center gap-2">
-                                            Quero esta opção
+                                            Quero começar agora
                                             <span aria-hidden="true">→</span>
                                         </span>
                                     </a>
@@ -889,10 +895,6 @@
                             </template>
                         </div>
 
-                        <div class="flex items-center justify-between gap-3 px-4 py-3">
-                            <p class="text-sm font-semibold text-slate-800">{{ $video['label'] }}</p>
-                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">Vídeo</span>
-                        </div>
                     </article>
                 @endforeach
             </div>
@@ -956,7 +958,7 @@
                 ['title' => 'Como funciona o certificado?', 'body' => 'Depois de terminar o curso' . ($course->finalTest ? ' e passar no teste' : '') . ', você recebe um certificado oficial. Se quiser, pode pagar um valor bem acessível para receber uma cópia impressa.'],
                 ['title' => 'Como funciona a matrícula e o pagamento?', 'body' => 'Clique no botão de matrícula, escolha a opção e finalize o pagamento no ambiente seguro. Depois da confirmação, você recebe acesso para começar a estudar.'],
                 ['title' => 'Vou precisar pagar algo além da matrícula?', 'body' => 'O valor principal é o da matrícula escolhida nesta página. Outros itens só serão cobrados se estiverem informados de forma clara (por exemplo, serviços opcionais).'],
-                ['title' => 'Como faço para me matricular?', 'body' => 'É simples: clique em "Quero me matricular", escolha a opção de pagamento e siga as etapas para finalizar sua matrícula.'],
+                ['title' => 'Como faço para me matricular?', 'body' => 'É simples: clique em "Quero começar agora", escolha a opção de pagamento e siga as etapas para finalizar sua matrícula.'],
                 ['title' => 'O que é a carta de estágio?', 'body' => 'É um documento complementar para apoiar sua apresentação profissional. Ela pode ajudar a mostrar sua dedicação aos estudos, mas não garante vaga de emprego.'],
                 ['title' => 'Posso cancelar minha matrícula depois?', 'body' => 'As condições de cancelamento e atendimento seguem as regras informadas no momento da compra. Se precisar, use os canais de suporte informados no pagamento e na plataforma.'],
             ] as $faq)
@@ -990,12 +992,14 @@
                         >
                             Quero começar minha formação
                         </a>
-                        <a
-                            href="#matricula"
-                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-edux-line bg-white px-4 py-3 text-center text-sm font-semibold text-edux-primary transition hover:bg-edux-background"
-                        >
-                            Ver opções de matrícula
-                        </a>
+                        @if ($hasMultipleCheckouts)
+                            <a
+                                href="#matricula"
+                                class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-edux-line bg-white px-4 py-3 text-center text-sm font-semibold text-edux-primary transition hover:bg-edux-background"
+                            >
+                                Ver opções de matrícula
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -1330,7 +1334,7 @@
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-edux-line bg-white/95 p-3 shadow-2xl backdrop-blur md:hidden">
         <div class="flex items-center gap-3">
             <div class="min-w-0">
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">A partir de</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Apenas</p>
                 <p class="text-base font-black leading-none text-slate-900">{{ $stickyCheckoutPriceLabel }}</p>
             </div>
             <a
@@ -1342,7 +1346,7 @@
                 data-checkout-name="{{ $stickyCheckoutName }}"
                 class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-edux-primary px-4 py-3 text-center text-sm font-black text-white shadow-md transition hover:opacity-95"
             >
-                Quero me matricular
+                Quero começar agora
             </a>
         </div>
         <p class="mt-2 text-xs leading-4 text-slate-500">
