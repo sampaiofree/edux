@@ -4,16 +4,21 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\KavooController;
 use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\GeneratedCertificateController;
+use App\Http\Controllers\Admin\TrackingReportExportController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\CourseCertificateController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\CityCampaignController;
+use App\Http\Controllers\CityCampaignV2Controller;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LessonProgressController;
 use App\Http\Controllers\PublicLessonController;
 use App\Http\Controllers\PublicCertificateController;
 use App\Http\Controllers\PublicCoursePageController;
+use App\Http\Controllers\PublicCoursePageV2Controller;
+use App\Http\Controllers\PublicCoursePageV3Controller;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
@@ -51,6 +56,12 @@ Route::get('/certificates/verify/{token}', PublicCertificateController::class)->
 // Página pública do curso
 Route::view('/catalogo', 'courses.catalog')->name('courses.public.index');
 Route::get('/catalogo/{course:slug}', PublicCoursePageController::class)->name('courses.public.show');
+Route::view('/catalogo-2', 'courses.catalog')->name('courses.public.v2.index');
+Route::get('/catalogo-2/{course:slug}', PublicCoursePageV2Controller::class)->name('courses.public.v2.show');
+Route::view('/catalogo-3', 'courses.catalog')->name('courses.public.v3.index');
+Route::get('/catalogo-3/{course:slug}', PublicCoursePageV3Controller::class)->name('courses.public.v3.show');
+Route::get('/cidade/{cidade}', CityCampaignController::class)->name('city.campaign.show');
+Route::get('/cidade-2/{cidade}', CityCampaignV2Controller::class)->name('city.campaign.v2.show');
 // Termos e condições
 Route::view('/termos', 'legal.terms')->name('legal.terms');
 // Política de privacidade
@@ -171,6 +182,12 @@ Route::middleware('auth')->group(function (): void {
             Route::get('enroll/{enrollment}/edit', [EnrollmentController::class, 'edit'])->name('admin.enroll.edit');
             Route::put('enroll/{enrollment}', [EnrollmentController::class, 'update'])->name('admin.enroll.update');
             Route::delete('enroll/{enrollment}', [EnrollmentController::class, 'destroy'])->name('admin.enroll.destroy');
+            // Relatorio de tracking first-party (origens, funil, cliques)
+            Route::view('tracking', 'admin.tracking.index')->name('admin.tracking.index');
+            Route::get('tracking/export/origens', [TrackingReportExportController::class, 'sources'])
+                ->name('admin.tracking.export.sources');
+            Route::get('tracking/export/atribuicoes', [TrackingReportExportController::class, 'attributions'])
+                ->name('admin.tracking.export.attributions');
         });
 
     Route::middleware('role:admin')->group(function (): void {

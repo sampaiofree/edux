@@ -125,6 +125,7 @@
         @endauth
 
         @livewireScripts
+        @include('partials.tracking.first-party')
         @stack('scripts')
         @unless ($hideBottomNav)
             <x-student-bottom-nav :active="$navActive" />

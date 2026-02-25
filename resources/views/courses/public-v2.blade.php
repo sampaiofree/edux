@@ -51,131 +51,132 @@
         $stickyCtaHref = $stickyCheckout?->checkout_url ?: $primaryCtaHref;
     @endphp
 
-    <article class="pb-8">
-        <section id="oferta" class="lp-section space-y-4 pb-6 md:pb-8">
-            <div class="flex items-center gap-4">
-                @if ($heroImage)
-                    <img src="{{ $heroImage }}" alt="{{ $course->title }}" class="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-edux-line md:h-24 md:w-24">
-                @else
-                    <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-edux-background text-xs font-semibold text-slate-500 ring-1 ring-edux-line md:h-24 md:w-24">
-                        Curso
+    <article class="pb-8" data-lp-variant="v2">
+        <section id="oferta" class="lp-section pb-6 md:pb-8">
+            <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-200 bg-slate-50 px-4 py-3 md:px-6">
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                        <span class="inline-flex items-center rounded-full bg-edux-primary px-3 py-1 text-white">Catálogo com valor social</span>
+                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-slate-700 ring-1 ring-slate-200">Curso 100% online</span>
+                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-slate-700 ring-1 ring-slate-200">Sem vínculo com governo</span>
+                        @if ($studentCountLabel)
+                            <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-slate-700 ring-1 ring-slate-200">{{ $studentCountLabel }} matrículas</span>
+                        @endif
                     </div>
-                @endif
-
-                <div class="min-w-0">
-                    <p class="text-xs uppercase tracking-[0.2em] text-edux-primary">Curso profissionalizante online</p>
-                    <h1 class="mt-1 font-display text-2xl leading-tight text-edux-primary md:text-3xl">
-                        {{ $course->title }}
-                    </h1>
-                    @if ($course->summary)
-                        <p class="mt-2 text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary }}</p>
-                    @endif
                 </div>
-            </div>
 
-            @if (! $course->summary && $course->description)
-                <p class="text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary ?: $course->description }}</p>
-            @endif
+                <div class="grid gap-0 md:grid-cols-[1.12fr_0.88fr]">
+                    <div class="p-4 md:p-6">
+                        <div class="flex items-start gap-4">
+                            @if ($heroImage)
+                                <img src="{{ $heroImage }}" alt="{{ $course->title }}" class="h-24 w-24 shrink-0 rounded-2xl object-cover ring-1 ring-slate-200 md:h-28 md:w-28">
+                            @else
+                                <div class="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold text-slate-500 ring-1 ring-slate-200 md:h-28 md:w-28">
+                                    Curso
+                                </div>
+                            @endif
 
-            <div class="rounded-2xl border border-edux-primary/15 bg-gradient-to-br from-white via-white to-edux-primary/5 p-4 ring-1 ring-edux-primary/10">
-                <div class="flex flex-wrap gap-2">
-                    <span class="inline-flex items-center rounded-full bg-edux-primary px-3 py-1 text-xs font-bold text-white">Iniciativa social independente</span>
-                    <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Sem vínculo com governo</span>
-                    <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Curso 100% online</span>
-                    @if ($studentCountLabel)
-                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">{{ $studentCountLabel }} matrículas</span>
-                    @endif
-                </div>
-                <p class="mt-3 text-sm leading-6 text-slate-700 md:text-base">
-                    Nosso foco é ajudar você a se preparar melhor para oportunidades de trabalho com capacitação acessível. O curso fortalece seu currículo e sua prática, mas não garante contratação.
-                </p>
-            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-edux-primary">Consulta de matrícula</p>
+                                <h1 class="mt-2 text-2xl font-black leading-tight tracking-tight text-slate-900 md:text-3xl">
+                                    {{ $course->title }}
+                                </h1>
+                                <p class="mt-2 text-sm leading-6 text-slate-600 md:text-base">
+                                    {{ $course->summary ?: ($course->description ? \Illuminate\Support\Str::limit(strip_tags((string) $course->description), 180) : 'Curso profissionalizante online com aulas organizadas e valor social de matrícula.') }}
+                                </p>
+                            </div>
+                        </div>
 
-            <div class="grid gap-4 rounded-3xl border border-edux-line/70 bg-white p-4 shadow-sm md:grid-cols-[1.1fr_0.9fr] md:p-5">
-                <div class="space-y-4">
-                    <div class="space-y-2">
-                        <h2 class="text-xl font-black leading-tight text-slate-900 md:text-2xl">Comece hoje com valor social</h2>
-                        <p class="text-sm leading-6 text-slate-600 md:text-base">
-                            Estude no seu ritmo, pelo celular ou computador, com aulas organizadas, certificado e apoio ao aluno.
+                        <div class="mt-5 grid gap-2 sm:grid-cols-2">
+                            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                                <x-ui.color-icon name="clock" tone="blue" size="sm" class="h-7 w-7 rounded-lg" />
+                                <div>
+                                    <p class="text-xs font-black text-slate-900">{{ $courseHoursLabel }}h de conteúdo</p>
+                                    <p class="text-[11px] text-slate-500">Aprenda passo a passo</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                                <x-ui.color-icon name="play-circle" tone="indigo" size="sm" class="h-7 w-7 rounded-lg" />
+                                <div>
+                                    <p class="text-xs font-black text-slate-900">{{ $totalLessonsCount ?: 'x' }} aulas</p>
+                                    <p class="text-[11px] text-slate-500">Acesso online</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                                <x-ui.color-icon name="badge-check" tone="green" size="sm" class="h-7 w-7 rounded-lg" />
+                                <div>
+                                    <p class="text-xs font-black text-slate-900">Certificado incluso</p>
+                                    <p class="text-[11px] text-slate-500">Ao concluir o curso</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                                <x-ui.color-icon name="file-text" tone="amber" size="sm" class="h-7 w-7 rounded-lg" />
+                                <div>
+                                    <p class="text-xs font-black text-slate-900">Carta de estágio</p>
+                                    <p class="text-[11px] text-slate-500">Material complementar</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="mt-4 text-xs leading-5 text-slate-500">
+                            Iniciativa social de capacitação online. O curso ajuda na preparação profissional, mas não garante contratação.
                         </p>
                     </div>
 
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="clock" tone="blue" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">{{ $courseHoursLabel }} horas</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Conteúdo prático para aprender passo a passo.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="play-circle" tone="indigo" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">{{ $totalLessonsCount ?: 'x' }} aulas</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Acesso online para assistir no seu tempo.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="badge-check" tone="green" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">Certificado</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Ao concluir o curso{{ $course->finalTest ? ' e passar no teste final' : '' }}.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="file-text" tone="amber" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">Carta de estágio</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Material complementar para apoiar sua apresentação profissional.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    <aside class="border-t border-slate-200 bg-slate-950 p-4 text-white md:border-l md:border-t-0 md:p-6">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Valor social de matrícula</p>
+                        <p class="mt-2 text-3xl font-black leading-none md:text-4xl">
+                            {{ $primaryCheckoutPriceLabel ?: 'Consultar' }}
+                        </p>
+                        <p class="mt-2 text-sm text-white/75">
+                            @if ($lpPrimaryCheckout)
+                                {{ $primaryCheckoutName }}{{ $lpPrimaryCheckout?->hours ? ' • ' . $lpPrimaryCheckout->hours . 'h' : '' }}
+                            @else
+                                Veja as opções disponíveis abaixo.
+                            @endif
+                        </p>
 
-                <div class="rounded-2xl bg-slate-950 p-4 text-white ring-1 ring-white/10 md:p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Valor de entrada</p>
-                    <p class="mt-2 text-3xl font-black leading-none md:text-4xl">
-                        {{ $primaryCheckoutPriceLabel ?: 'Consultar' }}
-                    </p>
-                    <p class="mt-2 text-sm text-white/75">
-                        @if ($lpPrimaryCheckout)
-                            {{ $primaryCheckoutName }}{{ $lpPrimaryCheckout?->hours ? ' • ' . $lpPrimaryCheckout->hours . 'h' : '' }}
-                        @else
-                            Veja as opções disponíveis abaixo.
-                        @endif
-                    </p>
+                        <div class="mt-4 rounded-2xl border border-white/15 bg-white/5 p-3">
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-white/70">Curso</span>
+                                    <strong class="text-white">Online</strong>
+                                </div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-white/70">Certificado</span>
+                                    <strong class="text-white">Incluso</strong>
+                                </div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-white/70">Aulas</span>
+                                    <strong class="text-white">{{ $totalLessonsCount ?: 'x' }}</strong>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="mt-4 space-y-2">
-                        <a
-                            href="{{ $primaryCtaHref }}"
-                            data-checkout-link
-                            data-checkout-source="hero_offer_cta"
-                            data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
-                            data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
-                            data-checkout-name="{{ $primaryCheckoutName }}"
-                            class="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_14px_30px_-18px_rgba(16,185,129,0.9)] transition hover:bg-emerald-600"
-                        >
-                            Quero me matricular agora
-                        </a>
-                        <a
-                            href="#matricula"
-                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-                        >
-                            Ver opções de matrícula
-                        </a>
-                    </div>
+                        <div class="mt-4 space-y-2">
+                            <a
+                                href="{{ $primaryCtaHref }}"
+                                data-checkout-link
+                                data-checkout-source="hero_offer_cta"
+                                data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
+                                data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
+                                data-checkout-name="{{ $primaryCheckoutName }}"
+                                class="inline-flex min-h-[52px] w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-100"
+                            >
+                                Ver matrícula com valor social
+                            </a>
+                            <a
+                                href="#matricula"
+                                class="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+                            >
+                                Comparar opções de matrícula
+                            </a>
+                        </div>
 
-                    <p class="mt-3 text-sm leading-5 text-white/70">
-                        Pagamento seguro. Acesso liberado conforme confirmação do pagamento.
-                    </p>
+                        <p class="mt-3 text-xs leading-5 text-white/65">
+                            Pagamento seguro. Acesso liberado conforme confirmação do pagamento.
+                        </p>
+                    </aside>
                 </div>
             </div>
         </section>
@@ -903,7 +904,8 @@
                     'course_id' => $course->id,
                     'course_slug' => $course->slug,
                     'course_title' => $course->title,
-                    'page_type' => 'catalogo_course_lp',
+                    'page_type' => 'catalogo_course_lp_v2',
+                    'lp_variant' => 'v2',
                 ]);
                 const primaryCheckoutValue = @js($lpPrimaryCheckoutValue);
                 const rawSearchParams = new URLSearchParams(window.location.search);
@@ -972,6 +974,10 @@
 
                     if (!url.searchParams.has('edux_lp')) {
                         url.searchParams.set('edux_lp', '1');
+                    }
+
+                    if (!url.searchParams.has('edux_lp_variant')) {
+                        url.searchParams.set('edux_lp_variant', 'v2');
                     }
 
                     if (!url.searchParams.has('edux_course_slug')) {
@@ -1103,11 +1109,11 @@
         </script>
     @endpush
 
-    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-edux-line bg-white/95 p-3 shadow-2xl backdrop-blur md:hidden">
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-slate-950/95 p-3 text-white shadow-2xl backdrop-blur md:hidden">
         <div class="flex items-center gap-3">
             <div class="min-w-0">
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">A partir de</p>
-                <p class="text-base font-black leading-none text-slate-900">{{ $stickyCheckoutPriceLabel }}</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-white/60">Valor social</p>
+                <p class="text-base font-black leading-none text-white">{{ $stickyCheckoutPriceLabel }}</p>
             </div>
             <a
                 href="{{ $stickyCtaHref }}"
@@ -1116,13 +1122,13 @@
                 data-checkout-hours="{{ $stickyCheckout?->hours ?? '' }}"
                 data-checkout-price="{{ $stickyCheckoutValue ?? '' }}"
                 data-checkout-name="{{ $stickyCheckoutName }}"
-                class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-edux-primary px-4 py-3 text-center text-sm font-black text-white shadow-md transition hover:opacity-95"
+                class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-slate-900 shadow-md transition hover:bg-slate-100"
             >
-                Quero me matricular
+                Ver matrícula
             </a>
         </div>
-        <p class="mt-2 text-xs leading-4 text-slate-500">
-            Iniciativa social independente • sem vínculo com governo
+        <p class="mt-2 text-xs leading-4 text-white/60">
+            Catálogo com valor social • capacitação online
         </p>
     </div>
 @endsection

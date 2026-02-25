@@ -1,4 +1,4 @@
-﻿<section class="rounded-card bg-white p-6 shadow-card space-y-6">
+<section class="rounded-card bg-white p-6 shadow-card space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <p class="text-sm uppercase tracking-wide text-edux-primary">Identidade visual</p>

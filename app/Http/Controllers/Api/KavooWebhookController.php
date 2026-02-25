@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\Kavoo;
 use App\Models\User;
 use App\Mail\WelcomeKavooUser;
+use App\Support\KavooTrackingAttributionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -86,12 +87,20 @@ class KavooWebhookController extends Controller
                 continue;
             }
 
+            $course = $kavooData['status_code'] === 'SALE_APPROVED'
+                ? $this->resolveCourseForKavoo($kavoo)
+                : null;
+
             if ($user === null && $kavooData['status_code'] === 'SALE_APPROVED') {
                 $user = $this->ensureCustomerUser($kavoo);
             }
 
             if ($user) {
-                $this->ensureEnrollment($kavoo, $user);
+                $this->ensureEnrollment($kavoo, $user, $course);
+            }
+
+            if ($kavooData['status_code'] === 'SALE_APPROVED') {
+                $this->recordApprovedTracking($kavoo, $course, $user);
             }
         }
 
@@ -143,15 +152,9 @@ class KavooWebhookController extends Controller
         return null;
     }
 
-    private function ensureEnrollment(Kavoo $kavoo, User $user): void
+    private function ensureEnrollment(Kavoo $kavoo, User $user, ?Course $course = null): void
     {
-        $itemProductId = $kavoo->item_product_id;
-
-        if (empty($itemProductId)) {
-            return;
-        }
-
-        $course = Course::where('kavoo_id', $itemProductId)->first();
+        $course = $course ?? $this->resolveCourseForKavoo($kavoo);
         if (! $course) {
             return;
         }
@@ -174,6 +177,31 @@ class KavooWebhookController extends Controller
                 'course_id' => $course->id,
                 'user_id' => $user->id,
                 'kavoo_id' => $kavoo->id,
+            ]);
+        }
+    }
+
+    private function resolveCourseForKavoo(Kavoo $kavoo): ?Course
+    {
+        $itemProductId = $kavoo->item_product_id;
+
+        if (empty($itemProductId)) {
+            return null;
+        }
+
+        return Course::where('kavoo_id', $itemProductId)->first();
+    }
+
+    private function recordApprovedTracking(Kavoo $kavoo, ?Course $course, ?User $user): void
+    {
+        try {
+            app(KavooTrackingAttributionService::class)->recordApprovedSale($kavoo, $course, $user);
+        } catch (\Throwable $exception) {
+            Log::warning('Falha ao registrar tracking de conversao Kavoo', [
+                'error' => $exception->getMessage(),
+                'kavoo_id' => $kavoo->id,
+                'transaction_code' => $kavoo->transaction_code,
+                'item_product_id' => $kavoo->item_product_id,
             ]);
         }
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CityCampaignCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -9,6 +10,12 @@ use Illuminate\Support\Facades\Storage;
 class SystemSetting extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::saved(static fn () => CityCampaignCache::bumpSettings());
+        static::deleted(static fn () => CityCampaignCache::bumpSettings());
+    }
 
     protected $fillable = [
         'meta_ads_pixel',

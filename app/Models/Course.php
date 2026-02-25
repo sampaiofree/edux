@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Kavoo;
+use App\Support\CityCampaignCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Course extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::saved(static fn () => CityCampaignCache::bumpCourses());
+        static::deleted(static fn () => CityCampaignCache::bumpCourses());
+    }
 
     protected $fillable = [
         'owner_id',

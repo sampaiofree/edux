@@ -51,236 +51,227 @@
         $stickyCtaHref = $stickyCheckout?->checkout_url ?: $primaryCtaHref;
     @endphp
 
-    <article class="pb-8">
-        <section id="oferta" class="lp-section space-y-4 pb-6 md:pb-8">
-            <div class="flex items-center gap-4">
-                @if ($heroImage)
-                    <img src="{{ $heroImage }}" alt="{{ $course->title }}" class="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-edux-line md:h-24 md:w-24">
-                @else
-                    <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-edux-background text-xs font-semibold text-slate-500 ring-1 ring-edux-line md:h-24 md:w-24">
-                        Curso
-                    </div>
-                @endif
-
-                <div class="min-w-0">
-                    <p class="text-xs uppercase tracking-[0.2em] text-edux-primary">Curso profissionalizante online</p>
-                    <h1 class="mt-1 font-display text-2xl leading-tight text-edux-primary md:text-3xl">
-                        {{ $course->title }}
-                    </h1>
-                    @if ($course->summary)
-                        <p class="mt-2 text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary }}</p>
-                    @endif
-                </div>
-            </div>
-
-            @if (! $course->summary && $course->description)
-                <p class="text-sm leading-6 text-slate-600 md:text-base">{{ $course->summary ?: $course->description }}</p>
-            @endif
-
-            <div class="rounded-2xl border border-edux-primary/15 bg-gradient-to-br from-white via-white to-edux-primary/5 p-4 ring-1 ring-edux-primary/10">
-                <div class="flex flex-wrap gap-2">
-                    <span class="inline-flex items-center rounded-full bg-edux-primary px-3 py-1 text-xs font-bold text-white">Iniciativa social independente</span>
-                    <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Sem vínculo com governo</span>
-                    <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Curso 100% online</span>
-                    @if ($studentCountLabel)
-                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">{{ $studentCountLabel }} matrículas</span>
-                    @endif
-                </div>
-                <p class="mt-3 text-sm leading-6 text-slate-700 md:text-base">
-                    Nosso foco é ajudar você a se preparar melhor para oportunidades de trabalho com capacitação acessível. O curso fortalece seu currículo e sua prática, mas não garante contratação.
-                </p>
-            </div>
-
-            <div class="grid gap-4 rounded-3xl border border-edux-line/70 bg-white p-4 shadow-sm md:grid-cols-[1.1fr_0.9fr] md:p-5">
-                <div class="space-y-4">
-                    <div class="space-y-2">
-                        <h2 class="text-xl font-black leading-tight text-slate-900 md:text-2xl">Comece hoje com valor social</h2>
-                        <p class="text-sm leading-6 text-slate-600 md:text-base">
-                            Estude no seu ritmo, pelo celular ou computador, com aulas organizadas, certificado e apoio ao aluno.
-                        </p>
-                    </div>
-
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="clock" tone="blue" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">{{ $courseHoursLabel }} horas</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Conteúdo prático para aprender passo a passo.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="play-circle" tone="indigo" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">{{ $totalLessonsCount ?: 'x' }} aulas</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Acesso online para assistir no seu tempo.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="badge-check" tone="green" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">Certificado</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Ao concluir o curso{{ $course->finalTest ? ' e passar no teste final' : '' }}.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                            <div class="flex items-start gap-3">
-                                <x-ui.color-icon name="file-text" tone="amber" size="sm" />
-                                <div>
-                                    <p class="text-sm font-bold text-slate-900">Carta de estágio</p>
-                                    <p class="mt-1 text-sm leading-5 text-slate-600">Material complementar para apoiar sua apresentação profissional.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-slate-950 p-4 text-white ring-1 ring-white/10 md:p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Valor de entrada</p>
-                    <p class="mt-2 text-3xl font-black leading-none md:text-4xl">
-                        {{ $primaryCheckoutPriceLabel ?: 'Consultar' }}
-                    </p>
-                    <p class="mt-2 text-sm text-white/75">
-                        @if ($lpPrimaryCheckout)
-                            {{ $primaryCheckoutName }}{{ $lpPrimaryCheckout?->hours ? ' • ' . $lpPrimaryCheckout->hours . 'h' : '' }}
-                        @else
-                            Veja as opções disponíveis abaixo.
+    <article class="pb-8" data-lp-variant="v3">
+        <section id="oferta" class="lp-section pb-6 md:pb-8">
+            <div class="grid gap-4 md:grid-cols-[1.1fr_0.9fr] md:items-start">
+                <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+                    <div class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-black uppercase tracking-wide text-white">Painel de decisão profissional</span>
+                        <span class="inline-flex items-center rounded-full bg-edux-primary px-3 py-1 text-xs font-bold text-white">Valor social</span>
+                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Sem vínculo com governo</span>
+                        @if ($studentCountLabel)
+                            <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">{{ $studentCountLabel }} matrículas</span>
                         @endif
-                    </p>
+                    </div>
 
-                    <div class="mt-4 space-y-2">
+                    <div class="mt-5 flex items-start gap-4">
+                        @if ($heroImage)
+                            <img src="{{ $heroImage }}" alt="{{ $course->title }}" class="h-24 w-24 shrink-0 rounded-2xl object-cover ring-1 ring-slate-200 md:h-28 md:w-28">
+                        @else
+                            <div class="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold text-slate-500 ring-1 ring-slate-200 md:h-28 md:w-28">
+                                Curso
+                            </div>
+                        @endif
+
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-edux-primary">Capacitação profissional online com valor social</p>
+                            <h1 class="mt-2 font-display text-3xl leading-tight tracking-tight text-slate-900 md:text-4xl">
+                                {{ $course->title }}
+                            </h1>
+                            <p class="mt-3 text-sm leading-6 text-slate-600 md:text-base">
+                                {{ $course->summary ?: ($course->description ? \Illuminate\Support\Str::limit(strip_tags((string) $course->description), 190) : 'Curso profissionalizante online com aulas organizadas para ajudar você a fortalecer currículo e prática.') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                <x-ui.color-icon name="clock" tone="blue" size="sm" />
+                                <span>{{ $courseHoursLabel }} horas de conteúdo</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                <x-ui.color-icon name="play-circle" tone="indigo" size="sm" />
+                                <span>{{ $totalLessonsCount ?: 'x' }} aulas online</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                <x-ui.color-icon name="badge-check" tone="green" size="sm" />
+                                <span>Certificado incluso no valor</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                <x-ui.color-icon name="file-text" tone="amber" size="sm" />
+                                <span>Carta de estágio como apoio ao currículo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
                         <a
                             href="{{ $primaryCtaHref }}"
                             data-checkout-link
-                            data-checkout-source="hero_offer_cta"
+                            data-checkout-source="hero_primary_v3"
                             data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
                             data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
                             data-checkout-name="{{ $primaryCheckoutName }}"
-                            class="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_14px_30px_-18px_rgba(16,185,129,0.9)] transition hover:bg-emerald-600"
+                            class="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white shadow-lg transition hover:bg-slate-800"
                         >
                             Quero me matricular agora
                         </a>
                         <a
                             href="#matricula"
-                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+                            data-lp-cta-source="hero_secondary_v3"
+                            class="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-bold text-slate-900 transition hover:bg-slate-50"
                         >
                             Ver opções de matrícula
                         </a>
                     </div>
 
-                    <p class="mt-3 text-sm leading-5 text-white/70">
-                        Pagamento seguro. Acesso liberado conforme confirmação do pagamento.
+                    <p class="mt-4 text-sm leading-6 text-slate-600">
+                        Iniciativa social independente, sem vínculo com governo. O curso ajuda na sua preparação e no fortalecimento do currículo, mas não garante contratação.
                     </p>
                 </div>
+
+                <aside class="rounded-3xl border border-slate-800 bg-slate-950 p-4 text-white shadow-[0_24px_50px_-25px_rgba(15,23,42,0.9)] md:sticky md:top-6 md:p-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Painel de matrícula</p>
+                    <div class="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Valor social</p>
+                        <p class="mt-2 text-3xl font-black leading-none md:text-4xl">{{ $primaryCheckoutPriceLabel ?: 'Consultar' }}</p>
+                        <p class="mt-2 text-sm text-white/75">
+                            @if ($lpPrimaryCheckout)
+                                {{ $primaryCheckoutName }}{{ $lpPrimaryCheckout?->hours ? ' • ' . $lpPrimaryCheckout->hours . 'h' : '' }}
+                            @else
+                                Compare as opções abaixo.
+                            @endif
+                        </p>
+                    </div>
+
+                    <div class="mt-4 space-y-2 text-sm">
+                        <div class="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                            <span class="text-white/70">Formato</span>
+                            <strong class="text-white">100% online</strong>
+                        </div>
+                        <div class="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                            <span class="text-white/70">Acesso</span>
+                            <strong class="text-white">Celular e computador</strong>
+                        </div>
+                        <div class="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                            <span class="text-white/70">Pagamento</span>
+                            <strong class="text-white">Seguro</strong>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 space-y-2">
+                        <a
+                            href="{{ $primaryCtaHref }}"
+                            data-checkout-link
+                            data-checkout-source="sticky_panel_primary_v3"
+                            data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
+                            data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
+                            data-checkout-name="{{ $primaryCheckoutName }}"
+                            class="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-100"
+                        >
+                            Ir para matrícula
+                        </a>
+                        <a
+                            href="#matricula"
+                            data-lp-cta-source="sticky_panel_secondary_v3"
+                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
+                        >
+                            Comparar opções
+                        </a>
+                    </div>
+
+                    <p class="mt-3 text-xs leading-5 text-white/65">
+                        Acesso liberado após confirmação do pagamento.
+                    </p>
+                </aside>
             </div>
         </section>
 
-        <section class="lp-section space-y-4 py-8">
-            <div class="space-y-2">
-                <h2 class="text-2xl font-display text-edux-primary">Para quem é este curso</h2>
-                <p class="text-sm text-slate-600 md:text-base">Feito para quem quer aprender uma profissão com linguagem simples e aplicação prática.</p>
-            </div>
+        <section class="lp-section lp-deferred space-y-4 py-8">
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-2xl font-display text-slate-900">Você pode começar hoje</h2>
+                        <p class="text-sm text-slate-600 md:text-base">Tudo pensado para facilitar a sua decisão e o seu começo.</p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                        Sem complicação
+                    </span>
+                </div>
 
-            <div class="grid gap-3 md:grid-cols-2">
-                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
-                    <div class="flex items-start gap-3">
+                <div class="mt-4 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-slate-50">
+                    <div class="flex items-center gap-3 px-4 py-3 text-sm text-slate-700">
                         <x-ui.color-icon name="sparkles" tone="blue" size="sm" />
-                        <div>
-                            <p class="text-sm font-black text-slate-900">Quem está começando do zero</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Você aprende passo a passo, sem precisar ter experiência anterior.</p>
-                        </div>
+                        <span class="font-semibold">Não precisa experiência para começar</span>
                     </div>
-                </div>
-                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
-                    <div class="flex items-start gap-3">
-                        <x-ui.color-icon name="briefcase" tone="green" size="sm" />
-                        <div>
-                            <p class="text-sm font-black text-slate-900">Quem quer melhorar o currículo</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Curso, certificado e prática ajudam a apresentar melhor seu perfil.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
-                    <div class="flex items-start gap-3">
+                    <div class="flex items-center gap-3 px-4 py-3 text-sm text-slate-700">
                         <x-ui.color-icon name="smartphone" tone="indigo" size="sm" />
-                        <div>
-                            <p class="text-sm font-black text-slate-900">Quem precisa estudar pelo celular</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Aulas online para assistir quando puder, no seu ritmo.</p>
-                        </div>
+                        <span class="font-semibold">Pode estudar pelo celular ou computador</span>
                     </div>
-                </div>
-                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
-                    <div class="flex items-start gap-3">
-                        <x-ui.color-icon name="wallet" tone="amber" size="sm" />
-                        <div>
-                            <p class="text-sm font-black text-slate-900">Quem busca capacitação acessível</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Valor social e proposta de apoio à formação profissional.</p>
-                        </div>
+                    <div class="flex items-center gap-3 px-4 py-3 text-sm text-slate-700">
+                        <x-ui.color-icon name="play-circle" tone="blue" size="sm" />
+                        <span class="font-semibold">Assista as aulas no seu ritmo</span>
+                    </div>
+                    <div class="flex items-center gap-3 px-4 py-3 text-sm text-slate-700">
+                        <x-ui.color-icon name="badge-check" tone="green" size="sm" />
+                        <span class="font-semibold">Certificado ao concluir</span>
+                    </div>
+                    <div class="flex items-center gap-3 px-4 py-3 text-sm text-slate-700">
+                        <x-ui.color-icon name="file-text" tone="amber" size="sm" />
+                        <span class="font-semibold">Carta de estágio como apoio à apresentação profissional</span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="lp-section space-y-4 py-8">
+        <section class="lp-section lp-deferred space-y-4 py-8">
             <div class="space-y-2">
                 <h2 class="text-2xl font-display text-edux-primary">Como funciona sua matrícula</h2>
-                <p class="text-sm text-slate-600 md:text-base">Processo simples para começar hoje mesmo.</p>
+                <p class="text-sm text-slate-600 md:text-base">Passo a passo rápido para decidir e começar.</p>
             </div>
 
-            <div class="grid gap-3 md:grid-cols-3">
-                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
-                    <div class="flex items-start gap-3">
+            <div class="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm md:p-3">
+                <div class="grid gap-2 md:grid-cols-3">
+                    <div class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div class="relative shrink-0">
                             <x-ui.color-icon name="list-check" tone="blue" size="sm" />
-                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-edux-primary px-1 text-[10px] font-black text-white">1</span>
+                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1 text-[10px] font-black text-white">1</span>
                         </div>
                         <div>
-                            <p class="text-sm font-black text-slate-900">Escolha a opção de matrícula</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Veja o valor e clique no botão para ir ao pagamento.</p>
+                            <p class="text-sm font-black text-slate-900">Veja as opções liberadas</p>
+                            <p class="mt-1 text-sm leading-6 text-slate-600">Compare os valores e escolha a opção de matrícula.</p>
                         </div>
                     </div>
-                </div>
-                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
-                    <div class="flex items-start gap-3">
+                    <div class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div class="relative shrink-0">
                             <x-ui.color-icon name="shield-check" tone="green" size="sm" />
-                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-edux-primary px-1 text-[10px] font-black text-white">2</span>
+                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1 text-[10px] font-black text-white">2</span>
                         </div>
                         <div>
-                            <p class="text-sm font-black text-slate-900">Conclua o pagamento com segurança</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Você será direcionado para finalizar a matrícula com segurança.</p>
+                            <p class="text-sm font-black text-slate-900">Finalize no pagamento seguro</p>
+                            <p class="mt-1 text-sm leading-6 text-slate-600">Você será direcionado para concluir a matrícula com segurança.</p>
                         </div>
                     </div>
-                </div>
-                <div class="rounded-2xl border border-edux-line/70 bg-white p-4">
-                    <div class="flex items-start gap-3">
+                    <div class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div class="relative shrink-0">
                             <x-ui.color-icon name="book-open" tone="amber" size="sm" />
-                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-edux-primary px-1 text-[10px] font-black text-white">3</span>
+                            <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1 text-[10px] font-black text-white">3</span>
                         </div>
                         <div>
                             <p class="text-sm font-black text-slate-900">Comece a estudar</p>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Acesse as aulas, avance no seu ritmo e conclua para receber seu certificado.</p>
+                            <p class="mt-1 text-sm leading-6 text-slate-600">Acesse as aulas, pratique e conclua para receber seu certificado.</p>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <p class="text-sm font-semibold text-slate-800">Você precisa apenas de celular ou computador com internet para começar.</p>
-            </div>
         </section>
 
-        <section class="lp-section space-y-5 pt-4 pb-8 md:pt-5" x-data="lpDemoLessons(@js($previewPlayerItems))">
+        <section class="lp-section lp-deferred space-y-5 pt-4 pb-8 md:pt-5" x-data="lpDemoLessons(@js($previewPlayerItems))">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <h2 class="text-2xl font-display text-edux-primary">Veja algumas aulas antes de se matricular</h2>
-                    <p class="text-sm text-slate-600 md:text-base">Assista uma amostra real do conteúdo. É só escolher uma aula abaixo e dar play.</p>
+                    <h2 class="text-2xl font-display text-edux-primary">Experimente o curso antes de se matricular</h2>
+                    <p class="text-sm text-slate-600 md:text-base">Assista uma amostra real e veja como as aulas são explicadas antes de decidir.</p>
                 </div>
                 <div class="hidden items-center gap-2 sm:flex">
                     <button type="button" @click="scroll(-1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Voltar">&lsaquo;</button>
@@ -354,7 +345,7 @@
                         <a
                             href="{{ $primaryCtaHref }}"
                             data-checkout-link
-                            data-checkout-source="demo_unlock_cta"
+                            data-checkout-source="demo_unlock_cta_v3"
                             data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
                             data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
                             data-checkout-name="{{ $lpPrimaryCheckout?->nome ?? '' }}"
@@ -365,14 +356,14 @@
                                     +
                                 </span>
                                 <p class="text-sm font-black leading-5 text-edux-primary">
-                                    Matricule-se e libere {{ $remainingLessonsLabel }}
+                                    Liberar o curso completo ({{ $remainingLessonsLabel }})
                                 </p>
                                 <p class="text-sm leading-5 text-slate-600">
                                     Continue de onde parou e tenha acesso ao curso completo, certificado e carta de estágio.
                                 </p>
                             </div>
                             <span class="mt-3 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-2.5 py-2 text-sm font-bold text-white transition group-hover:bg-emerald-600">
-                                Liberar agora
+                                Liberar curso completo
                             </span>
                         </a>
                     @endif
@@ -384,10 +375,10 @@
             </div>
         </section>
 
-        <section class="lp-section space-y-4 py-8">
+        <section class="lp-section lp-deferred space-y-4 py-8">
             <div class="space-y-2">
                 <h2 class="text-2xl font-display text-edux-primary">O que você vai aprender</h2>
-                <p class="text-sm text-slate-600 md:text-base">Veja os módulos e as aulas organizadas para você estudar com clareza.</p>
+                <p class="text-sm text-slate-600 md:text-base">Currículo organizado em módulos para você estudar com clareza e acompanhar sua evolução.</p>
             </div>
             <div class="space-y-3">
                 @foreach ($course->modules as $module)
@@ -403,13 +394,21 @@
                     </details>
                 @endforeach
             </div>
+            <div class="flex justify-start">
+                <a
+                    href="#matricula"
+                    class="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                >
+                    Ir para matrícula
+                </a>
+            </div>
         </section>
 
-        <section class="lp-section space-y-4 py-8" x-data="{ scroll(dir) { this.$refs.track.scrollBy({ left: (this.$refs.track.clientWidth * 0.9) * dir, behavior: 'smooth' }) } }">
+        <section class="lp-section lp-deferred space-y-4 py-8" x-data="{ scroll(dir) { this.$refs.track.scrollBy({ left: (this.$refs.track.clientWidth * 0.9) * dir, behavior: 'smooth' }) } }">
             <div class="flex items-start justify-between gap-3">
                 <div class="space-y-2">
-                    <h2 class="text-2xl font-display text-edux-primary">Veja como fica seu certificado</h2>
-                    <p class="text-sm text-slate-600 md:text-base">Prévia do certificado com exemplo de nome para você saber exatamente como ele é.</p>
+                    <h2 class="text-2xl font-display text-edux-primary">Documentos de apoio e comprovação</h2>
+                    <p class="text-sm text-slate-600 md:text-base">Veja a prévia do certificado e entenda como a carta de estágio pode apoiar sua apresentação profissional.</p>
                 </div>
                 <div class="hidden items-center gap-2 sm:flex">
                     <button type="button" @click="scroll(-1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Voltar">&lsaquo;</button>
@@ -425,12 +424,54 @@
                     {!! $certificateBackPreview !!}
                 </div>
             </div>
+
+            <div class="grid gap-4 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-[1.05fr_0.95fr] md:p-4">
+                <div class="overflow-hidden rounded-2xl bg-slate-100">
+                    @if ($cartaEstagioImageUrl)
+                        <img
+                            src="{{ $cartaEstagioImageUrl }}"
+                            alt="Modelo de carta de estágio"
+                            class="h-full w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                    @else
+                        <div class="flex h-full min-h-[240px] items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-6 text-center text-sm font-semibold text-slate-500">
+                            Modelo de carta de estágio em configuração
+                        </div>
+                    @endif
+                </div>
+
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div class="space-y-3">
+                        <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-800">
+                            Apoio à apresentação profissional
+                        </span>
+                        <h3 class="text-lg font-black leading-tight text-slate-900">Carta de estágio para apoiar sua apresentação profissional</h3>
+                        <p class="text-sm leading-6 text-slate-600">
+                            A carta de estágio é um documento complementar para mostrar dedicação aos estudos e apoiar sua apresentação em candidaturas. Ela não garante vaga nem contratação.
+                        </p>
+                        <ul class="space-y-2 text-sm text-slate-700">
+                            <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-600">✓</span><span>Complementa currículo e candidaturas.</span></li>
+                            <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-600">✓</span><span>Ajuda a mostrar compromisso com a formação.</span></li>
+                            <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-600">✓</span><span>Material adicional junto com certificado.</span></li>
+                        </ul>
+                        <a
+                            href="#matricula"
+                            data-lp-cta-source="documents_section_cta_v3"
+                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                        >
+                            Ver matrícula com certificado e carta
+                        </a>
+                    </div>
+                </div>
+            </div>
         </section>
 
-        <section class="lp-section space-y-6 py-8">
+        <section class="lp-section lp-deferred space-y-6 py-8">
             <div class="space-y-2">
-                <h2 class="text-2xl font-display text-edux-primary">O que você recebe na matrícula</h2>
-                <p class="text-sm text-slate-600 md:text-base">Tudo para estudar, concluir o curso e apresentar melhor sua formação.</p>
+                <h2 class="text-2xl font-display text-edux-primary">O que está incluído na sua matrícula</h2>
+                <p class="text-sm text-slate-600 md:text-base">Tudo para estudar, concluir o curso e fortalecer sua apresentação profissional.</p>
             </div>
 
             <div class="grid gap-4">
@@ -453,7 +494,7 @@
                 <div class="flex items-center gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
                     <x-ui.color-icon name="badge-check" tone="green" />
                     <div>
-                        <p class="text-sm font-black leading-none text-slate-900">Certificado de Conclusão</p>
+                        <p class="text-sm font-black leading-none text-slate-900">Certificado incluso no valor</p>
                         <p class="mt-1 text-sm text-slate-500">Comprove a conclusão do curso e fortaleça seu currículo.</p>
                     </div>
                 </div>
@@ -461,18 +502,26 @@
                 <div class="flex items-center gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
                     <x-ui.color-icon name="file-text" tone="amber" />
                     <div>
-                        <p class="text-sm font-black leading-none text-slate-900">Carta de Estágio</p>
+                        <p class="text-sm font-black leading-none text-slate-900">Carta de estágio</p>
                         <p class="mt-1 text-sm text-slate-500">Documento complementar para apoiar sua apresentação em processos seletivos.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                    <x-ui.color-icon name="shield-check" tone="green" />
+                    <div>
+                        <p class="text-sm font-black leading-none text-slate-900">Suporte ao aluno e pagamento seguro</p>
+                        <p class="mt-1 text-sm text-slate-500">Matrícula em ambiente seguro e acesso após confirmação do pagamento.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="lp-section space-y-5 py-8">
+        <section class="lp-section lp-deferred space-y-5 py-8">
             <div class="space-y-2">
-                <h2 class="text-2xl font-display text-edux-primary">Carta de estágio para fortalecer sua apresentação profissional</h2>
+                <h2 class="text-2xl font-display text-edux-primary">Certificado e carta ajudam sua apresentação profissional</h2>
                 <p class="text-sm text-slate-600 md:text-base">
-                    Ao concluir sua matrícula, você também pode contar com a carta de estágio assinada para complementar seu currículo e sua apresentação em processos seletivos.
+                    O curso inclui documentos que ajudam você a organizar melhor sua apresentação. Eles fortalecem sua preparação, mas não garantem vaga ou contratação.
                 </p>
             </div>
 
@@ -494,13 +543,13 @@
 
                 <div class="rounded-[1.15rem] bg-gradient-to-br from-white via-white to-emerald-50/60 p-5 ring-1 ring-slate-100 md:p-6">
                     <div class="space-y-4">
-                        <div class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-700">
-                            Incluso no suporte ao aluno
+                        <div class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
+                            Dossiê de apresentação
                         </div>
 
                         <div class="space-y-2">
                             <h3 class="text-xl font-black leading-tight text-slate-900">
-                                Um complemento para mostrar seu compromisso com os estudos
+                                Use junto com seu currículo para apresentar melhor sua formação
                             </h3>
                             <p class="text-sm leading-6 text-slate-600">
                                 A carta de estágio assinada ajuda a apresentar melhor seu perfil em candidaturas. Ela pode fortalecer sua apresentação, mas não garante vaga nem contratação.
@@ -521,150 +570,144 @@
                                 <p class="text-sm leading-6 text-slate-600">Complementa seu material para buscar oportunidades com mais segurança.</p>
                             </div>
                         </div>
+
+                        <a
+                            href="#matricula"
+                            data-lp-cta-source="carta_estagio_section_v3"
+                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                        >
+                            Quero matrícula com documentos inclusos
+                        </a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section
-            id="matricula"
-            class="lp-section space-y-5 py-8"
-            x-data="{ scroll(dir) { if (!this.$refs.track) return; this.$refs.track.scrollBy({ left: (this.$refs.track.clientWidth * 0.9) * dir, behavior: 'smooth' }) } }"
-        >
-            <div class="flex items-start justify-between gap-3">
-                <div class="space-y-2">
-                    <h2 class="text-2xl font-display text-edux-primary">Escolha sua forma de matrícula</h2>
-                    <p class="text-sm text-slate-600 md:text-base">Escolha a opção que cabe no seu momento e siga para o pagamento com segurança.</p>
-                </div>
-
-                @if ($hasMultipleCheckouts)
-                    <div class="hidden items-center gap-2 sm:flex">
-                        <button type="button" @click="scroll(-1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Voltar">&lsaquo;</button>
-                        <button type="button" @click="scroll(1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Avançar">&rsaquo;</button>
-                    </div>
-                @endif
+        <section id="matricula" class="lp-section lp-deferred space-y-5 py-8">
+            <div class="space-y-2">
+                <h2 class="text-2xl font-display text-edux-primary">Escolha a forma de matrícula que cabe no seu momento</h2>
+                <p class="text-sm text-slate-600 md:text-base">Compare as opções, veja o valor e siga para o pagamento com segurança.</p>
             </div>
 
             @if ($course->checkouts->isNotEmpty())
-                <div
-                    x-ref="track"
-                    @class([
-                        'pb-2',
-                        'flex snap-x snap-mandatory gap-4 overflow-x-auto' => $hasMultipleCheckouts,
-                        'grid gap-4' => ! $hasMultipleCheckouts,
-                    ])
-                >
-                    @foreach ($course->checkouts as $checkout)
-                        <article
-                            @class([
-                                'relative isolate overflow-hidden rounded-3xl border p-1',
-                                'w-[94%] shrink-0 snap-start md:w-[calc(50%_-_0.5rem)]' => $hasMultipleCheckouts,
-                                'w-full' => ! $hasMultipleCheckouts,
-                                'border-edux-primary/20 bg-gradient-to-br from-white via-sky-50/80 to-emerald-50/70 shadow-[0_20px_50px_-28px_rgba(16,185,129,0.45)]' => $loop->first,
-                                'border-edux-line/70 bg-gradient-to-br from-white via-white to-slate-50 shadow-sm' => ! $loop->first,
-                            ])
-                        >
-                            <div class="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-edux-primary/10 blur-2xl"></div>
-                            <div class="pointer-events-none absolute -left-8 bottom-8 h-24 w-24 rounded-full bg-emerald-400/10 blur-2xl"></div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <div class="hidden md:block">
+                        <div class="grid grid-cols-[1.6fr_0.7fr_0.8fr_1.1fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-600">
+                            <div>Opção</div>
+                            <div>Carga</div>
+                            <div>Valor</div>
+                            <div>Bônus</div>
+                            <div class="text-right">Ação</div>
+                        </div>
 
-                            <div class="relative flex h-full flex-col gap-4 rounded-[1.1rem] bg-white/90 p-4 md:p-5">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div class="space-y-2">
-                                        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200">
-                                            Carga horária {{ $checkout->hours }}h
-                                        </span>
-
-                                        <div class="space-y-1">
-                                            <h3 class="text-lg font-black leading-tight text-slate-900 md:text-xl">
-                                                {{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}
-                                            </h3>
-                                            <p class="text-sm leading-6 text-slate-600">
-                                                {{ $checkout->descricao ?: 'Escolha esta opção para seguir ao pagamento e concluir sua matrícula com segurança.' }}
-                                            </p>
+                        <div class="divide-y divide-slate-200">
+                            @foreach ($course->checkouts as $checkout)
+                                <div @class([
+                                    'grid grid-cols-[1.6fr_0.7fr_0.8fr_1.1fr_0.9fr] gap-3 px-5 py-4',
+                                    'bg-emerald-50/40' => $loop->first,
+                                ])>
+                                    <div class="space-y-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="text-sm font-black text-slate-900">{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}</p>
+                                            @if ($loop->first)
+                                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                                                    Recomendada
+                                                </span>
+                                            @endif
                                         </div>
-                                    </div>
-
-                                    @if ($loop->first)
-                                        <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">
-                                            Mais procurada
-                                        </span>
-                                    @endif
-                                </div>
-
-                                <div class="rounded-2xl bg-slate-950 p-4 text-white ring-1 ring-white/10">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Valor do curso</p>
-                                    <div class="mt-2 flex items-end justify-between gap-3">
-                                        <p class="text-3xl font-black leading-none md:text-4xl">
-                                            R$ {{ number_format((float) $checkout->price, 2, ',', '.') }}
-                                        </p>
-                                        <p class="text-xs text-right text-white/70">
-                                            pagamento seguro<br>confirmação rápida
+                                        <p class="text-sm leading-5 text-slate-600">
+                                            {{ $checkout->descricao ?: 'Opção de matrícula com pagamento seguro e acesso após confirmação.' }}
                                         </p>
                                     </div>
+                                    <div class="text-sm font-semibold text-slate-700">{{ $checkout->hours }}h</div>
+                                    <div class="text-sm font-black text-slate-900">R$ {{ number_format((float) $checkout->price, 2, ',', '.') }}</div>
+                                    <div class="text-sm text-slate-600">
+                                        @if ($checkout->bonuses->isNotEmpty())
+                                            <span class="font-semibold text-emerald-700">{{ $checkout->bonuses->count() }} bônus</span>
+                                            <p class="mt-1 text-xs leading-4 text-slate-500">{{ \Illuminate\Support\Str::limit($checkout->bonuses->pluck('nome')->join(', '), 60) }}</p>
+                                        @else
+                                            <span class="text-slate-400">Sem bônus extras</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-right">
+                                        <a
+                                            href="{{ $checkout->checkout_url }}"
+                                            data-checkout-link
+                                            data-checkout-source="checkout_compare_v3"
+                                            data-checkout-id="{{ $checkout->id }}"
+                                            data-checkout-hours="{{ $checkout->hours }}"
+                                            data-checkout-price="{{ (float) $checkout->price }}"
+                                            data-checkout-name="{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                                        >
+                                            Quero esta opção
+                                        </a>
+                                    </div>
                                 </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 p-3 md:hidden">
+                        @foreach ($course->checkouts as $checkout)
+                            <article @class([
+                                'rounded-2xl border p-4',
+                                'border-emerald-200 bg-emerald-50/40' => $loop->first,
+                                'border-slate-200 bg-white' => ! $loop->first,
+                            ])>
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h3 class="text-base font-black leading-tight text-slate-900">{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}</h3>
+                                            @if ($loop->first)
+                                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Recomendada</span>
+                                            @endif
+                                        </div>
+                                        <p class="mt-1 text-sm text-slate-600">{{ $checkout->hours }}h • pagamento seguro</p>
+                                    </div>
+                                    <p class="text-lg font-black text-slate-900">R$ {{ number_format((float) $checkout->price, 2, ',', '.') }}</p>
+                                </div>
+
+                                <p class="mt-2 text-sm leading-5 text-slate-600">
+                                    {{ $checkout->descricao ?: 'Escolha esta opção para seguir ao pagamento e concluir sua matrícula com segurança.' }}
+                                </p>
 
                                 @if ($checkout->bonuses->isNotEmpty())
-                                    <div class="space-y-2">
-                                        <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Bônus inclusos sem custo</p>
-                                        <div class="grid gap-2">
+                                    <details class="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                                        <summary class="cursor-pointer text-sm font-semibold text-slate-900">Ver bônus incluídos ({{ $checkout->bonuses->count() }})</summary>
+                                        <ul class="mt-2 space-y-2 text-sm text-slate-600">
                                             @foreach ($checkout->bonuses as $bonus)
-                                                <div class="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3">
-                                                    <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-black text-white">✓</span>
-                                                    <div class="min-w-0 flex-1">
-                                                        <p class="text-sm font-semibold text-slate-900">{{ $bonus->nome }}</p>
-                                                        @if ($bonus->descricao)
-                                                            <p class="mt-1 text-sm leading-5 text-slate-500">{{ $bonus->descricao }}</p>
-                                                        @endif
-                                                        <div class="mt-1 flex flex-wrap items-center gap-2">
-                                                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-emerald-700">
-                                                                Grátis
-                                                            </span>
-                                                            <span class="text-xs font-semibold text-slate-400 line-through">
-                                                                de R$ {{ number_format((float) $bonus->preco, 2, ',', '.') }}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <li class="flex items-start gap-2">
+                                                    <span class="mt-0.5 text-emerald-600">✓</span>
+                                                    <span>{{ $bonus->nome }}@if($bonus->descricao) — {{ $bonus->descricao }}@endif</span>
+                                                </li>
                                             @endforeach
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-sm text-slate-500">
-                                        Esta opção não possui bônus extras cadastrados no momento.
-                                    </div>
+                                        </ul>
+                                    </details>
                                 @endif
 
-                                <div class="mt-auto space-y-2 pt-1">
-                                    <a
-                                        href="{{ $checkout->checkout_url }}"
-                                        data-checkout-link
-                                        data-checkout-source="checkout_card"
-                                        data-checkout-id="{{ $checkout->id }}"
-                                        data-checkout-hours="{{ $checkout->hours }}"
-                                        data-checkout-price="{{ (float) $checkout->price }}"
-                                        data-checkout-name="{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="group relative inline-flex min-h-[58px] w-full items-center justify-center overflow-hidden rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_16px_35px_-18px_rgba(16,185,129,0.95)] ring-1 ring-emerald-300 transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-[0_22px_40px_-18px_rgba(16,185,129,0.85)]"
-                                    >
-                                        <span class="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition group-hover:opacity-100"></span>
-                                        <span class="relative inline-flex items-center gap-2">
-                                            Quero esta opção
-                                            <span aria-hidden="true">→</span>
-                                        </span>
-                                    </a>
-                                    <p class="text-sm leading-5 text-slate-500">
-                                        Você será direcionado para um ambiente seguro para concluir sua matrícula.
-                                    </p>
-                                </div>
-                            </div>
-                        </article>
-                    @endforeach
+                                <a
+                                    href="{{ $checkout->checkout_url }}"
+                                    data-checkout-link
+                                    data-checkout-source="checkout_compare_v3"
+                                    data-checkout-id="{{ $checkout->id }}"
+                                    data-checkout-hours="{{ $checkout->hours }}"
+                                    data-checkout-price="{{ (float) $checkout->price }}"
+                                    data-checkout-name="{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="mt-3 inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                                >
+                                    Quero esta opção
+                                </a>
+                            </article>
+                        @endforeach
+                    </div>
                 </div>
 
-                @if ($hasMultipleCheckouts)
-                    <p class="text-sm text-slate-500">Deslize para ver e comparar as opções de matrícula.</p>
-                @endif
+                <p class="text-sm text-slate-500">Você será direcionado para um ambiente seguro para concluir sua matrícula.</p>
             @else
                 <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-100">
                     Nenhuma opção de matrícula disponível no momento.
@@ -673,10 +716,10 @@
         </section>
 
         @if ($course->owner)
-            <section class="lp-section space-y-5 py-8">
+            <section class="lp-section lp-deferred space-y-5 py-8">
                 <div class="space-y-2">
                     <h2 class="text-2xl font-display text-edux-primary">Quem prepara este curso</h2>
-                    <p class="text-sm text-slate-600 md:text-base">Conheça quem organizou as aulas e vai orientar sua jornada de aprendizado.</p>
+                    <p class="text-sm text-slate-600 md:text-base">Uma pessoa real, com experiência prática, para ensinar de forma direta e aplicável.</p>
                 </div>
 
                 <div class="relative overflow-hidden rounded-3xl border border-edux-line/70 bg-white p-1 shadow-sm">
@@ -717,61 +760,89 @@
             </section>
         @endif
 
-        <section class="lp-section space-y-4 py-8">
-            <h2 class="text-2xl font-display text-edux-primary">Perguntas frequentes</h2>
-            @foreach ([
-                ['title' => 'Por quanto tempo posso acessar o curso?', 'body' => 'Você pode acessar o curso por 2 anos. No momento da matrícula, também existe a opção de adquirir acesso vitalício.'],
-                ['title' => 'Preciso fazer prova para ganhar o certificado?', 'body' => $course->finalTest ? 'Sim, tem um teste final bem prático para você provar que aprendeu e liberar o certificado.' : 'Não! Basta você concluir todas as aulas para ganhar seu certificado.'],
-                ['title' => 'Posso fazer o curso no meu celular?', 'body' => 'Claro! Você pode assistir as aulas no celular, tablet ou computador, quando e onde quiser.'],
-                ['title' => 'Este curso tem vínculo com o governo?', 'body' => 'Não. Este curso faz parte de uma iniciativa social independente, sem vínculo com prefeitura, estado ou governo federal.'],
-                ['title' => 'Este curso garante emprego?', 'body' => 'Não. O curso ajuda na sua preparação profissional, fortalece seu currículo e sua prática, mas não garante contratação.'],
-                ['title' => 'Preciso de internet rápida?', 'body' => 'Não precisa de internet super rápida. A plataforma funciona bem com internet normal. As aulas carregam direitinho.'],
-                ['title' => 'Posso baixar as aulas para assistir depois?', 'body' => 'Você assiste online pela plataforma. Recomendamos uma conexão de internet estável para não perder o aprendizado.'],
-                ['title' => 'Como funciona o certificado?', 'body' => 'Depois de terminar o curso' . ($course->finalTest ? ' e passar no teste' : '') . ', você recebe um certificado oficial. Se quiser, pode pagar um valor bem acessível para receber uma cópia impressa.'],
-                ['title' => 'Como funciona a matrícula e o pagamento?', 'body' => 'Clique no botão de matrícula, escolha a opção e finalize o pagamento no ambiente seguro. Depois da confirmação, você recebe acesso para começar a estudar.'],
-                ['title' => 'Vou precisar pagar algo além da matrícula?', 'body' => 'O valor principal é o da matrícula escolhida nesta página. Outros itens só serão cobrados se estiverem informados de forma clara (por exemplo, serviços opcionais).'],
-                ['title' => 'Como faço para me matricular?', 'body' => 'É simples: clique em "Quero me matricular", escolha a opção de pagamento e siga as etapas para finalizar sua matrícula.'],
-                ['title' => 'O que é a carta de estágio?', 'body' => 'É um documento complementar para apoiar sua apresentação profissional. Ela pode ajudar a mostrar sua dedicação aos estudos, mas não garante vaga de emprego.'],
-                ['title' => 'Posso cancelar minha matrícula depois?', 'body' => 'As condições de cancelamento e atendimento seguem as regras informadas no momento da compra. Se precisar, use os canais de suporte informados no pagamento e na plataforma.'],
-            ] as $faq)
-                <details class="rounded-2xl border border-edux-line/70 p-4">
-                    <summary class="cursor-pointer text-sm font-semibold text-edux-primary">{{ $faq['title'] }}</summary>
-                    <p class="mt-2 text-sm text-slate-600">{{ $faq['body'] }}</p>
-                </details>
-            @endforeach
+        <section class="lp-section lp-deferred space-y-4 py-8">
+            @php
+                $faqItems = collect([
+                    ['title' => 'Por quanto tempo posso acessar o curso?', 'body' => 'Você pode acessar o curso por 2 anos. No momento da matrícula, também existe a opção de adquirir acesso vitalício.'],
+                    ['title' => 'Preciso fazer prova para ganhar o certificado?', 'body' => $course->finalTest ? 'Sim, tem um teste final bem prático para você provar que aprendeu e liberar o certificado.' : 'Não! Basta você concluir todas as aulas para ganhar seu certificado.'],
+                    ['title' => 'Posso fazer o curso no meu celular?', 'body' => 'Claro! Você pode assistir as aulas no celular, tablet ou computador, quando e onde quiser.'],
+                    ['title' => 'Este curso tem vínculo com o governo?', 'body' => 'Não. Este curso faz parte de uma iniciativa social independente, sem vínculo com prefeitura, estado ou governo federal.'],
+                    ['title' => 'Este curso garante emprego?', 'body' => 'Não. O curso ajuda na sua preparação profissional, fortalece seu currículo e sua prática, mas não garante contratação.'],
+                    ['title' => 'Preciso de internet rápida?', 'body' => 'Não precisa de internet super rápida. A plataforma funciona bem com internet normal. As aulas carregam direitinho.'],
+                    ['title' => 'Posso baixar as aulas para assistir depois?', 'body' => 'Você assiste online pela plataforma. Recomendamos uma conexão de internet estável para não perder o aprendizado.'],
+                    ['title' => 'Como funciona o certificado?', 'body' => 'Depois de terminar o curso' . ($course->finalTest ? ' e passar no teste' : '') . ', você recebe um certificado oficial. Se quiser, pode pagar um valor bem acessível para receber uma cópia impressa.'],
+                    ['title' => 'Como funciona a matrícula e o pagamento?', 'body' => 'Clique no botão de matrícula, escolha a opção e finalize o pagamento no ambiente seguro. Depois da confirmação, você recebe acesso para começar a estudar.'],
+                    ['title' => 'Vou precisar pagar algo além da matrícula?', 'body' => 'O valor principal é o da matrícula escolhida nesta página. Outros itens só serão cobrados se estiverem informados de forma clara (por exemplo, serviços opcionais).'],
+                    ['title' => 'Como faço para me matricular?', 'body' => 'É simples: clique em "Quero me matricular", escolha a opção de pagamento e siga as etapas para finalizar sua matrícula.'],
+                    ['title' => 'O que é a carta de estágio?', 'body' => 'É um documento complementar para apoiar sua apresentação profissional. Ela pode ajudar a mostrar sua dedicação aos estudos, mas não garante vaga de emprego.'],
+                    ['title' => 'Posso cancelar minha matrícula depois?', 'body' => 'As condições de cancelamento e atendimento seguem as regras informadas no momento da compra. Se precisar, use os canais de suporte informados no pagamento e na plataforma.'],
+                ]);
+                $quickFaqs = $faqItems->take(5);
+                $moreFaqs = $faqItems->slice(5);
+            @endphp
+
+            <div class="space-y-2">
+                <h2 class="text-2xl font-display text-edux-primary">Perguntas frequentes</h2>
+                <p class="text-sm text-slate-600 md:text-base">Respostas rápidas para as dúvidas mais comuns antes da matrícula.</p>
+            </div>
+
+            <div class="grid gap-3">
+                @foreach ($quickFaqs as $faq)
+                    <details class="rounded-2xl border border-edux-line/70 bg-white p-4">
+                        <summary class="cursor-pointer text-sm font-semibold text-edux-primary">{{ $faq['title'] }}</summary>
+                        <p class="mt-2 text-sm text-slate-600">{{ $faq['body'] }}</p>
+                    </details>
+                @endforeach
+            </div>
+
+            <details class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <summary class="cursor-pointer text-sm font-black text-slate-900">Ver mais perguntas</summary>
+                <div class="mt-3 space-y-3">
+                    @foreach ($moreFaqs as $faq)
+                        <details class="rounded-xl border border-slate-200 bg-white p-4">
+                            <summary class="cursor-pointer text-sm font-semibold text-edux-primary">{{ $faq['title'] }}</summary>
+                            <p class="mt-2 text-sm text-slate-600">{{ $faq['body'] }}</p>
+                        </details>
+                    @endforeach
+                </div>
+            </details>
         </section>
 
-        <section class="lp-section py-8">
-            <div class="rounded-3xl border border-edux-primary/15 bg-gradient-to-br from-white via-edux-primary/5 to-emerald-50 p-5 shadow-sm md:p-6">
-                <div class="grid gap-4 md:grid-cols-[1.2fr_0.8fr] md:items-center">
+        <section class="lp-section lp-deferred py-8">
+            <div class="rounded-3xl border border-slate-300 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-5 text-white shadow-xl md:p-6">
+                <div class="grid gap-5 md:grid-cols-[1.15fr_0.85fr] md:items-center">
                     <div class="space-y-2">
-                        <h2 class="text-2xl font-display text-edux-primary">Comece sua capacitação profissional hoje</h2>
-                        <p class="text-sm leading-6 text-slate-700 md:text-base">
-                            Iniciativa social independente, sem vínculo com governo, com foco em formação acessível para ajudar você a se preparar melhor para oportunidades de trabalho.
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Fechamento de decisão</p>
+                        <h2 class="text-2xl font-display text-white md:text-3xl">Se você quer começar sua preparação profissional com valor acessível, esta é a hora de escolher sua matrícula.</h2>
+                        <p class="text-sm leading-6 text-white/80 md:text-base">
+                            Iniciativa social independente, sem vínculo com governo. O curso ajuda na sua preparação e no fortalecimento do currículo, mas não garante contratação.
                         </p>
-                        <p class="text-sm leading-6 text-slate-600">
-                            O curso ajuda na sua preparação e no fortalecimento do currículo. Não garante emprego.
-                        </p>
+                        <div class="mt-3 inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white/90">
+                            Valor social a partir de <span class="ml-2 text-base font-black text-white">{{ $stickyCheckoutPriceLabel }}</span>
+                        </div>
                     </div>
 
                     <div class="space-y-2">
                         <a
                             href="{{ $primaryCtaHref }}"
                             data-checkout-link
-                            data-checkout-source="final_cta"
+                            data-checkout-source="final_cta_v3"
                             data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
                             data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
                             data-checkout-name="{{ $primaryCheckoutName }}"
-                            class="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_16px_30px_-18px_rgba(16,185,129,0.9)] transition hover:bg-emerald-600"
+                            class="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-100"
                         >
                             Quero me matricular agora
                         </a>
                         <a
                             href="#matricula"
-                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-edux-line bg-white px-4 py-3 text-center text-sm font-semibold text-edux-primary transition hover:bg-edux-background"
+                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
                         >
                             Ver opções de matrícula
                         </a>
+                        <p class="text-xs leading-5 text-white/60">
+                            Pagamento seguro. Acesso liberado após confirmação do pagamento.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -805,6 +876,13 @@
                 background: linear-gradient(to right, transparent, rgba(26, 115, 232, 0.08), transparent);
                 filter: blur(16px);
                 pointer-events: none;
+            }
+
+            @supports (content-visibility: auto) {
+                .lp-deferred {
+                    content-visibility: auto;
+                    contain-intrinsic-size: 900px;
+                }
             }
         </style>
         @if ($hasDemoPlyr)
@@ -903,7 +981,8 @@
                     'course_id' => $course->id,
                     'course_slug' => $course->slug,
                     'course_title' => $course->title,
-                    'page_type' => 'catalogo_course_lp',
+                    'page_type' => 'catalogo_course_lp_v3',
+                    'lp_variant' => 'v3',
                 ]);
                 const primaryCheckoutValue = @js($lpPrimaryCheckoutValue);
                 const rawSearchParams = new URLSearchParams(window.location.search);
@@ -974,6 +1053,10 @@
                         url.searchParams.set('edux_lp', '1');
                     }
 
+                    if (!url.searchParams.has('edux_lp_variant')) {
+                        url.searchParams.set('edux_lp_variant', 'v3');
+                    }
+
                     if (!url.searchParams.has('edux_course_slug')) {
                         url.searchParams.set('edux_course_slug', String(courseMeta.course_slug));
                     }
@@ -1027,6 +1110,19 @@
                     });
                 };
 
+                const prepareInlineCtas = () => {
+                    document.querySelectorAll('a[data-lp-cta-source]').forEach((link) => {
+                        if (link.dataset.lpCtaBound === '1') return;
+                        link.dataset.lpCtaBound = '1';
+
+                        link.addEventListener('click', () => {
+                            window.lpMetaTrack('LPCtaClick', {
+                                cta_source: link.dataset.lpCtaSource || 'inline_cta',
+                            });
+                        });
+                    });
+                };
+
                 const initSectionTracking = () => {
                     if (!('IntersectionObserver' in window)) return;
 
@@ -1075,8 +1171,17 @@
 
                 const boot = () => {
                     prepareCheckoutLinks();
-                    initSectionTracking();
+                    prepareInlineCtas();
                     initFaqTracking();
+
+                    const saveData = navigator.connection?.saveData === true;
+                    if (!saveData) {
+                        if (typeof window.requestIdleCallback === 'function') {
+                            window.requestIdleCallback(() => initSectionTracking(), { timeout: 1500 });
+                        } else {
+                            window.setTimeout(() => initSectionTracking(), 700);
+                        }
+                    }
 
                     window.lpMetaTrack('LPCourseView', {
                         page_path: window.location.pathname,
@@ -1103,26 +1208,26 @@
         </script>
     @endpush
 
-    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-edux-line bg-white/95 p-3 shadow-2xl backdrop-blur md:hidden">
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-700 bg-slate-950/95 p-3 text-white shadow-2xl backdrop-blur md:hidden">
         <div class="flex items-center gap-3">
             <div class="min-w-0">
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">A partir de</p>
-                <p class="text-base font-black leading-none text-slate-900">{{ $stickyCheckoutPriceLabel }}</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-white/60">A partir de</p>
+                <p class="text-base font-black leading-none text-white">{{ $stickyCheckoutPriceLabel }}</p>
             </div>
             <a
                 href="{{ $stickyCtaHref }}"
                 data-checkout-link
-                data-checkout-source="mobile_sticky_cta"
+                data-checkout-source="mobile_sticky_cta_v3"
                 data-checkout-hours="{{ $stickyCheckout?->hours ?? '' }}"
                 data-checkout-price="{{ $stickyCheckoutValue ?? '' }}"
                 data-checkout-name="{{ $stickyCheckoutName }}"
-                class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-edux-primary px-4 py-3 text-center text-sm font-black text-white shadow-md transition hover:opacity-95"
+                class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-amber-300 px-4 py-3 text-center text-sm font-black text-slate-950 shadow-md transition hover:bg-amber-200"
             >
-                Quero me matricular
+                Matricular agora
             </a>
         </div>
-        <p class="mt-2 text-xs leading-4 text-slate-500">
-            Iniciativa social independente • sem vínculo com governo
+        <p class="mt-2 text-xs leading-4 text-white/60">
+            Valor social • sem vínculo com governo • curso online
         </p>
     </div>
 @endsection
