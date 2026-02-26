@@ -37,6 +37,7 @@
             use Illuminate\Support\Facades\Schema;
 
             $logoUrl = $settings->assetUrl('default_logo_dark_path');
+            $footerSchoolName = trim((string) ($settings->escola_nome ?? '')) ?: 'EduX';
 
             $unreadCount = (
                 Schema::hasTable('notifications') &&
@@ -110,7 +111,7 @@
         <footer class="hidden bg-gray-100 text-gray-600 md:block">
             <div class="mx-auto max-w-6xl px-4 py-6 text-center">
                 <p class="font-semibold">
-                    {{ now()->year }} EduX
+                    {{ now()->year }} {{ $footerSchoolName }}
                     <span title="Marca registada" class="ml-1 inline-block align-super text-xs text-gray-500" aria-hidden="true">®</span>
                     - Aprender é simples.
                 </p>

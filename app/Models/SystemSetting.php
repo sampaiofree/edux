@@ -18,6 +18,8 @@ class SystemSetting extends Model
     }
 
     protected $fillable = [
+        'escola_nome',
+        'escola_cnpj',
         'meta_ads_pixel',
         'carta_estagio',
         'favicon_path',

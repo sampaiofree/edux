@@ -9,6 +9,60 @@
 
     <section class="rounded-2xl border border-edux-line/60 bg-slate-50 p-4 space-y-4">
         <div>
+            <h3 class="text-lg font-display text-edux-primary">Dados da escola</h3>
+            <p class="text-xs text-slate-500">
+                Esses dados podem ser usados em rodapés e comunicações públicas da plataforma.
+            </p>
+        </div>
+
+        <form wire:submit.prevent="saveSchoolIdentity" class="grid gap-3 md:grid-cols-2">
+            <label class="space-y-1 text-sm font-semibold text-slate-600">
+                <span>Nome da escola</span>
+                <input
+                    type="text"
+                    wire:model.defer="escola_nome"
+                    placeholder="Ex.: Escola Profissional XYZ"
+                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                >
+                @error('escola_nome')
+                    <p class="text-xs text-red-500">{{ $message }}</p>
+                @enderror
+            </label>
+
+            <label class="space-y-1 text-sm font-semibold text-slate-600">
+                <span>CNPJ da escola</span>
+                <input
+                    type="text"
+                    wire:model.defer="escola_cnpj"
+                    placeholder="Ex.: 12.345.678/0001-90"
+                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                >
+                @error('escola_cnpj')
+                    <p class="text-xs text-red-500">{{ $message }}</p>
+                @enderror
+                <p class="text-xs text-slate-500">Opcional. Você pode salvar com ou sem máscara.</p>
+            </label>
+
+            <div class="md:col-span-2 flex items-center gap-3">
+                <button
+                    type="submit"
+                    class="edux-btn h-fit"
+                    wire:loading.attr="disabled"
+                    wire:target="saveSchoolIdentity"
+                >
+                    Salvar dados da escola
+                </button>
+                @if (session()->has('status_school_identity'))
+                    <p class="text-xs text-emerald-600" wire:loading.remove wire:target="saveSchoolIdentity">
+                        {{ session('status_school_identity') }}
+                    </p>
+                @endif
+            </div>
+        </form>
+    </section>
+
+    <section class="rounded-2xl border border-edux-line/60 bg-slate-50 p-4 space-y-4">
+        <div>
             <h3 class="text-lg font-display text-edux-primary">Meta Ads Pixel</h3>
             <p class="text-xs text-slate-500">
                 ID numérico do pixel usado na LP pública de cursos em <code>/catalogo/{slug}</code>.
@@ -93,4 +147,3 @@
         @endforeach
     </div>
 </section>
-

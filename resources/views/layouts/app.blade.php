@@ -8,6 +8,7 @@
         $settings = \App\Models\SystemSetting::current();
         $faviconUrl = $settings->assetUrl('favicon_path');
         $logoUrl = $settings->assetUrl('default_logo_dark_path');
+        $footerSchoolName = trim((string) ($settings->escola_nome ?? '')) ?: 'EduX';
     @endphp
     <title>@yield('title', 'EduX')</title>
     @if ($faviconUrl)
@@ -110,7 +111,7 @@
 
     <footer class="fixed inset-x-0 bottom-0 bg-edux-primary text-white">
         <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-center md:flex-row md:text-left">
-            <p class="font-semibold">© {{ now()->year }} EduX — Aprender e simples.</p>
+            <p class="font-semibold">© {{ now()->year }} {{ $footerSchoolName }} — Aprender e simples.</p>
             <div class="flex gap-4 text-sm opacity-80">
                 <a href="#">Politicas</a>
                 <a href="#">Suporte</a>

@@ -12,6 +12,8 @@ class SystemAssetsManager extends Component
     use WithFileUploads;
 
     public SystemSetting $settings;
+    public ?string $escola_nome = null;
+    public ?string $escola_cnpj = null;
     public ?string $meta_ads_pixel = null;
 
     /** @var array<string, mixed> */
@@ -66,6 +68,8 @@ class SystemAssetsManager extends Component
     protected function rules(): array
     {
         return [
+            'escola_nome' => ['nullable', 'string', 'max:255'],
+            'escola_cnpj' => ['nullable', 'string', 'max:32'],
             'meta_ads_pixel' => ['nullable', 'string', 'max:64'],
             'uploads.favicon' => ['nullable', 'image', 'max:256'],
             'uploads.logo' => ['nullable', 'image', 'max:512'],
@@ -80,6 +84,8 @@ class SystemAssetsManager extends Component
     public function mount(): void
     {
         $this->settings = SystemSetting::current();
+        $this->escola_nome = $this->settings->escola_nome;
+        $this->escola_cnpj = $this->settings->escola_cnpj;
         $this->meta_ads_pixel = $this->settings->meta_ads_pixel;
     }
 
@@ -104,6 +110,30 @@ class SystemAssetsManager extends Component
 
         $message = 'Meta Ads Pixel atualizado.';
         session()->flash('status', $message);
+        $this->dispatch('notify', type: 'success', message: $message);
+    }
+
+    public function saveSchoolIdentity(): void
+    {
+        $this->validate([
+            'escola_nome' => ['nullable', 'string', 'max:255'],
+            'escola_cnpj' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $escolaNome = trim((string) ($this->escola_nome ?? ''));
+        $escolaCnpj = trim((string) ($this->escola_cnpj ?? ''));
+
+        $this->settings->update([
+            'escola_nome' => $escolaNome !== '' ? $escolaNome : null,
+            'escola_cnpj' => $escolaCnpj !== '' ? $escolaCnpj : null,
+        ]);
+
+        $this->settings->refresh();
+        $this->escola_nome = $this->settings->escola_nome;
+        $this->escola_cnpj = $this->settings->escola_cnpj;
+
+        $message = 'Dados institucionais atualizados.';
+        session()->flash('status_school_identity', $message);
         $this->dispatch('notify', type: 'success', message: $message);
     }
 
