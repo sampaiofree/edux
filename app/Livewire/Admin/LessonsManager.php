@@ -364,6 +364,9 @@ class LessonsManager extends Component
             });
         });
 
+        // Force parent module card key to change so nested lessons component remounts with fresh data.
+        $this->module->touch();
+
         $this->refreshModule();
     }
 
@@ -409,6 +412,10 @@ class LessonsManager extends Component
                 $lesson->update(['position' => $index + 1]);
             });
         });
+
+        // Parent modules list uses module.updated_at in the Livewire key for each nested lessons manager.
+        // Touching the affected module ensures the destination/origin panel remounts and reflects moved lessons.
+        $module->touch();
 
         if ($moduleId === $this->module->id) {
             $this->refreshModule();

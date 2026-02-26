@@ -765,6 +765,8 @@
                 </div>
             </div>
         </section>
+
+        @include('courses.partials.whatsapp-support-section', ['supportWhatsappContact' => $supportWhatsappContact ?? null])
     </article>
 
     @push('styles')

@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Models\CertificateBranding;
 use App\Models\Course;
+use App\Models\SupportWhatsappNumber;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 
 class PublicCoursePageViewDataBuilder
 {
@@ -20,6 +22,7 @@ class PublicCoursePageViewDataBuilder
             'modules.lessons' => fn ($query) => $query->orderBy('position'),
             'certificateBranding',
             'enrollments',
+            'supportWhatsappNumber',
             'checkouts' => fn ($query) => $query
                 ->where('is_active', true)
                 ->with(['bonuses' => fn ($bonusQuery) => $bonusQuery->orderBy('id')])
@@ -78,7 +81,99 @@ class PublicCoursePageViewDataBuilder
             'buyUrl' => $buyUrl,
             'certificateFrontPreview' => $certificateFrontPreview,
             'certificateBackPreview' => $certificateBackPreview,
+            'supportWhatsappContact' => $this->resolveSupportWhatsappContact($course),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveSupportWhatsappContact(Course $course): ?array
+    {
+        $mode = $course->support_whatsapp_mode ?: Course::SUPPORT_WHATSAPP_MODE_ALL;
+        $selected = $course->supportWhatsappNumber;
+
+        $number = null;
+
+        if ($mode === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC && $selected) {
+            $number = $selected;
+        } else {
+            $activeNumbers = SupportWhatsappNumber::query()
+                ->active()
+                ->orderBy('position')
+                ->orderBy('id')
+                ->get();
+
+            if ($activeNumbers->isNotEmpty()) {
+                $number = $this->pickRotatingWhatsappNumber($activeNumbers, $course);
+            } elseif ($selected) {
+                // Fallback para não quebrar a LP caso o número específico exista mas esteja inativo.
+                $number = $selected;
+            }
+        }
+
+        if (! $number) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', (string) $number->whatsapp) ?: '';
+        if ($digits === '') {
+            return null;
+        }
+
+        $message = rawurlencode("Olá! Quero tirar dúvidas sobre o curso {$course->title}.");
+        $link = "https://wa.me/{$digits}?text={$message}";
+
+        return [
+            'id' => $number->id,
+            'label' => $number->label,
+            'whatsapp' => $number->whatsapp,
+            'description' => $number->description,
+            'link' => $link,
+            'mode' => $mode,
+            'is_rotating' => $mode === Course::SUPPORT_WHATSAPP_MODE_ALL,
+        ];
+    }
+
+    private function pickRotatingWhatsappNumber(Collection $numbers, Course $course): ?SupportWhatsappNumber
+    {
+        if ($numbers->isEmpty()) {
+            return null;
+        }
+
+        $visitorSeed = $this->supportRotationSeed($course);
+        $hash = hash('sha256', $visitorSeed);
+        $index = hexdec(substr($hash, 0, 8)) % $numbers->count();
+
+        return $numbers->values()->get($index);
+    }
+
+    private function supportRotationSeed(Course $course): string
+    {
+        $request = request();
+
+        $visitorUuid = trim((string) $request->cookie('edux_vid', ''));
+        $sessionId = '';
+
+        try {
+            if (method_exists($request, 'hasSession') && $request->hasSession()) {
+                $sessionId = (string) optional($request->session())->getId();
+            }
+        } catch (\Throwable) {
+            $sessionId = '';
+        }
+
+        $ip = (string) ($request->ip() ?? '');
+        $ua = (string) ($request->userAgent() ?? '');
+
+        return implode('|', [
+            'course',
+            (string) $course->id,
+            $visitorUuid !== '' ? $visitorUuid : 'no-visitor',
+            $sessionId !== '' ? $sessionId : 'no-session',
+            $ip !== '' ? $ip : 'no-ip',
+            $ua !== '' ? substr($ua, 0, 120) : 'no-ua',
+        ]);
     }
 
     private function extractYoutubeId(?string $url): ?string

@@ -4,10 +4,12 @@ namespace App\Livewire\Admin;
 
 use App\Models\CertificateBranding;
 use App\Models\Course;
+use App\Models\SupportWhatsappNumber;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 
@@ -21,6 +23,8 @@ class CourseForm extends Component
     public ?string $description = null;
     public ?string $atuacao = null;
     public ?string $oquefaz = null;
+    public string $support_whatsapp_mode = Course::SUPPORT_WHATSAPP_MODE_ALL;
+    public ?int $support_whatsapp_number_id = null;
     public string $status = 'draft';
     public ?int $duration_minutes = null;
     public ?string $published_at = null;
@@ -46,6 +50,8 @@ class CourseForm extends Component
                 'description' => $this->course->description,
                 'atuacao' => $this->course->atuacao,
                 'oquefaz' => $this->course->oquefaz,
+                'support_whatsapp_mode' => $this->course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL,
+                'support_whatsapp_number_id' => $this->course->support_whatsapp_number_id,
                 'promo_video_url' => $this->course->promo_video_url,
                 'status' => $this->course->status,
                 'duration_minutes' => $this->course->duration_minutes,
@@ -65,6 +71,12 @@ class CourseForm extends Component
 
         if (! $user->isAdmin()) {
             $data['owner_id'] = $user->id;
+            $data['support_whatsapp_mode'] = $this->course?->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL;
+            $data['support_whatsapp_number_id'] = $this->course?->support_whatsapp_number_id;
+        } else {
+            if (($data['support_whatsapp_mode'] ?? Course::SUPPORT_WHATSAPP_MODE_ALL) !== Course::SUPPORT_WHATSAPP_MODE_SPECIFIC) {
+                $data['support_whatsapp_number_id'] = null;
+            }
         }
 
         if ($this->course) {
@@ -102,6 +114,7 @@ class CourseForm extends Component
         return view('livewire.admin.course-form', [
             'owners' => $this->owners(),
             'branding' => $this->course?->certificateBranding,
+            'supportWhatsappNumbers' => $this->supportWhatsappNumbers(),
         ]);
     }
 
@@ -118,6 +131,13 @@ class CourseForm extends Component
             'description' => ['nullable', 'string'],
             'atuacao' => ['nullable', 'string'],
             'oquefaz' => ['nullable', 'string'],
+            'support_whatsapp_mode' => ['required', Rule::in([Course::SUPPORT_WHATSAPP_MODE_ALL, Course::SUPPORT_WHATSAPP_MODE_SPECIFIC])],
+            'support_whatsapp_number_id' => [
+                Rule::requiredIf(fn () => $this->support_whatsapp_mode === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
+                'nullable',
+                'integer',
+                'exists:support_whatsapp_numbers,id',
+            ],
             'promo_video_url' => ['nullable', 'url'],
             'status' => ['required', 'in:draft,published,archived'],
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
@@ -208,6 +228,15 @@ class CourseForm extends Component
         return User::query()
             ->where('role', 'admin')
             ->orderBy('name')
+            ->get();
+    }
+
+    private function supportWhatsappNumbers()
+    {
+        return SupportWhatsappNumber::query()
+            ->orderByDesc('is_active')
+            ->orderBy('position')
+            ->orderBy('label')
             ->get();
     }
 }

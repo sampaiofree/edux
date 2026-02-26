@@ -45,7 +45,7 @@
                             <th class="pb-2">Cliente</th>
                             <th class="pb-2">Produto</th>
                             <th class="pb-2">Status</th>
-                            <th class="pb-2">Criado em</th>
+                            <th class="pb-2">Horario (SP)</th>
                             <th class="pb-2 text-right">Ações</th>
                         </tr>
                     </thead>
@@ -53,6 +53,8 @@
                         @forelse ($kavoos as $kavoo)
                             @php
                                 $linkedUser = $kavoo->customerEmailOwner ?? $kavoo->customerPhoneOwner;
+                                $occurredAtSp = $kavoo->occurredAtSaoPaulo();
+                                $createdAtSp = $kavoo->createdAtSaoPaulo();
                             @endphp
                             <tr>
                                 <td class="py-3">#{{ $kavoo->id }}</td>
@@ -72,7 +74,15 @@
                                 </td>
                                 <td class="py-3">{{ $kavoo->item_product_name ?? '-' }}</td>
                                 <td class="py-3">{{ $kavoo->status_code ?? '-' }}</td>
-                                <td class="py-3">{{ $kavoo->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
+                                <td class="py-3">
+                                    <div class="font-semibold text-slate-800">
+                                        {{ $occurredAtSp?->format('d/m/Y H:i') ?? '-' }}
+                                    </div>
+                                    <p class="text-xs text-slate-500">Transacao (payload)</p>
+                                    <p class="text-xs text-slate-400">
+                                        Registro local: {{ $createdAtSp?->format('d/m/Y H:i') ?? '-' }}
+                                    </p>
+                                </td>
                                 <td class="py-3 text-right space-x-3">
                                     <a href="{{ route('admin.kavoo.edit', $kavoo) }}" class="text-edux-primary text-sm underline-offset-2 hover:underline">Editar</a>
                                     <form action="{{ route('admin.kavoo.destroy', $kavoo) }}" method="POST" class="inline">

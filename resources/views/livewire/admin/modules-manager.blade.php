@@ -93,7 +93,7 @@
                 <div class="mt-4" x-show="open" x-collapse>
                     <livewire:admin.lessons-manager
                         :module-id="$module->id"
-                        :key="'lessons-'.$module->id.'-'.($module->updated_at?->timestamp ?? 0)"
+                        :key="'lessons-'.$module->id.'-'.$lessonsComponentsVersion"
                     />
                 </div>
             </article>

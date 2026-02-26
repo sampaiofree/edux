@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\KavooController;
 use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\GeneratedCertificateController;
+use App\Http\Controllers\Admin\SupportWhatsappNumberController;
 use App\Http\Controllers\Admin\TrackingReportExportController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
@@ -178,6 +179,13 @@ Route::middleware('auth')->group(function (): void {
             Route::get('kavoo/{kavoo}/edit', [KavooController::class, 'edit'])->name('admin.kavoo.edit');
             Route::put('kavoo/{kavoo}', [KavooController::class, 'update'])->name('admin.kavoo.update');
             Route::delete('kavoo/{kavoo}', [KavooController::class, 'destroy'])->name('admin.kavoo.destroy');
+            // Números de WhatsApp para atendimento
+            Route::get('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'index'])->name('admin.support-whatsapp.index');
+            Route::get('whatsapp-atendimento/create', [SupportWhatsappNumberController::class, 'create'])->name('admin.support-whatsapp.create');
+            Route::post('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'store'])->name('admin.support-whatsapp.store');
+            Route::get('whatsapp-atendimento/{supportWhatsappNumber}/edit', [SupportWhatsappNumberController::class, 'edit'])->name('admin.support-whatsapp.edit');
+            Route::put('whatsapp-atendimento/{supportWhatsappNumber}', [SupportWhatsappNumberController::class, 'update'])->name('admin.support-whatsapp.update');
+            Route::delete('whatsapp-atendimento/{supportWhatsappNumber}', [SupportWhatsappNumberController::class, 'destroy'])->name('admin.support-whatsapp.destroy');
             // Administracao de matriculas
             Route::get('enroll', [EnrollmentController::class, 'index'])->name('admin.enroll.index');
             Route::get('enroll/create', [EnrollmentController::class, 'create'])->name('admin.enroll.create');

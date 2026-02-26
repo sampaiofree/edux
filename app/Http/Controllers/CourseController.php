@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Models\CertificateBranding;
 use App\Models\Course;
+use App\Models\SupportWhatsappNumber;
 use App\Models\User;
 use App\Support\HandlesCourseAuthorization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CourseController extends Controller
@@ -23,9 +25,11 @@ class CourseController extends Controller
         $course = new Course([
             'status' => 'draft',
             'owner_id' => $user->id,
+            'support_whatsapp_mode' => Course::SUPPORT_WHATSAPP_MODE_ALL,
         ]);
+        $supportWhatsappNumbers = $this->supportWhatsappNumbers();
 
-        return view('courses.create', compact('owners', 'user', 'course'));
+        return view('courses.create', compact('owners', 'user', 'course', 'supportWhatsappNumbers'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -44,6 +48,17 @@ class CourseController extends Controller
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', 'exists:users,id'],
             'kavoo_id' => ['nullable', 'integer', 'min:0'],
+            'support_whatsapp_mode' => [
+                Rule::requiredIf(fn () => $user->isAdmin()),
+                'nullable',
+                Rule::in([Course::SUPPORT_WHATSAPP_MODE_ALL, Course::SUPPORT_WHATSAPP_MODE_SPECIFIC]),
+            ],
+            'support_whatsapp_number_id' => [
+                Rule::requiredIf(fn () => $user->isAdmin() && $request->input('support_whatsapp_mode') === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
+                'nullable',
+                'integer',
+                'exists:support_whatsapp_numbers,id',
+            ],
             'certificate_front_background' => ['nullable', 'image', 'max:4096'],
             'certificate_back_background' => ['nullable', 'image', 'max:4096'],
             'cover_image' => ['nullable', 'image', 'max:4096'],
@@ -69,6 +84,12 @@ class CourseController extends Controller
             'duration_minutes' => $validated['duration_minutes'] ?? null,
             'published_at' => $validated['published_at'] ?? null,
             'kavoo_id' => $user->isAdmin() ? ($validated['kavoo_id'] ?? null) : null,
+            'support_whatsapp_mode' => $user->isAdmin()
+                ? ($validated['support_whatsapp_mode'] ?? Course::SUPPORT_WHATSAPP_MODE_ALL)
+                : Course::SUPPORT_WHATSAPP_MODE_ALL,
+            'support_whatsapp_number_id' => $user->isAdmin() && (($validated['support_whatsapp_mode'] ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
+                ? ($validated['support_whatsapp_number_id'] ?? null)
+                : null,
         ]);
 
         if ($request->hasFile('cover_image')) {
@@ -93,8 +114,9 @@ class CourseController extends Controller
         ]);
 
         $owners = $this->owners();
+        $supportWhatsappNumbers = $this->supportWhatsappNumbers();
 
-        return view('courses.edit', compact('course', 'owners', 'user'));
+        return view('courses.edit', compact('course', 'owners', 'user', 'supportWhatsappNumbers'));
     }
 
     public function editModules(Request $request, Course $course): View
@@ -138,6 +160,17 @@ class CourseController extends Controller
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', 'exists:users,id'],
             'kavoo_id' => ['nullable', 'integer', 'min:0'],
+            'support_whatsapp_mode' => [
+                Rule::requiredIf(fn () => $user->isAdmin()),
+                'nullable',
+                Rule::in([Course::SUPPORT_WHATSAPP_MODE_ALL, Course::SUPPORT_WHATSAPP_MODE_SPECIFIC]),
+            ],
+            'support_whatsapp_number_id' => [
+                Rule::requiredIf(fn () => $user->isAdmin() && $request->input('support_whatsapp_mode') === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
+                'nullable',
+                'integer',
+                'exists:support_whatsapp_numbers,id',
+            ],
             'certificate_front_background' => ['nullable', 'image', 'max:4096'],
             'certificate_back_background' => ['nullable', 'image', 'max:4096'],
             'cover_image' => ['nullable', 'image', 'max:4096'],
@@ -154,6 +187,12 @@ class CourseController extends Controller
             'duration_minutes' => $validated['duration_minutes'] ?? null,
             'published_at' => $validated['published_at'] ?? null,
             'kavoo_id' => $user->isAdmin() ? ($validated['kavoo_id'] ?? null) : $course->kavoo_id,
+            'support_whatsapp_mode' => $user->isAdmin()
+                ? ($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL)
+                : ($course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL),
+            'support_whatsapp_number_id' => $user->isAdmin() && (($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
+                ? ($validated['support_whatsapp_number_id'] ?? null)
+                : null,
         ]);
 
         if ($user->isAdmin() && isset($validated['owner_id'])) {
@@ -206,6 +245,15 @@ class CourseController extends Controller
         return User::query()
             ->where('role', UserRole::ADMIN->value)
             ->orderBy('name')
+            ->get();
+    }
+
+    private function supportWhatsappNumbers()
+    {
+        return SupportWhatsappNumber::query()
+            ->orderByDesc('is_active')
+            ->orderBy('position')
+            ->orderBy('label')
             ->get();
     }
 

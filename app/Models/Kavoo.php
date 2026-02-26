@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 
 class Kavoo extends Model
 {
     use HasFactory;
+
+    public const DISPLAY_TIMEZONE = 'America/Sao_Paulo';
 
     protected $table = 'kavoo';
 
@@ -70,5 +74,50 @@ class Kavoo extends Model
     public function scopeWithCustomerRelations(Builder $query): Builder
     {
         return $query->with(['customerEmailOwner', 'customerPhoneOwner']);
+    }
+
+    public function occurredAtUtc(): ?CarbonImmutable
+    {
+        $candidates = [
+            Arr::get($this->transaction, 'approved_at'),
+            Arr::get($this->payment, 'approved_at'),
+            Arr::get($this->status, 'updated_at'),
+            Arr::get($this->transaction, 'updated_at'),
+            Arr::get($this->transaction, 'created_at'),
+            optional($this->updated_at)?->toIso8601String(),
+            optional($this->created_at)?->toIso8601String(),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (! is_string($candidate) || trim($candidate) === '') {
+                continue;
+            }
+
+            try {
+                return CarbonImmutable::parse($candidate)->utc();
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    public function occurredAtSaoPaulo(): ?CarbonImmutable
+    {
+        return $this->occurredAtUtc()?->setTimezone(self::DISPLAY_TIMEZONE);
+    }
+
+    public function createdAtSaoPaulo(): ?CarbonImmutable
+    {
+        if (! $this->created_at) {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($this->created_at)->setTimezone(self::DISPLAY_TIMEZONE);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

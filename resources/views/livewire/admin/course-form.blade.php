@@ -91,6 +91,44 @@
         </div>
 
         @if ($this->is_admin)
+            <div class="rounded-2xl border border-edux-line/70 p-4 space-y-4">
+                <div>
+                    <p class="font-semibold text-slate-700">Atendimento via WhatsApp</p>
+                    <p class="text-xs text-slate-500">Escolha se o curso usa todos os números cadastrados por rotatividade ou um número específico.</p>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="space-y-2 text-sm font-semibold text-slate-600">
+                        <span>Modo de atendimento</span>
+                        <select wire:model.defer="support_whatsapp_mode" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                            <option value="{{ \App\Models\Course::SUPPORT_WHATSAPP_MODE_ALL }}">Todos (rotatividade)</option>
+                            <option value="{{ \App\Models\Course::SUPPORT_WHATSAPP_MODE_SPECIFIC }}">Número específico</option>
+                        </select>
+                        @error('support_whatsapp_mode') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                    </label>
+
+                    <label class="space-y-2 text-sm font-semibold text-slate-600">
+                        <span>Número específico (quando selecionado)</span>
+                        <select wire:model.defer="support_whatsapp_number_id" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                            <option value="">Selecione um número</option>
+                            @foreach ($supportWhatsappNumbers as $supportWhatsappNumber)
+                                <option value="{{ $supportWhatsappNumber->id }}">
+                                    {{ $supportWhatsappNumber->label }} ({{ $supportWhatsappNumber->whatsapp }}){{ $supportWhatsappNumber->is_active ? '' : ' - inativo' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @if ($supportWhatsappNumbers->isEmpty())
+                            <p class="text-xs text-amber-600">Nenhum número cadastrado ainda. Use o menu “WhatsApp atendimento”.</p>
+                        @else
+                            <p class="text-xs text-slate-500">Se o modo for “Todos”, este campo é ignorado.</p>
+                        @endif
+                        @error('support_whatsapp_number_id') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+                    </label>
+                </div>
+            </div>
+        @endif
+
+        @if ($this->is_admin)
             <div class="rounded-2xl border border-dashed border-edux-line p-4 space-y-4">
                 <p class="font-semibold text-slate-700">Certificado · fundos personalizados</p>
                 <div class="grid gap-4 md:grid-cols-2">

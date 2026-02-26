@@ -39,7 +39,13 @@
         $primaryCheckoutPriceLabel = $lpPrimaryCheckoutValue !== null
             ? 'R$ ' . number_format($lpPrimaryCheckoutValue, 2, ',', '.')
             : null;
+        $supportWhatsappFallbackHref = is_array($supportWhatsappContact ?? null)
+            ? trim((string) ($supportWhatsappContact['link'] ?? ''))
+            : '';
         $primaryCtaHref = ($buyUrl ?? '#matricula') === '#oferta' ? '#matricula' : ($buyUrl ?? '#matricula');
+        if ($course->checkouts->isEmpty() && $supportWhatsappFallbackHref !== '') {
+            $primaryCtaHref = $supportWhatsappFallbackHref;
+        }
         $stickyCheckout = $course->checkouts->sortBy(fn ($checkout) => (float) $checkout->price)->first();
         $stickyCheckoutValue = $stickyCheckout ? (float) $stickyCheckout->price : null;
         $stickyCheckoutPriceLabel = $stickyCheckoutValue !== null
@@ -892,6 +898,8 @@
                 </div>
             </div>
         </section>
+
+        @include('courses.partials.whatsapp-support-section', ['supportWhatsappContact' => $supportWhatsappContact ?? null])
     </article>
 
     @push('styles')

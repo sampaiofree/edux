@@ -13,6 +13,8 @@ class ModulesManager extends Component
 {
     public Course $course;
 
+    public int $lessonsComponentsVersion = 0;
+
     public bool $showForm = false;
 
     public ?Module $editingModule = null;
@@ -152,6 +154,10 @@ class ModulesManager extends Component
                 ->with(['lessons' => fn ($lessonQuery) => $lessonQuery->orderBy('position')])
                 ->orderBy('position'),
         ]);
+
+        // Force nested lessons managers to remount after any module/lesson refresh.
+        // Using a version counter avoids relying on second-precision updated_at timestamps.
+        $this->lessonsComponentsVersion++;
 
         if (! $this->editingModule) {
             $this->form['position'] = $this->nextPosition();

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Kavoo;
+use App\Models\SupportWhatsappNumber;
 use App\Support\CityCampaignCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Course extends Model
 {
     use HasFactory;
+
+    public const SUPPORT_WHATSAPP_MODE_ALL = 'all';
+    public const SUPPORT_WHATSAPP_MODE_SPECIFIC = 'specific';
 
     protected static function booted(): void
     {
@@ -36,6 +40,8 @@ class Course extends Model
         'duration_minutes',
         'published_at',
         'kavoo_id',
+        'support_whatsapp_mode',
+        'support_whatsapp_number_id',
     ];
 
     protected function casts(): array
@@ -44,6 +50,7 @@ class Course extends Model
             'published_at' => 'datetime',
             'certificate_price' => 'decimal:2',
             'kavoo_id' => 'integer',
+            'support_whatsapp_number_id' => 'integer',
         ];
     }
 
@@ -105,6 +112,11 @@ class Course extends Model
     public function checkouts(): HasMany
     {
         return $this->hasMany(CourseCheckout::class);
+    }
+
+    public function supportWhatsappNumber(): BelongsTo
+    {
+        return $this->belongsTo(SupportWhatsappNumber::class, 'support_whatsapp_number_id');
     }
 
     public function nextLessonFor(User $user): ?Lesson

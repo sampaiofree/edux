@@ -1,7 +1,11 @@
 @php
+    use App\Models\Course as CourseModel;
+
     $isEdit = $course?->exists;
     $action = $isEdit ? route('courses.update.post', $course) : route('courses.store');
     $formClasses = $formClasses ?? 'rounded-card bg-white p-6 shadow-card space-y-5';
+    $supportWhatsappNumbers = $supportWhatsappNumbers ?? collect();
+    $supportWhatsappModeOld = old('support_whatsapp_mode', $course->support_whatsapp_mode ?? CourseModel::SUPPORT_WHATSAPP_MODE_ALL);
 @endphp
 
 <form method="POST" action="{{ $action }}" enctype="multipart/form-data" class="{{ $formClasses }}">
@@ -90,6 +94,48 @@
             </label>
         @endif
     </div>
+
+    @if ($user->isAdmin())
+        <div class="rounded-2xl border border-edux-line/70 p-4 space-y-4">
+            <div>
+                <p class="text-sm font-semibold text-slate-800">Atendimento via WhatsApp</p>
+                <p class="text-xs text-slate-500">Defina se este curso usa todos os números cadastrados em rotatividade ou um número específico.</p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1 text-sm font-semibold text-slate-600">
+                    <span>Modo de atendimento</span>
+                    <select name="support_whatsapp_mode" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                        <option value="{{ CourseModel::SUPPORT_WHATSAPP_MODE_ALL }}" @selected($supportWhatsappModeOld === CourseModel::SUPPORT_WHATSAPP_MODE_ALL)>
+                            Todos (rotatividade)
+                        </option>
+                        <option value="{{ CourseModel::SUPPORT_WHATSAPP_MODE_SPECIFIC }}" @selected($supportWhatsappModeOld === CourseModel::SUPPORT_WHATSAPP_MODE_SPECIFIC)>
+                            Número específico
+                        </option>
+                    </select>
+                    @error('support_whatsapp_mode') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="space-y-1 text-sm font-semibold text-slate-600">
+                    <span>Número específico (quando selecionado)</span>
+                    <select name="support_whatsapp_number_id" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                        <option value="">Selecione um número</option>
+                        @foreach ($supportWhatsappNumbers as $supportWhatsappNumber)
+                            <option value="{{ $supportWhatsappNumber->id }}" @selected((string) old('support_whatsapp_number_id', $course->support_whatsapp_number_id) === (string) $supportWhatsappNumber->id)>
+                                {{ $supportWhatsappNumber->label }} — {{ $supportWhatsappNumber->whatsapp }}{{ $supportWhatsappNumber->is_active ? '' : ' (inativo)' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @if ($supportWhatsappNumbers->isEmpty())
+                        <p class="text-xs text-amber-600">Nenhum número cadastrado ainda. Cadastre em “WhatsApp atendimento”.</p>
+                    @else
+                        <p class="text-xs text-slate-500">Se o modo for “Todos”, este campo é ignorado.</p>
+                    @endif
+                    @error('support_whatsapp_number_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </label>
+            </div>
+        </div>
+    @endif
 
     <div class="grid gap-4 md:grid-cols-2">
         <label class="space-y-1 text-sm font-semibold text-slate-600">
