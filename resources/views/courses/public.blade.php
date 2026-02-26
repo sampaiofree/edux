@@ -371,114 +371,6 @@
             </div>
         </section>
 
-        <section class="lp-section space-y-5 pt-4 pb-8 md:pt-5" x-data="lpDemoLessons(@js($previewPlayerItems))">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-2xl font-display text-edux-primary">Veja algumas aulas antes de se matricular</h2>
-                    <p class="text-sm text-slate-600 md:text-base">Assista uma amostra real do conteúdo. É só escolher uma aula abaixo e dar play.</p>
-                </div>
-                <div class="hidden items-center gap-2 sm:flex">
-                    <button type="button" @click="scroll(-1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Voltar">&lsaquo;</button>
-                    <button type="button" @click="scroll(1)" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edux-line bg-white text-edux-primary hover:bg-edux-primary/5" aria-label="Avançar">&rsaquo;</button>
-                </div>
-            </div>
-
-            <div class="overflow-hidden rounded-2xl border border-edux-line bg-black shadow-sm">
-                <div class="aspect-video w-full">
-                    <template x-if="active && active.player_type === 'youtube'">
-                        <div class="plyr__video-embed h-full" x-ref="demoYoutubePlyr">
-                            <iframe
-                                :src="active.player_url"
-                                allowfullscreen
-                                allow="autoplay; encrypted-media"
-                            ></iframe>
-                        </div>
-                    </template>
-
-                    <template x-if="active && active.player_type === 'video'">
-                        <video
-                            x-ref="demoVideoPlyr"
-                            :src="active.player_url"
-                            class="h-full w-full bg-black"
-                            controls
-                            playsinline
-                            preload="metadata"
-                        ></video>
-                    </template>
-
-                    <template x-if="active && active.player_type === 'iframe'">
-                        <iframe
-                            :src="active.player_url"
-                            class="h-full w-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen
-                            loading="lazy"
-                        ></iframe>
-                    </template>
-
-                    <template x-if="!active || active.player_type === 'none'">
-                        <div class="flex h-full items-center justify-center bg-slate-950 px-6 text-center text-sm font-semibold text-white/80">
-                            Nenhum vídeo demonstrativo disponível para reprodução.
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <div x-ref="track" class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
-                @forelse ($previewLessons as $preview)
-                    <button
-                        type="button"
-                        @click="pick({{ $loop->index }})"
-                        class="group w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl border border-edux-line bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                        :class="{ 'ring-2 ring-edux-primary ring-offset-1': activeIndex === {{ $loop->index }} }"
-                    >
-                        <div class="relative aspect-video bg-slate-200">
-                            @if (!empty($preview['thumb_url']))
-                                <img src="{{ $preview['thumb_url'] }}" alt="{{ $preview['title'] }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
-                            @else
-                                <div class="flex h-full items-center justify-center text-sm font-semibold text-slate-500">Sem thumbnail</div>
-                            @endif
-                            <span class="absolute left-3 top-3 rounded-full bg-black/65 px-2 py-1 text-xs font-semibold text-white">Aula {{ $loop->iteration }}</span>
-                            <span class="absolute bottom-3 right-3 inline-flex h-9 items-center justify-center rounded-full bg-white/95 px-3 text-xs font-bold text-edux-primary shadow">PLAY</span>
-                        </div>
-                        <div class="p-2.5">
-                            <p class="max-h-8 overflow-hidden text-xs font-semibold leading-4 text-slate-800">{{ $preview['title'] }}</p>
-                        </div>
-                    </button>
-                    @if ($loop->last)
-                        <a
-                            href="{{ $primaryCtaHref }}"
-                            data-checkout-link
-                            data-checkout-source="demo_unlock_cta"
-                            data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
-                            data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
-                            data-checkout-name="{{ $lpPrimaryCheckout?->nome ?? '' }}"
-                            class="group flex min-h-[220px] w-[150px] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-2xl border border-edux-primary/20 bg-gradient-to-b from-edux-primary/5 via-white to-emerald-50 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                        >
-                            <div class="space-y-3">
-                                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white shadow-sm">
-                                    +
-                                </span>
-                                <p class="text-sm font-black leading-5 text-edux-primary">
-                                    Libere o curso completo
-                                </p>
-                                <p class="text-xs leading-5 text-slate-600">
-                                    Matricule-se para liberar {{ $remainingLessonsLabel }}, certificado e carta de estágio.
-                                </p>
-                            </div>
-                            <span class="mt-3 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-2.5 py-2 text-sm font-bold text-white transition group-hover:bg-emerald-600">
-                                Matricular agora
-                            </span>
-                        </a>
-                    @endif
-                @empty
-                    <div class="rounded-2xl border border-dashed border-edux-line bg-white p-5 text-sm text-slate-500">
-                        Este curso ainda não possui aulas para exibir no carrossel.
-                    </div>
-                @endforelse
-            </div>
-        </section>
-
         <section class="lp-section space-y-4 py-8">
             <div class="space-y-2">
                 <h2 class="text-2xl font-display text-edux-primary">O que você vai aprender</h2>
@@ -750,10 +642,6 @@
                                                 </div>
                                             @endforeach
                                         </div>
-                                    </div>
-                                @else
-                                    <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-sm text-slate-500">
-                                        Esta opção não possui bônus extras cadastrados no momento.
                                     </div>
                                 @endif
 
