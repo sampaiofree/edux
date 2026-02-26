@@ -275,6 +275,20 @@
                         >
                         @error('form.duration_minutes') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </label>
+                    <label class="space-y-2 text-sm font-semibold text-slate-600">
+                        <span>Modulo da aula</span>
+                        <select
+                            wire:model.defer="form.module_id"
+                            class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                        >
+                            @foreach ($modulesList as $mod)
+                                <option value="{{ $mod->id }}">
+                                    Módulo {{ $mod->position }} · {{ $mod->title }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('form.module_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                    </label>
                     <label class="space-y-2 text-sm font-semibold text-slate-600 md:col-span-2">
                         <span>Conteudo textual</span>
                         <textarea

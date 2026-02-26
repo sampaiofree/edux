@@ -23,6 +23,7 @@ class LessonsManager extends Component
     public ?Lesson $editingLesson = null;
 
     public array $form = [
+        'module_id' => null,
         'title' => '',
         'content' => null,
         'video_url' => null,
@@ -45,6 +46,7 @@ class LessonsManager extends Component
     protected function rules(): array
     {
         return [
+            'form.module_id' => ['required', 'integer', 'exists:modules,id'],
             'form.title' => ['required', 'string', 'max:255'],
             'form.content' => ['nullable', 'string'],
             'form.video_url' => ['nullable', 'url'],
@@ -63,6 +65,7 @@ class LessonsManager extends Component
         abort_unless($this->canManageModule(), 403);
 
         $this->form['position'] = $this->nextPosition();
+        $this->form['module_id'] = $this->module->id;
         $this->moduleOverride = $this->module->id;
     }
 
@@ -90,6 +93,7 @@ class LessonsManager extends Component
 
         $this->editingLesson = $lesson;
         $this->form = [
+            'module_id' => $this->module->id,
             'title' => $lesson->title,
             'content' => $lesson->content,
             'video_url' => $lesson->video_url,
@@ -104,16 +108,37 @@ class LessonsManager extends Component
         $this->validate();
 
         $payload = $this->payload();
+        if (! $this->isValidTargetModule((int) $payload['module_id'])) {
+            $this->addError('form.module_id', 'Selecione um modulo valido para este curso.');
+            return;
+        }
+
         $message = 'Aula criada.';
 
         if ($this->editingLesson) {
+            $originalModuleId = (int) $this->editingLesson->module_id;
+            $targetModuleId = (int) $payload['module_id'];
+
             $this->editingLesson->update($payload);
             $message = 'Aula atualizada.';
-        } else {
-            $this->module->lessons()->create($payload);
-        }
 
-        $this->normalizeLessons();
+            if ($originalModuleId !== $targetModuleId) {
+                $this->normalizeModuleLessons($originalModuleId);
+                $this->normalizeModuleLessons($targetModuleId);
+                $this->refreshModule();
+            } else {
+                $this->normalizeLessons();
+            }
+        } else {
+            Lesson::create($payload);
+
+            if ((int) $payload['module_id'] === (int) $this->module->id) {
+                $this->normalizeLessons();
+            } else {
+                $this->normalizeModuleLessons((int) $payload['module_id']);
+                $this->refreshModule();
+            }
+        }
         $this->closeForm();
         session()->flash('status', $message);
         $this->dispatch('moduleLessonsChanged')->to(ModulesManager::class);
@@ -307,6 +332,7 @@ class LessonsManager extends Component
     private function payload(): array
     {
         return [
+            'module_id' => (int) $this->form['module_id'],
             'title' => $this->form['title'],
             'content' => $this->form['content'],
             'video_url' => $this->form['video_url'],
@@ -319,6 +345,7 @@ class LessonsManager extends Component
     {
         $this->editingLesson = null;
         $this->form = [
+            'module_id' => $this->module->id,
             'title' => '',
             'content' => null,
             'video_url' => null,
@@ -393,6 +420,15 @@ class LessonsManager extends Component
         $user = Auth::user();
 
         return $user && $user->isAdmin();
+    }
+
+    private function isValidTargetModule(int $moduleId): bool
+    {
+        if ($moduleId < 1) {
+            return false;
+        }
+
+        return $this->module->course?->modules()->whereKey($moduleId)->exists() ?? false;
     }
 
     private function resetImportState(): void
