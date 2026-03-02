@@ -72,6 +72,7 @@
                     <a href="{{ route('admin.kavoo.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Kavoo</a>
                     <a href="{{ route('admin.support-whatsapp.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">WhatsApp atendimento</a>
                     <a href="{{ route('admin.enroll.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Matriculas</a>
+                    <a href="{{ route('admin.account-deletion-requests.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Exclusao de contas</a>
                     <a href="{{ route('admin.tracking.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Tracking</a>
                 @endif
             </nav>
@@ -97,6 +98,7 @@
                         <li><a href="{{ route('admin.kavoo.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Kavoo</a></li>
                         <li><a href="{{ route('admin.support-whatsapp.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">WhatsApp atendimento</a></li>
                         <li><a href="{{ route('admin.enroll.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Matriculas</a></li>
+                        <li><a href="{{ route('admin.account-deletion-requests.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Exclusao de contas</a></li>
                         <li><a href="{{ route('admin.tracking.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Tracking</a></li>
                         
                     </ul>

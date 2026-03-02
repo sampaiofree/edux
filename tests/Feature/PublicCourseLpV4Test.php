@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\Course;
 use App\Models\CourseCheckout;
+use App\Models\SupportWhatsappNumber;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -74,6 +75,72 @@ class PublicCourseLpV4Test extends TestCase
         $response->assertOk();
         $response->assertSee('Sao Paulo');
         $response->assertSee('Atendimento para Sao Paulo');
+    }
+
+    public function test_public_course_lp_v4_switches_main_cta_to_whatsapp_when_w_query_is_enabled(): void
+    {
+        [$course] = $this->createPublishedCourseWithCheckout();
+
+        SupportWhatsappNumber::create([
+            'label' => 'Atendimento',
+            'whatsapp' => '(11) 95555-1111',
+            'description' => null,
+            'is_active' => true,
+            'position' => 1,
+        ]);
+
+        $response = $this->get(route('courses.public.v4.show', $course).'?w=1&cidade=Recife');
+
+        $response->assertOk();
+        $response->assertSee('https://wa.me/11955551111?text=', false);
+        $response->assertSee('sou%20da%20cidade%20Recife', false);
+        $response->assertSee('curso%20Auxiliar%20Administrativo.', false);
+        $response->assertSee("window.lpMetaTrackStandard('Lead'", false);
+        $response->assertSee("window.lpMetaTrack('LPWhatsAppClick'", false);
+    }
+
+    public function test_public_course_lp_v4_falls_back_to_checkout_when_w_query_has_no_whatsapp_contact(): void
+    {
+        [$course] = $this->createPublishedCourseWithCheckout();
+
+        $response = $this->get(route('courses.public.v4.show', $course).'?w=1');
+
+        $response->assertOk();
+        $response->assertSee('https://checkout.exemplo.com/auxiliar-administrativo', false);
+        $response->assertDontSee('https://wa.me/', false);
+    }
+
+    public function test_public_course_lp_v4_uses_whatsapp_fallback_when_no_checkout_exists(): void
+    {
+        $owner = User::factory()->create([
+            'role' => UserRole::ADMIN->value,
+        ]);
+
+        $course = Course::create([
+            'owner_id' => $owner->id,
+            'title' => 'Monitor Escolar',
+            'slug' => 'monitor-escolar',
+            'summary' => 'Resumo',
+            'description' => 'DescriÃ§Ã£o',
+            'status' => 'published',
+            'duration_minutes' => 120,
+            'published_at' => now(),
+        ]);
+
+        SupportWhatsappNumber::create([
+            'label' => 'Atendimento',
+            'whatsapp' => '(11) 98888-0000',
+            'description' => null,
+            'is_active' => true,
+            'position' => 1,
+        ]);
+
+        $response = $this->get(route('courses.public.v4.show', $course));
+
+        $response->assertOk();
+        $response->assertSee('https://wa.me/11988880000?text=', false);
+        $response->assertSee('window.lpMetaTrackStandard(\'Lead\'', false);
+        $response->assertSee('data-cta-type="whatsapp"', false);
     }
 
     public function test_public_course_lp_v4_returns_404_for_unpublished_course(): void

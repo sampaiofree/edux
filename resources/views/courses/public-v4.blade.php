@@ -40,6 +40,14 @@
             ? 'R$ ' . number_format($lpPrimaryCheckoutValue, 2, ',', '.')
             : null;
         $primaryCtaHref = ($buyUrl ?? '#matricula') === '#oferta' ? '#matricula' : ($buyUrl ?? '#matricula');
+        $supportWhatsappFallbackHref = is_array($supportWhatsappContact ?? null)
+            ? trim((string) ($supportWhatsappContact['link'] ?? ''))
+            : '';
+        $hasValidCheckoutLinks = $course->checkouts
+            ->contains(fn ($checkout) => trim((string) ($checkout->checkout_url ?? '')) !== '');
+        if (! $hasValidCheckoutLinks && $supportWhatsappFallbackHref !== '') {
+            $primaryCtaHref = $supportWhatsappFallbackHref;
+        }
         $stickyCheckout = $course->checkouts->sortBy(fn ($checkout) => (float) $checkout->price)->first();
         $stickyCheckoutValue = $stickyCheckout ? (float) $stickyCheckout->price : null;
         $stickyCheckoutPriceLabel = $stickyCheckoutValue !== null
@@ -64,6 +72,27 @@
         $cityStickyFooterLine = $lpHasCityContext
             ? ('Atendimento para ' . $lpCityDisplayName . ' • sem vínculo com governo')
             : 'Valor social • sem vínculo com governo • curso online';
+        $isWhatsappQueryEnabled = request()->query('w') === '1';
+        $supportWhatsappDigits = preg_replace('/\D+/', '', (string) ($supportWhatsappContact['whatsapp'] ?? '')) ?: '';
+        if ($supportWhatsappDigits === '') {
+            $supportWhatsappLink = trim((string) ($supportWhatsappContact['link'] ?? ''));
+            if ($supportWhatsappLink !== '' && preg_match('/wa\.me\/(\d+)/', $supportWhatsappLink, $matches) === 1) {
+                $supportWhatsappDigits = (string) ($matches[1] ?? '');
+            }
+        }
+        $whatsappMessage = $lpHasCityContext
+            ? ('Ola, sou da cidade ' . $lpCityDisplayName . ' e gostaria de saber mais sobre o curso ' . $course->title . '.')
+            : ('Quero saber mais sobre o curso ' . $course->title . '.');
+        $whatsappQuery = http_build_query(['text' => $whatsappMessage], '', '&', PHP_QUERY_RFC3986);
+        $whatsappCtaHref = $supportWhatsappDigits !== '' ? ('https://wa.me/' . $supportWhatsappDigits . '?' . $whatsappQuery) : null;
+        $isWhatsappFallbackMode = ! $hasValidCheckoutLinks && $whatsappCtaHref !== null;
+        $isWhatsappCtaMode = ($isWhatsappQueryEnabled && $whatsappCtaHref !== null) || $isWhatsappFallbackMode;
+        $primaryActionHref = $isWhatsappCtaMode ? $whatsappCtaHref : $primaryCtaHref;
+        $stickyActionHref = $isWhatsappCtaMode ? $whatsappCtaHref : $stickyCtaHref;
+        $primaryActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Quero me matricular agora';
+        $stickyActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Ir para matrÃ­cula';
+        $checkoutOptionActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Quero esta opÃ§Ã£o';
+        $mobileStickyActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Matricular agora';
     @endphp
 
     <article class="pb-8" data-lp-variant="v4">
@@ -125,15 +154,16 @@
 
                     <div class="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
                         <a
-                            href="{{ $primaryCtaHref }}"
+                            href="{{ $primaryActionHref }}"
                             data-checkout-link
+                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
                             data-checkout-source="hero_primary_v4"
                             data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
                             data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
                             data-checkout-name="{{ $primaryCheckoutName }}"
                             class="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white shadow-lg transition hover:bg-slate-800"
                         >
-                            Quero me matricular agora
+                            {{ $primaryActionLabel }}
                         </a>
                         <a
                             href="#matricula"
@@ -184,8 +214,9 @@
 
                     <div class="mt-4 space-y-2">
                         <a
-                            href="{{ $primaryCtaHref }}"
+                            href="{{ $primaryActionHref }}"
                             data-checkout-link
+                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
                             data-checkout-source="sticky_panel_primary_v4"
                             data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
                             data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
@@ -547,8 +578,9 @@
                                     </div>
                                     <div class="text-right">
                                         <a
-                                            href="{{ $checkout->checkout_url }}"
+                                            href="{{ $isWhatsappCtaMode ? $whatsappCtaHref : $checkout->checkout_url }}"
                                             data-checkout-link
+                                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
                                             data-checkout-source="checkout_compare_v4"
                                             data-checkout-id="{{ $checkout->id }}"
                                             data-checkout-hours="{{ $checkout->hours }}"
@@ -605,8 +637,9 @@
                                 @endif
 
                                 <a
-                                    href="{{ $checkout->checkout_url }}"
+                                    href="{{ $isWhatsappCtaMode ? $whatsappCtaHref : $checkout->checkout_url }}"
                                     data-checkout-link
+                                    data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
                                     data-checkout-source="checkout_compare_v4"
                                     data-checkout-id="{{ $checkout->id }}"
                                     data-checkout-hours="{{ $checkout->hours }}"
@@ -741,15 +774,16 @@
 
                     <div class="space-y-2">
                         <a
-                            href="{{ $primaryCtaHref }}"
+                            href="{{ $primaryActionHref }}"
                             data-checkout-link
+                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
                             data-checkout-source="final_cta_v4"
                             data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
                             data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
                             data-checkout-name="{{ $primaryCheckoutName }}"
                             class="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-100"
                         >
-                            Quero me matricular agora
+                            {{ $primaryActionLabel }}
                         </a>
                         <a
                             href="#matricula"
@@ -1000,8 +1034,12 @@
                     document.querySelectorAll('a[data-checkout-link]').forEach((link) => {
                         const originalHref = link.getAttribute('href');
                         if (!originalHref || shouldSkipHref(originalHref)) return;
-
-                        link.setAttribute('href', withTrackingParams(originalHref));
+                        const ctaType = String(link.dataset.ctaType || 'checkout').toLowerCase();
+                        if (ctaType !== 'whatsapp') {
+                            link.setAttribute('href', withTrackingParams(originalHref));
+                        } else {
+                            link.textContent = 'Falar no WhatsApp';
+                        }
 
                         if (link.dataset.lpCheckoutBound === '1') return;
                         link.dataset.lpCheckoutBound = '1';
@@ -1012,6 +1050,25 @@
                             const checkoutHours = Number(link.dataset.checkoutHours || 0) || null;
                             const checkoutPrice = Number(link.dataset.checkoutPrice || 0);
                             const isExternal = !shouldSkipHref(link.getAttribute('href'));
+                            const ctaType = String(link.dataset.ctaType || 'checkout').toLowerCase();
+
+                            if (ctaType === 'whatsapp') {
+                                window.lpMetaTrack('LPWhatsAppClick', {
+                                    cta_source: checkoutSource,
+                                    course_name: checkoutName || courseMeta.course_title,
+                                });
+
+                                if (isExternal) {
+                                    window.lpMetaTrackStandard('Lead', {
+                                        content_name: checkoutName || courseMeta.course_title,
+                                        content_category: 'course',
+                                        lead_channel: 'whatsapp',
+                                        cta_source: checkoutSource,
+                                    });
+                                }
+
+                                return;
+                            }
 
                             window.lpMetaTrack('LPCheckoutClick', {
                                 checkout_source: checkoutSource,
@@ -1137,15 +1194,16 @@
                 <p class="text-base font-black leading-none text-white">{{ $stickyCheckoutPriceLabel }}</p>
             </div>
             <a
-                href="{{ $stickyCtaHref }}"
+                href="{{ $stickyActionHref }}"
                 data-checkout-link
+                data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
                 data-checkout-source="mobile_sticky_cta_v4"
                 data-checkout-hours="{{ $stickyCheckout?->hours ?? '' }}"
                 data-checkout-price="{{ $stickyCheckoutValue ?? '' }}"
                 data-checkout-name="{{ $stickyCheckoutName }}"
                 class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-amber-300 px-4 py-3 text-center text-sm font-black text-slate-950 shadow-md transition hover:bg-amber-200"
             >
-                Matricular agora
+                {{ $mobileStickyActionLabel }}
             </a>
         </div>
         <p class="mt-2 text-xs leading-4 text-white/60">

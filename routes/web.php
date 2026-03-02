@@ -1,12 +1,15 @@
 ﻿<?php
 
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\AccountDeletionRequestController as AdminAccountDeletionRequestController;
 use App\Http\Controllers\Admin\KavooController;
 use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\GeneratedCertificateController;
 use App\Http\Controllers\Admin\SupportWhatsappNumberController;
 use App\Http\Controllers\Admin\TrackingReportExportController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AccountDeletionRequestController;
+use App\Http\Controllers\AccountProfileController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\CourseCertificateController;
@@ -99,7 +102,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard'); 
     Route::get('/certificado', [CertificadoController::class, 'index'])->name('certificado.index');
     // Edição do perfil do aluno
-    Route::view('/conta', 'account.profile')->name('account.edit');
+    Route::get('/conta', AccountProfileController::class)->name('account.edit');
+    Route::post('/conta/exclusao', [AccountDeletionRequestController::class, 'store'])
+        ->name('account.deletion-requests.store');
 
     Route::prefix('push')
         ->middleware('role:student')
@@ -199,6 +204,12 @@ Route::middleware('auth')->group(function (): void {
                 ->name('admin.tracking.export.sources');
             Route::get('tracking/export/atribuicoes', [TrackingReportExportController::class, 'attributions'])
                 ->name('admin.tracking.export.attributions');
+            Route::get('account-deletion-requests', [AdminAccountDeletionRequestController::class, 'index'])
+                ->name('admin.account-deletion-requests.index');
+            Route::post('account-deletion-requests/{accountDeletionRequest}/destroy-account', [AdminAccountDeletionRequestController::class, 'destroyAccount'])
+                ->name('admin.account-deletion-requests.destroy-account');
+            Route::post('account-deletion-requests/{accountDeletionRequest}/reject', [AdminAccountDeletionRequestController::class, 'reject'])
+                ->name('admin.account-deletion-requests.reject');
         });
 
     Route::middleware('role:admin')->group(function (): void {
