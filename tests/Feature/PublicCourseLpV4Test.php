@@ -141,6 +141,8 @@ class PublicCourseLpV4Test extends TestCase
         $response->assertSee('https://wa.me/11988880000?text=', false);
         $response->assertSee('window.lpMetaTrackStandard(\'Lead\'', false);
         $response->assertSee('data-cta-type="whatsapp"', false);
+        $response->assertSee('Atendimento pelo WhatsApp');
+        $response->assertDontSee('Nenhuma opção de matrícula disponível no momento.');
     }
 
     public function test_public_course_lp_v4_returns_404_for_unpublished_course(): void

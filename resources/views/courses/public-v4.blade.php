@@ -532,11 +532,16 @@
 
         <section id="matricula" class="lp-section lp-deferred space-y-5 py-8">
             <div class="space-y-2">
-                <h2 class="text-2xl font-display text-edux-primary">Escolha a forma de matrícula que cabe no seu momento</h2>
-                <p class="text-sm text-slate-600 md:text-base">Compare as opções, veja o valor e siga para o pagamento com segurança.</p>
+                @if ($hasValidCheckoutLinks)
+                    <h2 class="text-2xl font-display text-edux-primary">Escolha a forma de matrícula que cabe no seu momento</h2>
+                    <p class="text-sm text-slate-600 md:text-base">Compare as opções, veja o valor e siga para o pagamento com segurança.</p>
+                @else
+                    <h2 class="text-2xl font-display text-edux-primary">Atendimento pelo WhatsApp</h2>
+                    <p class="text-sm text-slate-600 md:text-base">No momento, este curso está com atendimento direto para orientação e matrícula.</p>
+                @endif
             </div>
 
-            @if ($course->checkouts->isNotEmpty())
+            @if ($hasValidCheckoutLinks)
                 <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                     <div class="hidden md:block">
                         <div class="grid grid-cols-[1.6fr_0.7fr_0.8fr_1.1fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-600">
@@ -658,9 +663,31 @@
 
                 <p class="text-sm text-slate-500">Você será direcionado para um ambiente seguro para concluir sua matrícula.</p>
             @else
-                <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-100">
-                    Nenhuma opção de matrícula disponível no momento.
-                </div>
+                @if ($whatsappCtaHref)
+                    <div class="rounded-3xl border border-emerald-200 bg-gradient-to-br from-white via-emerald-50/60 to-sky-50/60 p-5 shadow-sm">
+                        <div class="space-y-3">
+                            <p class="text-sm leading-6 text-slate-700">
+                                As opcoes de matricula por checkout nao estao disponiveis no momento. Fale com nossa equipe no WhatsApp para receber os detalhes e concluir sua matricula.
+                            </p>
+                            <a
+                                href="{{ $whatsappCtaHref }}"
+                                data-checkout-link
+                                data-cta-type="whatsapp"
+                                data-checkout-source="matricula_whatsapp_fallback_v4"
+                                data-checkout-name="{{ $course->title }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-[#25D366] px-4 py-3 text-center text-sm font-black text-white shadow-[0_12px_30px_-18px_rgba(37,211,102,0.9)] transition hover:brightness-95"
+                            >
+                                Falar no WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                @else
+                    <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-100">
+                        Nenhuma opcao de matricula disponivel no momento.
+                    </div>
+                @endif
             @endif
         </section>
 
