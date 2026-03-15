@@ -25,6 +25,7 @@ class PanelSummary extends Component
             'course.modules.lessons' => fn ($query) => $query->orderBy('position'),
         ])
             ->where('user_id', $this->userId)
+            ->accessible()
             ->get();
 
         $completed = $enrollments->filter(fn ($enrollment) => ($enrollment->progress_percent ?? 0) >= 100);

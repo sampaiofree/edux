@@ -40,7 +40,9 @@ class Dashboard extends Component
             'course.finalTest',
             'course.certificates' => fn ($q) => $q->where('user_id', $this->userId),
             'user',
-        ])->where('user_id', $this->userId);
+        ])
+            ->where('user_id', $this->userId)
+            ->accessible();
 
         if ($this->search !== '') {
             $query->whereHas('course', fn ($course) => $course->where('title', 'like', '%'.$this->search.'%'));

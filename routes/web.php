@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\AccountDeletionRequestController as AdminAccountDeletionRequestController;
-use App\Http\Controllers\Admin\KavooController;
 use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Admin\GeneratedCertificateController;
+use App\Http\Controllers\Admin\PaymentWebhookController;
 use App\Http\Controllers\Admin\SupportWhatsappNumberController;
 use App\Http\Controllers\Admin\TrackingReportExportController;
 use App\Http\Controllers\Admin\UserController;
@@ -177,13 +177,23 @@ Route::middleware('auth')->group(function (): void {
             // Central de notificações administrativas
             Route::view('notifications', 'admin.notifications.index')
                 ->name('admin.notifications.index');
-            // Área administrativa Kavoo
-            Route::get('kavoo', [KavooController::class, 'index'])->name('admin.kavoo.index');
-            Route::get('kavoo/create', [KavooController::class, 'create'])->name('admin.kavoo.create');
-            Route::post('kavoo', [KavooController::class, 'store'])->name('admin.kavoo.store');
-            Route::get('kavoo/{kavoo}/edit', [KavooController::class, 'edit'])->name('admin.kavoo.edit');
-            Route::put('kavoo/{kavoo}', [KavooController::class, 'update'])->name('admin.kavoo.update');
-            Route::delete('kavoo/{kavoo}', [KavooController::class, 'destroy'])->name('admin.kavoo.destroy');
+            // Área administrativa Webhooks de pagamento
+            Route::get('webhooks', [PaymentWebhookController::class, 'index'])->name('admin.webhooks.index');
+            Route::get('webhooks/create', [PaymentWebhookController::class, 'create'])->name('admin.webhooks.create');
+            Route::post('webhooks', [PaymentWebhookController::class, 'store'])->name('admin.webhooks.store');
+            Route::get('webhooks/{webhookLink}/edit', [PaymentWebhookController::class, 'edit'])->name('admin.webhooks.edit');
+            Route::put('webhooks/{webhookLink}', [PaymentWebhookController::class, 'update'])->name('admin.webhooks.update');
+            Route::delete('webhooks/{webhookLink}', [PaymentWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
+            Route::post('webhooks/{webhookLink}/simulate', [PaymentWebhookController::class, 'simulate'])->name('admin.webhooks.simulate');
+            Route::post('webhooks/{webhookLink}/field-mappings', [PaymentWebhookController::class, 'upsertFieldMapping'])->name('admin.webhooks.field-mappings.upsert');
+            Route::delete('webhooks/{webhookLink}/field-mappings/{mapping}', [PaymentWebhookController::class, 'removeFieldMapping'])->name('admin.webhooks.field-mappings.destroy');
+            Route::post('webhooks/{webhookLink}/event-mappings', [PaymentWebhookController::class, 'upsertEventMapping'])->name('admin.webhooks.event-mappings.upsert');
+            Route::delete('webhooks/{webhookLink}/event-mappings/{mapping}', [PaymentWebhookController::class, 'removeEventMapping'])->name('admin.webhooks.event-mappings.destroy');
+            Route::post('webhooks/{webhookLink}/product-mappings', [PaymentWebhookController::class, 'upsertProductMapping'])->name('admin.webhooks.product-mappings.upsert');
+            Route::delete('webhooks/{webhookLink}/product-mappings/{mapping}', [PaymentWebhookController::class, 'removeProductMapping'])->name('admin.webhooks.product-mappings.destroy');
+            Route::get('webhooks/{webhookLink}/events', [PaymentWebhookController::class, 'events'])->name('admin.webhooks.events.index');
+            Route::get('webhooks/{webhookLink}/events/{paymentEvent}', [PaymentWebhookController::class, 'showEvent'])->name('admin.webhooks.events.show');
+            Route::post('webhooks/{webhookLink}/events/{paymentEvent}/replay', [PaymentWebhookController::class, 'replay'])->name('admin.webhooks.events.replay');
             // Números de WhatsApp para atendimento
             Route::get('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'index'])->name('admin.support-whatsapp.index');
             Route::get('whatsapp-atendimento/create', [SupportWhatsappNumberController::class, 'create'])->name('admin.support-whatsapp.create');
@@ -228,9 +238,6 @@ Route::middleware('auth')->group(function (): void {
             // Redireciona o estudante para a próxima aula não concluída
             Route::get('courses/{course:slug}', [StudentCourseController::class, 'redirectToNextLesson'])
                 ->name('courses.show');
-            // Matrícula de estudante no curso
-            Route::post('courses/{course:slug}/enroll', [StudentCourseController::class, 'enroll'])
-                ->name('courses.enroll');
             // Visualiza uma aula específica
             Route::get('courses/{course:slug}/lessons/{lesson}', [StudentCourseController::class, 'lesson'])
                 ->name('courses.lessons.show');

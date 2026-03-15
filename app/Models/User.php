@@ -92,6 +92,11 @@ class User extends Authenticatable
         return $this->hasMany(NotificationView::class);
     }
 
+    public function paymentEntitlements(): HasMany
+    {
+        return $this->hasMany(PaymentEntitlement::class);
+    }
+
     public function finalTestAttempts(): HasMany
     {
         return $this->hasMany(FinalTestAttempt::class);

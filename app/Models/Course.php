@@ -114,6 +114,11 @@ class Course extends Model
         return $this->hasMany(CourseCheckout::class);
     }
 
+    public function paymentProductMappings(): HasMany
+    {
+        return $this->hasMany(PaymentProductMapping::class);
+    }
+
     public function supportWhatsappNumber(): BelongsTo
     {
         return $this->belongsTo(SupportWhatsappNumber::class, 'support_whatsapp_number_id');

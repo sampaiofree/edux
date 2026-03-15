@@ -44,6 +44,7 @@
                             <th class="pb-2">Curso</th>
                             <th class="pb-2">Aluno</th>
                             <th class="pb-2">Progresso</th>
+                            <th class="pb-2">Acesso</th>
                             <th class="pb-2">Concluido em</th>
                             <th class="pb-2">Criado em</th>
                             <th class="pb-2 text-right">Acoes</th>
@@ -68,6 +69,16 @@
                                     </p>
                                 </td>
                                 <td class="py-3">{{ $enrollment->progress_percent ?? 0 }}%</td>
+                                <td class="py-3">
+                                    @if (($enrollment->access_status?->value ?? $enrollment->access_status) === 'blocked')
+                                        <span class="rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700">Bloqueado</span>
+                                    @else
+                                        <span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Ativo</span>
+                                    @endif
+                                    @if ($enrollment->manual_override)
+                                        <p class="mt-1 text-xs text-edux-primary">Override manual</p>
+                                    @endif
+                                </td>
                                 <td class="py-3">{{ $enrollment->completed_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                 <td class="py-3">{{ $enrollment->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                 <td class="py-3 text-right space-x-3">
@@ -81,7 +92,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-6 text-center text-sm text-slate-500">
+                                <td colspan="8" class="py-6 text-center text-sm text-slate-500">
                                     Nenhuma matricula encontrada.
                                 </td>
                             </tr>

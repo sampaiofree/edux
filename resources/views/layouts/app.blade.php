@@ -69,7 +69,7 @@
                     <a href="{{ route('admin.categories.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Categorias</a>
                     <!--<a href="{{ route('admin.certificates.payments') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Pagamentos certificados</a>-->
                     <a href="{{ route('admin.notifications.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Notificacoes</a>
-                    <a href="{{ route('admin.kavoo.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Kavoo</a>
+                    <a href="{{ route('admin.webhooks.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Webhooks pagamentos</a>
                     <a href="{{ route('admin.support-whatsapp.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">WhatsApp atendimento</a>
                     <a href="{{ route('admin.enroll.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Matriculas</a>
                     <a href="{{ route('admin.account-deletion-requests.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Exclusao de contas</a>
@@ -95,7 +95,7 @@
                         <li><a href="{{ route('admin.categories.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Categorias</a></li>
                         <!--<li><a href="{{ route('admin.certificates.payments') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Pagamentos certificados</a></li>-->
                         <li><a href="{{ route('admin.notifications.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Notificacoes</a></li>
-                        <li><a href="{{ route('admin.kavoo.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Kavoo</a></li>
+                        <li><a href="{{ route('admin.webhooks.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Webhooks pagamentos</a></li>
                         <li><a href="{{ route('admin.support-whatsapp.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">WhatsApp atendimento</a></li>
                         <li><a href="{{ route('admin.enroll.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Matriculas</a></li>
                         <li><a href="{{ route('admin.account-deletion-requests.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Exclusao de contas</a></li>

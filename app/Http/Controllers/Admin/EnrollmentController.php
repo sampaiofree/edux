@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\EnrollmentAccessStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
@@ -86,8 +87,9 @@ class EnrollmentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->validationRules($request));
+        $payload = $this->preparePayload($validated, $request);
 
-        Enrollment::create($validated);
+        Enrollment::create($payload);
 
         return redirect()
             ->route('admin.enroll.index')
@@ -124,8 +126,9 @@ class EnrollmentController extends Controller
     public function update(Request $request, Enrollment $enrollment): RedirectResponse
     {
         $validated = $request->validate($this->validationRules($request, $enrollment));
+        $payload = $this->preparePayload($validated, $request, $enrollment);
 
-        $enrollment->update($validated);
+        $enrollment->update($payload);
 
         return redirect()
             ->route('admin.enroll.index')
@@ -158,6 +161,13 @@ class EnrollmentController extends Controller
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'progress_percent' => ['required', 'integer', 'min:0', 'max:100'],
             'completed_at' => ['nullable', 'date'],
+            'access_status' => ['required', Rule::in([
+                EnrollmentAccessStatus::ACTIVE->value,
+                EnrollmentAccessStatus::BLOCKED->value,
+            ])],
+            'access_block_reason' => ['nullable', 'string', 'max:255'],
+            'access_blocked_at' => ['nullable', 'date'],
+            'manual_override' => ['nullable', 'boolean'],
         ];
     }
 
@@ -226,5 +236,33 @@ class EnrollmentController extends Controller
         }
 
         return [$users, $selectedUser];
+    }
+
+    private function preparePayload(array $validated, Request $request, ?Enrollment $enrollment = null): array
+    {
+        $manualOverride = (bool) ($validated['manual_override'] ?? false);
+        $payload = $validated;
+
+        $payload['manual_override'] = $manualOverride;
+
+        if ($manualOverride) {
+            $payload['access_status'] = EnrollmentAccessStatus::ACTIVE->value;
+            $payload['access_block_reason'] = null;
+            $payload['access_blocked_at'] = null;
+            $payload['manual_override_by'] = $request->user()?->id;
+            $payload['manual_override_at'] = now();
+
+            return $payload;
+        }
+
+        if ($enrollment?->manual_override) {
+            $payload['manual_override_by'] = null;
+            $payload['manual_override_at'] = null;
+        } else {
+            $payload['manual_override_by'] = $enrollment?->manual_override_by;
+            $payload['manual_override_at'] = $enrollment?->manual_override_at;
+        }
+
+        return $payload;
     }
 }

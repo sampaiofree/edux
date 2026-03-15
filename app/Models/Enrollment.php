@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\EnrollmentAccessStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,12 +17,22 @@ class Enrollment extends Model
         'user_id',
         'progress_percent',
         'completed_at',
+        'access_status',
+        'access_block_reason',
+        'access_blocked_at',
+        'manual_override',
+        'manual_override_by',
+        'manual_override_at',
     ];
 
     protected function casts(): array
     {
         return [
             'completed_at' => 'datetime',
+            'access_status' => EnrollmentAccessStatus::class,
+            'access_blocked_at' => 'datetime',
+            'manual_override' => 'boolean',
+            'manual_override_at' => 'datetime',
         ];
     }
 
@@ -32,6 +44,19 @@ class Enrollment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function manualOverrideByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manual_override_by');
+    }
+
+    public function scopeAccessible(Builder $query): Builder
+    {
+        return $query->where(function (Builder $subQuery): void {
+            $subQuery->where('access_status', EnrollmentAccessStatus::ACTIVE->value)
+                ->orWhere('manual_override', true);
+        });
     }
 
     public function recalculateProgress(): void

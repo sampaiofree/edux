@@ -39,6 +39,7 @@ class Checkout extends Component
 
         $enrollment = Enrollment::with(['course.certificateBranding'])
             ->where('user_id', $user->id)
+            ->accessible()
             ->latest('created_at')
             ->first();
 
@@ -211,6 +212,7 @@ class Checkout extends Component
 
         return Enrollment::with('course')
             ->where('user_id', $user->id)
+            ->accessible()
             ->latest('created_at')
             ->get();
     }
@@ -226,6 +228,7 @@ class Checkout extends Component
         return Enrollment::with(['course.certificateBranding'])
             ->where('user_id', $user->id)
             ->where('course_id', $courseId)
+            ->accessible()
             ->first();
     }
 
