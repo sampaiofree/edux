@@ -17,6 +17,7 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CityCampaignController;
 use App\Http\Controllers\CityCampaignV2Controller;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LessonProgressController;
 use App\Http\Controllers\PublicLessonController;
 use App\Http\Controllers\PublicCertificateController;
@@ -50,8 +51,8 @@ Route::get('/test-gs', function () {
 
 
 // --- Rotas públicas ---
-// Redireciona para dashboard (apenas conveniência)
-Route::redirect('/', '/dashboard');
+// Home pública
+Route::get('/', HomeController::class)->name('home');
 
 // Download do certificado publico
 Route::get('/certificates/verify/{token}/download', [PublicCertificateController::class, 'download'])

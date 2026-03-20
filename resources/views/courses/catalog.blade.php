@@ -3,5 +3,5 @@
 @section('title', 'Catalogo de cursos')
 
 @section('content')
-    <livewire:public-catalog />
+    <livewire:public-catalog context="catalog" />
 @endsection

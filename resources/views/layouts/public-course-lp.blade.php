@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @php
+        $settings = \App\Models\SystemSetting::current();
+        $faviconUrl = $settings->assetUrl('favicon_path');
+        $schoolName = trim((string) ($settings->escola_nome ?? '')) ?: 'EduX';
+    @endphp
+    <title>@yield('title', $schoolName)</title>
+    @if ($faviconUrl)
+        <link rel="icon" href="{{ $faviconUrl }}">
+    @endif
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/css/course-lp-base.css', 'resources/js/app.js'])
+    @stack('styles')
+</head>
+<body class="lp-page-body">
+    @yield('content')
+
+    @include('partials.tracking.first-party')
+    @stack('scripts')
+</body>
+</html>
