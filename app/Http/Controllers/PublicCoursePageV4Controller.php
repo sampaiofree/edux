@@ -13,10 +13,12 @@ class PublicCoursePageV4Controller extends Controller
     {
         $data = $builder->build($course);
         $cityContext = $this->resolveCityContext($request);
+        $vacancyContext = $this->resolveVacancyContext($course, $data['supportWhatsappContact'] ?? null);
 
         return view('courses.public-v4', [
             ...$data,
             ...$cityContext,
+            ...$vacancyContext,
         ]);
     }
 
@@ -58,5 +60,43 @@ class PublicCoursePageV4Controller extends Controller
             'cityRaw' => $raw,
             'cityQueryNormalized' => $normalized,
         ];
+    }
+
+    /**
+     * @param  mixed  $supportWhatsappContact
+     * @return array<string, mixed>
+     */
+    private function resolveVacancyContext(Course $course, mixed $supportWhatsappContact): array
+    {
+        $waitlistMessage = "Quero entrar na lista de espera do curso {$course->title}.";
+
+        return [
+            'lpVacancyWaitlistUrl' => $this->buildWaitlistWhatsappUrl($supportWhatsappContact, $waitlistMessage),
+            'lpVacancyWaitlistMessage' => $waitlistMessage,
+        ];
+    }
+
+    /**
+     * @param  mixed  $supportWhatsappContact
+     */
+    private function buildWaitlistWhatsappUrl(mixed $supportWhatsappContact, string $message): ?string
+    {
+        if (! is_array($supportWhatsappContact)) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', (string) ($supportWhatsappContact['whatsapp'] ?? '')) ?: '';
+        if ($digits === '') {
+            $supportWhatsappLink = trim((string) ($supportWhatsappContact['link'] ?? ''));
+            if ($supportWhatsappLink !== '' && preg_match('/wa\.me\/(\d+)/', $supportWhatsappLink, $matches) === 1) {
+                $digits = (string) ($matches[1] ?? '');
+            }
+        }
+
+        if ($digits === '') {
+            return null;
+        }
+
+        return 'https://wa.me/'.$digits.'?text='.rawurlencode($message);
     }
 }

@@ -28,7 +28,9 @@ class PublicCoursePageViewDataBuilder
             'checkouts' => fn ($query) => $query
                 ->where('is_active', true)
                 ->with(['bonuses' => fn ($bonusQuery) => $bonusQuery->orderBy('id')])
-                ->orderBy('hours'),
+                ->orderBy('price')
+                ->orderBy('hours')
+                ->orderBy('id'),
         ]);
 
         $branding = CertificateBranding::resolveForCourse($course);

@@ -47,7 +47,6 @@ class CourseController extends Controller
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', 'exists:users,id'],
-            'kavoo_id' => ['nullable', 'integer', 'min:0'],
             'support_whatsapp_mode' => [
                 Rule::requiredIf(fn () => $user->isAdmin()),
                 'nullable',
@@ -83,7 +82,6 @@ class CourseController extends Controller
             'status' => $validated['status'],
             'duration_minutes' => $validated['duration_minutes'] ?? null,
             'published_at' => $validated['published_at'] ?? null,
-            'kavoo_id' => $user->isAdmin() ? ($validated['kavoo_id'] ?? null) : null,
             'support_whatsapp_mode' => $user->isAdmin()
                 ? ($validated['support_whatsapp_mode'] ?? Course::SUPPORT_WHATSAPP_MODE_ALL)
                 : Course::SUPPORT_WHATSAPP_MODE_ALL,
@@ -159,7 +157,6 @@ class CourseController extends Controller
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', 'exists:users,id'],
-            'kavoo_id' => ['nullable', 'integer', 'min:0'],
             'support_whatsapp_mode' => [
                 Rule::requiredIf(fn () => $user->isAdmin()),
                 'nullable',
@@ -186,7 +183,6 @@ class CourseController extends Controller
             'status' => $validated['status'],
             'duration_minutes' => $validated['duration_minutes'] ?? null,
             'published_at' => $validated['published_at'] ?? null,
-            'kavoo_id' => $user->isAdmin() ? ($validated['kavoo_id'] ?? null) : $course->kavoo_id,
             'support_whatsapp_mode' => $user->isAdmin()
                 ? ($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL)
                 : ($course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL),

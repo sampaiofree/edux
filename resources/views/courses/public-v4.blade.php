@@ -25,10 +25,18 @@
         $courseHoursLabel = $course->duration_minutes
             ? rtrim(rtrim(number_format($course->duration_minutes / 60, 1, ',', '.'), '0'), ',')
             : 'x';
+        $certificateHoursValue = $course->checkouts->max(fn ($checkout) => is_numeric($checkout->hours) ? (float) $checkout->hours : null);
+        $certificateHoursLabel = $certificateHoursValue !== null
+            ? rtrim(rtrim(number_format($certificateHoursValue, 1, ',', '.'), '0'), ',')
+            : 'x';
         $systemSettings = \App\Models\SystemSetting::current();
         $metaAdsPixelId = trim((string) ($systemSettings->meta_ads_pixel ?? ''));
         $cartaEstagioImageUrl = $systemSettings->assetUrl('carta_estagio');
-        $lpPrimaryCheckout = $course->checkouts->first();
+        $featuredCheckout = $course->checkouts
+            ->sortByDesc(fn ($checkout) => [(float) $checkout->price, (int) $checkout->hours, $checkout->id])
+            ->first();
+        $featuredCheckoutId = $featuredCheckout?->id;
+        $lpPrimaryCheckout = $featuredCheckout ?: $course->checkouts->first();
         $lpPrimaryCheckoutValue = $lpPrimaryCheckout ? (float) $lpPrimaryCheckout->price : null;
         $hasMultipleCheckouts = $course->checkouts->count() > 1;
         $studentCountValue = (int) ($studentCount ?? 0);
@@ -59,12 +67,11 @@
         $stickyCtaHref = $stickyCheckout?->checkout_url ?: $primaryCtaHref;
         $lpCityDisplayName = isset($cityDisplayName) && is_string($cityDisplayName) ? trim($cityDisplayName) : '';
         $lpHasCityContext = (bool) ($hasCityContext ?? false) && $lpCityDisplayName !== '';
-        $cityHeroTitle = $lpHasCityContext
-            ? ($course->title . ' com valor social para ' . $lpCityDisplayName)
-            : ($course->title . ' com valor social de matrícula');
-        $cityHeroBadgeLabel = $lpHasCityContext ? ('Atendimento para ' . $lpCityDisplayName) : null;
+        $cityHeroSocialLine = $lpHasCityContext
+            ? ('com valor social para ' . $lpCityDisplayName)
+            : 'com valor social de matrícula';
         $citySupportTitle = $lpHasCityContext
-            ? ('Atendimento com valor social disponível para ' . $lpCityDisplayName)
+            ? ('Inscrição com valor social disponível para ' . $lpCityDisplayName)
             : 'Você pode começar hoje';
         $cityFinalCtaTitle = $lpHasCityContext
             ? ('Se você está em ' . $lpCityDisplayName . ', aproveite o valor social e escolha sua matrícula agora.')
@@ -93,49 +100,76 @@
         $stickyActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Ir para matrÃ­cula';
         $checkoutOptionActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Quero esta opÃ§Ã£o';
         $mobileStickyActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Matricular agora';
+        $heroVacancyWaitlistUrl = trim((string) ($lpVacancyWaitlistUrl ?? ''));
+        $heroVacancyWaitlistMessage = trim((string) ($lpVacancyWaitlistMessage ?? ''));
+        $vacancyCityScope = isset($cityQueryNormalized) && is_string($cityQueryNormalized)
+            ? trim(mb_strtolower($cityQueryNormalized, 'UTF-8'))
+            : '';
     @endphp
 
-    <article class="pb-8" data-lp-variant="v4">
+    @if ($lpHasCityContext)
+        <div class="fixed inset-x-0 top-0 z-50 border-b border-red-800 bg-red-600 px-3 py-2 text-white shadow-md" data-lp-city-fixed-top>
+            <div class="mx-auto flex max-w-6xl items-center justify-center gap-2 text-center text-xs font-black uppercase tracking-wide md:text-sm">
+                <span class="lp-vacancy-badge-live" data-lp-city-fixed-top-label>📍 Vagas para {{ $lpCityDisplayName }}</span>
+            </div>
+        </div>
+    @endif
+
+    <article
+        @class([
+            'pb-8',
+            'pt-6 md:pt-8' => $lpHasCityContext,
+        ])
+        data-lp-variant="v4"
+        data-lp-vacancy="1"
+        data-course-slug="{{ $course->slug }}"
+        data-course-title="{{ $course->title }}"
+        data-city-name="{{ $lpHasCityContext ? $lpCityDisplayName : '' }}"
+        data-city-scope="{{ $vacancyCityScope }}"
+        data-waitlist-url="{{ $heroVacancyWaitlistUrl }}"
+        data-waitlist-message="{{ $heroVacancyWaitlistMessage }}"
+    >
         <section id="oferta" class="lp-section pb-6 md:pb-8">
             <div class="grid gap-4 md:grid-cols-[1.1fr_0.9fr] md:items-start">
                 <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
-                    <div class="flex flex-wrap gap-2">
-                        <span class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-black uppercase tracking-wide text-white">Comunicado de liberação local</span>
-                        <span class="inline-flex items-center rounded-full bg-edux-primary px-3 py-1 text-xs font-bold text-white">Valor social</span>
-                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Sem vínculo com governo</span>
-                        @if ($cityHeroBadgeLabel)
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 ring-1 ring-amber-200">{{ $cityHeroBadgeLabel }}</span>
-                        @endif
-                        @if ($studentCountLabel)
-                            <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">{{ $studentCountLabel }} matrículas</span>
-                        @endif
-                    </div>
-
-                    <div class="mt-5 flex items-start gap-4">
-                        @if ($heroImage)
-                            <img src="{{ $heroImage }}" alt="{{ $course->title }}" class="h-24 w-24 shrink-0 rounded-2xl object-cover ring-1 ring-slate-200 md:h-28 md:w-28">
-                        @else
-                            <div class="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xs font-semibold text-slate-500 ring-1 ring-slate-200 md:h-28 md:w-28">
-                                Curso
-                            </div>
-                        @endif
-
-                        <div class="min-w-0">
-                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-edux-primary">Liberação local de capacitação profissional</p>
-                            <h1 class="mt-2 font-display text-3xl leading-tight tracking-tight text-slate-900 md:text-4xl">
-                                {{ $cityHeroTitle }}
-                            </h1>
-                            <p class="mt-3 text-sm leading-6 text-slate-600 md:text-base">
-                                {{ $course->summary ?: ($course->description ? \Illuminate\Support\Str::limit(strip_tags((string) $course->description), 190) : 'Capacitação profissional online para ajudar você a fortalecer currículo e prática com linguagem simples.') }}
-                            </p>
+                    
+                    <div class="mt-5 space-y-3">
+                        <div class="overflow-hidden rounded-2xl ring-1 ring-slate-200">
+                            @if ($heroImage)
+                                <img src="{{ $heroImage }}" alt="{{ $course->title }}" class="h-44 w-full object-cover md:h-52">
+                            @else
+                                <div class="flex h-44 w-full items-center justify-center bg-slate-100 text-sm font-semibold text-slate-500 md:h-52">
+                                    Curso
+                                </div>
+                            @endif
                         </div>
+
+                        @if (! $lpHasCityContext)
+                            <span
+                                class="inline-flex items-center rounded-full bg-red-600 px-3 py-1 text-xs font-black uppercase tracking-wide text-white lp-vacancy-badge-live"
+                                data-lp-vacancy-badge
+                            >
+                                Vagas limitadas
+                            </span>
+                        @endif
+
+                        <h1 class="font-display text-4xl font-black leading-[1.05] tracking-tight text-slate-900 md:text-5xl" data-lp-hero-course-title>
+                            {{ $course->title }}
+                        </h1>
+                        <p class="text-sm font-semibold uppercase tracking-wide text-slate-600 md:text-base" data-lp-hero-social-line>
+                            {{ $cityHeroSocialLine }}
+                        </p>
+
+                        <p class="text-sm leading-6 text-slate-600 md:text-base">
+                            {{ $course->summary ?: ($course->description ? \Illuminate\Support\Str::limit(strip_tags((string) $course->description), 190) : 'Capacitação profissional online para ajudar você a fortalecer currículo e prática com linguagem simples.') }}
+                        </p>
                     </div>
 
                     <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
                         <div class="grid gap-2 sm:grid-cols-2">
                             <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
                                 <x-ui.color-icon name="clock" tone="blue" size="sm" />
-                                <span>{{ $courseHoursLabel }} horas de conteúdo</span>
+                                <span>Até {{ $certificateHoursLabel }}h no certificado</span>
                             </div>
                             <div class="flex items-center gap-2 text-sm font-semibold text-slate-700">
                                 <x-ui.color-icon name="play-circle" tone="indigo" size="sm" />
@@ -154,23 +188,11 @@
 
                     <div class="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
                         <a
-                            href="{{ $primaryActionHref }}"
-                            data-checkout-link
-                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
-                            data-checkout-source="hero_primary_v4"
-                            data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
-                            data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
-                            data-checkout-name="{{ $primaryCheckoutName }}"
+                            href="#matricula"
+                            data-lp-cta-source="hero_primary_v4"
                             class="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white shadow-lg transition hover:bg-slate-800"
                         >
-                            {{ $primaryActionLabel }}
-                        </a>
-                        <a
-                            href="#matricula"
-                            data-lp-cta-source="hero_secondary_v4"
-                            class="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-bold text-slate-900 transition hover:bg-slate-50"
-                        >
-                            Ver opções de matrícula
+                            Ir para matrícula
                         </a>
                     </div>
 
@@ -186,10 +208,10 @@
                             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">Cidade informada: {{ $lpCityDisplayName }}</p>
                         @endif
                         <p class="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Valor social da matrícula</p>
-                        <p class="mt-2 text-3xl font-black leading-none md:text-4xl">{{ $primaryCheckoutPriceLabel ?: 'Consultar' }}</p>
+                        <p class="mt-2 text-3xl font-black leading-none md:text-4xl">{{ $stickyCheckoutPriceLabel ?: 'Consultar' }}</p>
                         <p class="mt-2 text-sm text-white/75">
-                            @if ($lpPrimaryCheckout)
-                                {{ $primaryCheckoutName }}{{ $lpPrimaryCheckout?->hours ? ' • ' . $lpPrimaryCheckout->hours . 'h' : '' }}
+                            @if ($stickyCheckout)
+                                {{ $stickyCheckoutName }}{{ $stickyCheckout?->hours ? ' • ' . $stickyCheckout->hours . 'h' : '' }}
                             @else
                                 Compare as opções abaixo.
                             @endif
@@ -214,23 +236,11 @@
 
                     <div class="mt-4 space-y-2">
                         <a
-                            href="{{ $primaryActionHref }}"
-                            data-checkout-link
-                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
-                            data-checkout-source="sticky_panel_primary_v4"
-                            data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
-                            data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
-                            data-checkout-name="{{ $primaryCheckoutName }}"
+                            href="#matricula"
+                            data-lp-cta-source="sticky_panel_primary_v4"
                             class="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-100"
                         >
                             Ir para matrícula
-                        </a>
-                        <a
-                            href="#matricula"
-                            data-lp-cta-source="sticky_panel_secondary_v4"
-                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-                        >
-                            Comparar opções
                         </a>
                     </div>
 
@@ -530,7 +540,7 @@
             </div>
         </section>
 
-        <section id="matricula" class="lp-section lp-deferred space-y-5 py-8">
+        <section id="matricula" class="lp-section lp-deferred space-y-5 py-8" data-lp-checkout-section>
             <div class="space-y-2">
                 @if ($hasValidCheckoutLinks)
                     <h2 class="text-2xl font-display text-edux-primary">Escolha a forma de matrícula que cabe no seu momento</h2>
@@ -540,125 +550,288 @@
                     <p class="text-sm text-slate-600 md:text-base">No momento, este curso está com atendimento direto para orientação e matrícula.</p>
                 @endif
             </div>
+            <div class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" data-lp-checkout-closed-banner>
+                Inscrições encerradas no momento. Entre na lista de espera para ser avisado(a) quando novas vagas forem liberadas.
+            </div>
 
             @if ($hasValidCheckoutLinks)
-                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                    <div class="hidden md:block">
-                        <div class="grid grid-cols-[1.6fr_0.7fr_0.8fr_1.1fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-600">
-                            <div>Opção</div>
-                            <div>Carga</div>
-                            <div>Valor</div>
-                            <div>Bônus</div>
-                            <div class="text-right">Ação</div>
-                        </div>
+                @php
+                    $hasThreePlusCheckouts = $course->checkouts->count() >= 3;
+                @endphp
 
-                        <div class="divide-y divide-slate-200">
-                            @foreach ($course->checkouts as $checkout)
-                                <div @class([
-                                    'grid grid-cols-[1.6fr_0.7fr_0.8fr_1.1fr_0.9fr] gap-3 px-5 py-4',
-                                    'bg-emerald-50/40' => $loop->first,
-                                ])>
-                                    <div class="space-y-1">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <p class="text-sm font-black text-slate-900">{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}</p>
-                                            @if ($loop->first)
-                                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
-                                                    Recomendada
-                                                </span>
-                                            @endif
-                                        </div>
-                                        <p class="text-sm leading-5 text-slate-600">
-                                            {{ $checkout->descricao ?: 'Opção de matrícula com pagamento seguro e acesso após confirmação.' }}
-                                        </p>
-                                    </div>
-                                    <div class="text-sm font-semibold text-slate-700">{{ $checkout->hours }}h</div>
-                                    <div class="text-sm font-black text-slate-900">R$ {{ number_format((float) $checkout->price, 2, ',', '.') }}</div>
-                                    <div class="text-sm text-slate-600">
-                                        @if ($checkout->bonuses->isNotEmpty())
-                                            <span class="font-semibold text-emerald-700">{{ $checkout->bonuses->count() }} bônus</span>
-                                            <p class="mt-1 text-xs leading-4 text-slate-500">{{ \Illuminate\Support\Str::limit($checkout->bonuses->pluck('nome')->join(', '), 60) }}</p>
-                                        @else
-                                            <span class="text-slate-400">Sem bônus extras</span>
-                                        @endif
-                                    </div>
-                                    <div class="text-right">
-                                        <a
-                                            href="{{ $isWhatsappCtaMode ? $whatsappCtaHref : $checkout->checkout_url }}"
-                                            data-checkout-link
-                                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
-                                            data-checkout-source="checkout_compare_v4"
-                                            data-checkout-id="{{ $checkout->id }}"
-                                            data-checkout-hours="{{ $checkout->hours }}"
-                                            data-checkout-price="{{ (float) $checkout->price }}"
-                                            data-checkout-name="{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-center text-sm font-black text-white transition hover:bg-slate-800"
-                                        >
-                                            Quero esta opção
-                                        </a>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <div class="space-y-3 p-3 md:hidden">
-                        @foreach ($course->checkouts as $checkout)
-                            <article @class([
-                                'rounded-2xl border p-4',
-                                'border-emerald-200 bg-emerald-50/40' => $loop->first,
-                                'border-slate-200 bg-white' => ! $loop->first,
-                            ])>
-                                <div class="flex items-start justify-between gap-3">
-                                    <div>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <h3 class="text-base font-black leading-tight text-slate-900">{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}</h3>
-                                            @if ($loop->first)
-                                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Recomendada</span>
-                                            @endif
-                                        </div>
-                                        <p class="mt-1 text-sm text-slate-600">{{ $checkout->hours }}h • pagamento seguro</p>
-                                    </div>
-                                    <p class="text-lg font-black text-slate-900">R$ {{ number_format((float) $checkout->price, 2, ',', '.') }}</p>
+                <div
+                    @class([
+                        'lp-checkout-card-grid hidden md:grid',
+                        'has-three-plus' => $hasThreePlusCheckouts,
+                    ])
+                    data-checkout-card-grid
+                >
+                    @foreach ($course->checkouts as $checkout)
+                        @php
+                            $isFeaturedCheckout = $featuredCheckoutId !== null && (int) $checkout->id === (int) $featuredCheckoutId;
+                        @endphp
+                        <article
+                            @class([
+                                'lp-checkout-card',
+                                'lp-checkout-card--featured' => $isFeaturedCheckout,
+                            ])
+                            data-checkout-card
+                            @if ($isFeaturedCheckout)
+                                data-checkout-card-featured
+                            @endif
+                        >
+                            <div class="space-y-4">
+                                <div class="space-y-3">
+                                    <span @class([
+                                        'lp-checkout-card__badge',
+                                        'lp-checkout-card__badge--featured' => $isFeaturedCheckout,
+                                    ])>
+                                        {{ $isFeaturedCheckout ? 'Recomendada' : 'Opcao disponivel' }}
+                                    </span>
+                                    <h3 class="lp-checkout-card__title">{{ $checkout->nome ?: ('Opcao ' . $checkout->hours . 'h') }}</h3>
+                                    <p class="lp-checkout-card__hours">{{ $checkout->hours }}h no certificado</p>
                                 </div>
 
-                                <p class="mt-2 text-sm leading-5 text-slate-600">
-                                    {{ $checkout->descricao ?: 'Escolha esta opção para seguir ao pagamento e concluir sua matrícula com segurança.' }}
+                                <div class="lp-checkout-card__price-block" data-checkout-card-price>
+                                    <p class="lp-checkout-card__price-label">valor social</p>
+                                    <p class="lp-checkout-card__price">R$ {{ number_format((float) $checkout->price, 2, ',', '.') }}</p>
+                                    <p class="lp-checkout-card__price-note">pagamento unico | sem mensalidade</p>
+                                </div>
+
+                                <div class="lp-checkout-card__meta" data-checkout-card-meta>
+                                    <span class="lp-checkout-card__meta-item">pagamento seguro</span>
+                                    <span @class([
+                                        'lp-checkout-card__meta-item',
+                                        'is-muted' => $checkout->bonuses->isEmpty(),
+                                    ])>
+                                        {{ $checkout->bonuses->isNotEmpty() ? ($checkout->bonuses->count() . ' bonus incluidos') : 'sem bonus extras' }}
+                                    </span>
+                                </div>
+
+                                <p class="lp-checkout-card__description">
+                                    {{ $checkout->descricao ?: 'Escolha esta opcao para seguir ao pagamento e concluir sua matricula com seguranca.' }}
                                 </p>
 
                                 @if ($checkout->bonuses->isNotEmpty())
-                                    <details class="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-                                        <summary class="cursor-pointer text-sm font-semibold text-slate-900">Ver bônus incluídos ({{ $checkout->bonuses->count() }})</summary>
-                                        <ul class="mt-2 space-y-2 text-sm text-slate-600">
+                                    <details class="lp-checkout-card__details">
+                                        <summary>Ver bonus incluidos ({{ $checkout->bonuses->count() }})</summary>
+                                        <ul class="mt-3 space-y-2 text-sm">
                                             @foreach ($checkout->bonuses as $bonus)
+                                                @php
+                                                    $bonusOriginalPrice = (float) ($bonus->preco ?? 0);
+                                                @endphp
                                                 <li class="flex items-start gap-2">
-                                                    <span class="mt-0.5 text-emerald-600">✓</span>
-                                                    <span>{{ $bonus->nome }}@if($bonus->descricao) — {{ $bonus->descricao }}@endif</span>
+                                                    <span class="lp-checkout-card__check">+</span>
+                                                    <span class="lp-checkout-card__bonus-copy">
+                                                        <span>{{ $bonus->nome }}@if($bonus->descricao) | {{ $bonus->descricao }}@endif</span>
+                                                        <span class="lp-checkout-card__bonus-price-line">
+                                                            @if ($bonusOriginalPrice > 0)
+                                                                <span>de</span>
+                                                                <span class="lp-checkout-card__bonus-price-from">R$ {{ number_format($bonusOriginalPrice, 2, ',', '.') }}</span>
+                                                            @endif
+                                                            <span class="lp-checkout-card__bonus-price-free">por R$ 0,00</span>
+                                                        </span>
+                                                    </span>
                                                 </li>
                                             @endforeach
                                         </ul>
                                     </details>
                                 @endif
+                            </div>
 
-                                <a
-                                    href="{{ $isWhatsappCtaMode ? $whatsappCtaHref : $checkout->checkout_url }}"
-                                    data-checkout-link
-                                    data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
-                                    data-checkout-source="checkout_compare_v4"
-                                    data-checkout-id="{{ $checkout->id }}"
-                                    data-checkout-hours="{{ $checkout->hours }}"
-                                    data-checkout-price="{{ (float) $checkout->price }}"
-                                    data-checkout-name="{{ $checkout->nome ?: ('Opção ' . $checkout->hours . 'h') }}"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="mt-3 inline-flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                            <a
+                                href="{{ $checkout->checkout_url }}"
+                                data-checkout-link
+                                data-cta-type="checkout"
+                                data-checkout-source="checkout_compare_v4"
+                                data-checkout-id="{{ $checkout->id }}"
+                                data-checkout-hours="{{ $checkout->hours }}"
+                                data-checkout-price="{{ (float) $checkout->price }}"
+                                data-checkout-name="{{ $checkout->nome ?: ('Opcao ' . $checkout->hours . 'h') }}"
+                                target="_blank"
+                                rel="noopener"
+                                @class([
+                                    'lp-checkout-card__cta',
+                                    'lp-checkout-card__cta--featured' => $isFeaturedCheckout,
+                                ])
+                            >
+                                Quero esta opcao
+                            </a>
+                        </article>
+                    @endforeach
+                </div>
+
+                <div
+                    class="space-y-3 md:hidden"
+                    @if ($hasMultipleCheckouts)
+                        data-mobile-checkout-carousel
+                        x-data="{
+                            active: 0,
+                            sync() {
+                                const track = this.$refs.track;
+                                if (!track) {
+                                    return;
+                                }
+
+                                const slides = Array.from(track.querySelectorAll('[data-mobile-checkout-slide]'));
+                                if (slides.length === 0) {
+                                    return;
+                                }
+
+                                let closestIndex = 0;
+                                let closestDistance = Number.POSITIVE_INFINITY;
+
+                                slides.forEach((slide, index) => {
+                                    const distance = Math.abs(slide.offsetLeft - track.scrollLeft);
+                                    if (distance < closestDistance) {
+                                        closestDistance = distance;
+                                        closestIndex = index;
+                                    }
+                                });
+
+                                this.active = closestIndex;
+                            },
+                            goTo(index) {
+                                const track = this.$refs.track;
+                                const slide = this.$refs['slide' + index];
+                                if (!track || !slide) {
+                                    return;
+                                }
+
+                                track.scrollTo({ left: slide.offsetLeft, behavior: 'smooth' });
+                                this.active = index;
+                            }
+                        }"
+                        x-init="$nextTick(() => sync())"
+                    @endif
+                >
+                    <div
+                        @class([
+                            'space-y-3' => ! $hasMultipleCheckouts,
+                            'lp-checkout-card-track flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 pr-4' => $hasMultipleCheckouts,
+                        ])
+                        @if ($hasMultipleCheckouts)
+                            x-ref="track"
+                            data-mobile-checkout-track
+                            @scroll.passive="sync()"
+                        @endif
+                    >
+                        @foreach ($course->checkouts as $checkout)
+                            @php
+                                $isFeaturedCheckout = $featuredCheckoutId !== null && (int) $checkout->id === (int) $featuredCheckoutId;
+                            @endphp
+                            <article
+                                @class([
+                                    'lp-checkout-card',
+                                    'lp-checkout-card--featured' => $isFeaturedCheckout,
+                                    'w-[90%] shrink-0 snap-start' => $hasMultipleCheckouts,
+                                ])
+                                data-checkout-card
+                                @if ($isFeaturedCheckout)
+                                    data-checkout-card-featured
+                                @endif
+                                @if ($hasMultipleCheckouts)
+                                    data-mobile-checkout-slide
+                                    data-mobile-checkout-index="{{ $loop->index }}"
+                                    x-ref="slide{{ $loop->index }}"
+                                @endif
+                            >
+                                    <div class="space-y-4">
+                                        <div class="space-y-3">
+                                            <span @class([
+                                                'lp-checkout-card__badge',
+                                                'lp-checkout-card__badge--featured' => $isFeaturedCheckout,
+                                            ])>
+                                                {{ $isFeaturedCheckout ? 'Recomendada' : 'Opcao disponivel' }}
+                                            </span>
+                                            <h3 class="lp-checkout-card__title">{{ $checkout->nome ?: ('Opcao ' . $checkout->hours . 'h') }}</h3>
+                                            <p class="lp-checkout-card__hours">{{ $checkout->hours }}h no certificado</p>
+                                        </div>
+
+                                        <div class="lp-checkout-card__price-block" data-checkout-card-price>
+                                            <p class="lp-checkout-card__price-label">valor social</p>
+                                            <p class="lp-checkout-card__price">R$ {{ number_format((float) $checkout->price, 2, ',', '.') }}</p>
+                                            <p class="lp-checkout-card__price-note">pagamento unico | sem mensalidade</p>
+                                        </div>
+
+                                        <div class="lp-checkout-card__meta" data-checkout-card-meta>
+                                            <span class="lp-checkout-card__meta-item">pagamento seguro</span>
+                                            <span @class([
+                                                'lp-checkout-card__meta-item',
+                                                'is-muted' => $checkout->bonuses->isEmpty(),
+                                            ])>
+                                                {{ $checkout->bonuses->isNotEmpty() ? ($checkout->bonuses->count() . ' bonus incluidos') : 'sem bonus extras' }}
+                                            </span>
+                                        </div>
+
+                                        <p class="lp-checkout-card__description">
+                                            {{ $checkout->descricao ?: 'Escolha esta opcao para seguir ao pagamento e concluir sua matricula com seguranca.' }}
+                                        </p>
+
+                                        @if ($checkout->bonuses->isNotEmpty())
+                                            <details class="lp-checkout-card__details">
+                                                <summary>Ver bonus incluidos ({{ $checkout->bonuses->count() }})</summary>
+                                                <ul class="mt-3 space-y-2 text-sm">
+                                                    @foreach ($checkout->bonuses as $bonus)
+                                                        @php
+                                                            $bonusOriginalPrice = (float) ($bonus->preco ?? 0);
+                                                        @endphp
+                                                        <li class="flex items-start gap-2">
+                                                            <span class="lp-checkout-card__check">+</span>
+                                                            <span class="lp-checkout-card__bonus-copy">
+                                                                <span>{{ $bonus->nome }}@if($bonus->descricao) | {{ $bonus->descricao }}@endif</span>
+                                                                <span class="lp-checkout-card__bonus-price-line">
+                                                                    @if ($bonusOriginalPrice > 0)
+                                                                        <span>de</span>
+                                                                        <span class="lp-checkout-card__bonus-price-from">R$ {{ number_format($bonusOriginalPrice, 2, ',', '.') }}</span>
+                                                                    @endif
+                                                                    <span class="lp-checkout-card__bonus-price-free">por R$ 0,00</span>
+                                                                </span>
+                                                            </span>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </details>
+                                        @endif
+                                    </div>
+
+                                    <a
+                                        href="{{ $checkout->checkout_url }}"
+                                        data-checkout-link
+                                        data-cta-type="checkout"
+                                        data-checkout-source="checkout_compare_v4"
+                                        data-checkout-id="{{ $checkout->id }}"
+                                        data-checkout-hours="{{ $checkout->hours }}"
+                                        data-checkout-price="{{ (float) $checkout->price }}"
+                                        data-checkout-name="{{ $checkout->nome ?: ('Opcao ' . $checkout->hours . 'h') }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                    @class([
+                                        'lp-checkout-card__cta',
+                                        'lp-checkout-card__cta--featured' => $isFeaturedCheckout,
+                                    ])
                                 >
-                                    Quero esta opção
+                                    Quero esta opcao
                                 </a>
                             </article>
                         @endforeach
                     </div>
+
+                    @if ($hasMultipleCheckouts)
+                        <div class="flex items-center justify-center gap-2" aria-label="Navegação entre opções de matrícula">
+                            @foreach ($course->checkouts as $checkout)
+                                <button
+                                    type="button"
+                                    data-mobile-checkout-dot
+                                    aria-label="Ir para a opção {{ $loop->iteration }}"
+                                    :aria-current="active === {{ $loop->index }} ? 'true' : 'false'"
+                                    :class="active === {{ $loop->index }} ? 'is-active' : ''"
+                                    class="lp-checkout-dot"
+                                    @click="goTo({{ $loop->index }})"
+                                ></button>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <p class="text-sm text-slate-500">Você será direcionado para um ambiente seguro para concluir sua matrícula.</p>
@@ -789,7 +962,7 @@
             <div class="rounded-3xl border border-slate-300 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-5 text-white shadow-xl md:p-6">
                 <div class="grid gap-5 md:grid-cols-[1.15fr_0.85fr] md:items-center">
                     <div class="space-y-2">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Fechamento de decisão</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Último passo para sua matrícula</p>
                         <h2 class="text-2xl font-display text-white md:text-3xl">{{ $cityFinalCtaTitle }}</h2>
                         <p class="text-sm leading-6 text-white/80 md:text-base">
                             Iniciativa social independente, sem vínculo com governo. O curso ajuda na sua preparação e no fortalecimento do currículo, mas não garante contratação.
@@ -801,23 +974,11 @@
 
                     <div class="space-y-2">
                         <a
-                            href="{{ $primaryActionHref }}"
-                            data-checkout-link
-                            data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
-                            data-checkout-source="final_cta_v4"
-                            data-checkout-hours="{{ $lpPrimaryCheckout?->hours ?? '' }}"
-                            data-checkout-price="{{ $lpPrimaryCheckoutValue ?? '' }}"
-                            data-checkout-name="{{ $primaryCheckoutName }}"
+                            href="#matricula"
+                            data-lp-cta-source="final_cta_v4"
                             class="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-center text-sm font-black text-slate-900 transition hover:bg-slate-100"
                         >
-                            {{ $primaryActionLabel }}
-                        </a>
-                        <a
-                            href="#matricula"
-                            data-lp-cta-source="final_secondary_v4"
-                            class="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-                        >
-                            Ver opções de matrícula
+                            Ir para matrícula
                         </a>
                         <p class="text-xs leading-5 text-white/60">
                             Pagamento seguro. Acesso liberado após confirmação do pagamento.
@@ -969,8 +1130,9 @@
                 ]);
                 const primaryCheckoutValue = @js($lpPrimaryCheckoutValue);
                 const rawSearchParams = new URLSearchParams(window.location.search);
+                const prefiredSource = String(rawSearchParams.get('edux_source') || '').toLowerCase();
                 const shouldSkipPrefiredViewContent = rawSearchParams.get('edux_vc_prefired') === '1'
-                    && rawSearchParams.get('edux_source') === 'city_campaign';
+                    && ['city_campaign', 'home'].includes(prefiredSource);
 
                 const queryParams = {};
                 for (const [key, value] of rawSearchParams.entries()) {
@@ -1058,6 +1220,39 @@
                 };
 
                 const prepareCheckoutLinks = () => {
+                    const buildCheckoutStandardPayload = (link, checkoutName, checkoutPrice, checkoutSource, ctaType) => {
+                        const checkoutId = Number(link.dataset.checkoutId || 0) || null;
+                        const checkoutHours = Number(link.dataset.checkoutHours || 0) || null;
+                        const hasPrice = Number.isFinite(checkoutPrice) && checkoutPrice > 0;
+                        const contentId = checkoutId || courseMeta.course_id || courseMeta.course_slug || courseMeta.course_title;
+
+                        const payload = {
+                            content_name: checkoutName || courseMeta.course_title,
+                            content_type: 'product',
+                            content_category: 'course',
+                            content_ids: [contentId],
+                            source_page: courseMeta.page_type,
+                            course_id: courseMeta.course_id,
+                            course_slug: courseMeta.course_slug,
+                            checkout_id: checkoutId || undefined,
+                            checkout_hours: checkoutHours ?? undefined,
+                            cta_source: checkoutSource,
+                            checkout_channel: ctaType,
+                        };
+
+                        if (hasPrice) {
+                            payload.currency = 'BRL';
+                            payload.value = checkoutPrice;
+                            payload.contents = [{
+                                id: contentId,
+                                quantity: 1,
+                                item_price: checkoutPrice,
+                            }];
+                        }
+
+                        return payload;
+                    };
+
                     document.querySelectorAll('a[data-checkout-link]').forEach((link) => {
                         const originalHref = link.getAttribute('href');
                         if (!originalHref || shouldSkipHref(originalHref)) return;
@@ -1078,6 +1273,13 @@
                             const checkoutPrice = Number(link.dataset.checkoutPrice || 0);
                             const isExternal = !shouldSkipHref(link.getAttribute('href'));
                             const ctaType = String(link.dataset.ctaType || 'checkout').toLowerCase();
+                            const standardPayload = buildCheckoutStandardPayload(
+                                link,
+                                checkoutName,
+                                checkoutPrice,
+                                checkoutSource,
+                                ctaType
+                            );
 
                             if (ctaType === 'whatsapp') {
                                 window.lpMetaTrack('LPWhatsAppClick', {
@@ -1086,12 +1288,12 @@
                                 });
 
                                 if (isExternal) {
+                                    window.lpMetaTrackStandard('ViewContent', standardPayload);
                                     window.lpMetaTrackStandard('Lead', {
-                                        content_name: checkoutName || courseMeta.course_title,
-                                        content_category: 'course',
+                                        ...standardPayload,
                                         lead_channel: 'whatsapp',
-                                        cta_source: checkoutSource,
                                     });
+                                    window.lpMetaTrackStandard('InitiateCheckout', standardPayload);
                                 }
 
                                 return;
@@ -1104,13 +1306,13 @@
                                 checkout_price: Number.isFinite(checkoutPrice) && checkoutPrice > 0 ? checkoutPrice : undefined,
                             });
 
-                            if (isExternal && Number.isFinite(checkoutPrice) && checkoutPrice > 0) {
-                                window.lpMetaTrackStandard('InitiateCheckout', {
-                                    currency: 'BRL',
-                                    value: checkoutPrice,
-                                    content_name: checkoutName || courseMeta.course_title,
-                                    content_category: 'course',
+                            if (isExternal) {
+                                window.lpMetaTrackStandard('ViewContent', standardPayload);
+                                window.lpMetaTrackStandard('Lead', {
+                                    ...standardPayload,
+                                    lead_channel: 'checkout',
                                 });
+                                window.lpMetaTrackStandard('InitiateCheckout', standardPayload);
                             }
                         });
                     });
@@ -1221,16 +1423,11 @@
                 <p class="text-base font-black leading-none text-white">{{ $stickyCheckoutPriceLabel }}</p>
             </div>
             <a
-                href="{{ $stickyActionHref }}"
-                data-checkout-link
-                data-cta-type="{{ $isWhatsappCtaMode ? 'whatsapp' : 'checkout' }}"
-                data-checkout-source="mobile_sticky_cta_v4"
-                data-checkout-hours="{{ $stickyCheckout?->hours ?? '' }}"
-                data-checkout-price="{{ $stickyCheckoutValue ?? '' }}"
-                data-checkout-name="{{ $stickyCheckoutName }}"
+                href="#matricula"
+                data-lp-cta-source="mobile_sticky_cta_v4"
                 class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-amber-300 px-4 py-3 text-center text-sm font-black text-slate-950 shadow-md transition hover:bg-amber-200"
             >
-                {{ $mobileStickyActionLabel }}
+                Ir para matrícula
             </a>
         </div>
         <p class="mt-2 text-xs leading-4 text-white/60">

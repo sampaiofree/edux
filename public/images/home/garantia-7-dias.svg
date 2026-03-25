@@ -1,0 +1,43 @@
+<svg viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <path id="guarantee-top-arc" d="M56 120A64 64 0 0 1 184 120" />
+        <path id="guarantee-bottom-arc" d="M184 120A64 64 0 0 1 56 120" />
+    </defs>
+
+    <g fill="#FDBD1B">
+        <circle cx="120" cy="120" r="92" />
+        <circle cx="120" cy="18" r="24" />
+        <circle cx="159" cy="25" r="23" />
+        <circle cx="193" cy="49" r="22" />
+        <circle cx="214" cy="84" r="22" />
+        <circle cx="222" cy="120" r="22" />
+        <circle cx="214" cy="156" r="22" />
+        <circle cx="193" cy="191" r="22" />
+        <circle cx="159" cy="215" r="23" />
+        <circle cx="120" cy="222" r="24" />
+        <circle cx="81" cy="215" r="23" />
+        <circle cx="47" cy="191" r="22" />
+        <circle cx="26" cy="156" r="22" />
+        <circle cx="18" cy="120" r="22" />
+        <circle cx="26" cy="84" r="22" />
+        <circle cx="47" cy="49" r="22" />
+        <circle cx="81" cy="25" r="23" />
+    </g>
+
+    <circle cx="120" cy="120" r="86" fill="none" stroke="#FFF6CF" stroke-width="3.5" stroke-dasharray="3 8" />
+    <circle cx="120" cy="120" r="74" fill="#FFFDF9" />
+    <circle cx="120" cy="120" r="48" fill="#343737" />
+
+    <text fill="#343737" font-size="17" font-weight="800" letter-spacing="0.5" font-family="Outfit, 'Open Sans', sans-serif">
+        <textPath href="#guarantee-top-arc" startOffset="50%" text-anchor="middle">100% DINHEIRO DE VOLTA</textPath>
+    </text>
+    <text fill="#343737" font-size="18" font-weight="800" letter-spacing="1" font-family="Outfit, 'Open Sans', sans-serif">
+        <textPath href="#guarantee-bottom-arc" startOffset="50%" text-anchor="middle">GARANTIDO</textPath>
+    </text>
+
+    <path d="M49 120L53 131H65L55 138L59 149L49 142L39 149L43 138L33 131H45L49 120Z" fill="#FDBD1B" />
+    <path d="M191 120L195 131H207L197 138L201 149L191 142L181 149L185 138L175 131H187L191 120Z" fill="#FDBD1B" />
+
+    <text x="120" y="112" text-anchor="middle" fill="#FDBD1B" font-size="78" font-weight="900" font-family="Outfit, 'Open Sans', sans-serif">7</text>
+    <text x="120" y="153" text-anchor="middle" fill="#FDBD1B" font-size="34" font-weight="800" font-family="Outfit, 'Open Sans', sans-serif">DIAS</text>
+</svg>

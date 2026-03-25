@@ -47,11 +47,7 @@
                         @endif
 
                         <p class="mt-2 text-xs text-slate-400">
-                            @if (! empty($supportWhatsappContact['is_rotating']))
-                                Este curso usa rotatividade entre números ativos de atendimento.
-                            @else
-                                Este curso usa um número de atendimento específico.
-                            @endif
+                            Fale conosco para tirar dúvidas sobre matrícula, acesso à plataforma e informações do curso. Estamos aqui para ajudar você a começar sua jornada de aprendizado!
                         </p>
                     </div>
 

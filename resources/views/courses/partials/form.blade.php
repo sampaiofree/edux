@@ -80,18 +80,6 @@
                 </select>
                 @error('owner_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
             </label>
-            <label class="space-y-1 text-sm font-semibold text-slate-600">
-                <span>ID Kavoo</span>
-                <input
-                    type="number"
-                    name="kavoo_id"
-                    min="0"
-                    value="{{ old('kavoo_id', $course->kavoo_id) }}"
-                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
-                >
-                <p class="text-xs text-slate-500">ID do produto utilizado pela integração Kavoo (opcional).</p>
-                @error('kavoo_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
-            </label>
         @endif
     </div>
 

@@ -812,7 +812,7 @@
             <div class="rounded-3xl border border-slate-300 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-5 text-white shadow-xl md:p-6">
                 <div class="grid gap-5 md:grid-cols-[1.15fr_0.85fr] md:items-center">
                     <div class="space-y-2">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Fechamento de decisão</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Último passo para sua matrícula</p>
                         <h2 class="text-2xl font-display text-white md:text-3xl">Se você quer começar sua preparação profissional com valor acessível, esta é a hora de escolher sua matrícula.</h2>
                         <p class="text-sm leading-6 text-white/80 md:text-base">
                             Iniciativa social independente, sem vínculo com governo. O curso ajuda na sua preparação e no fortalecimento do currículo, mas não garante contratação.

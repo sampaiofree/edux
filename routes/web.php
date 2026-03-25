@@ -21,7 +21,6 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LessonProgressController;
 use App\Http\Controllers\PublicLessonController;
 use App\Http\Controllers\PublicCertificateController;
-use App\Http\Controllers\PublicCoursePageController;
 use App\Http\Controllers\PublicCoursePageV2Controller;
 use App\Http\Controllers\PublicCoursePageV3Controller;
 use App\Http\Controllers\PublicCoursePageV4Controller;
@@ -61,7 +60,7 @@ Route::get('/certificates/verify/{token}/download', [PublicCertificateController
 Route::get('/certificates/verify/{token}', PublicCertificateController::class)->name('certificates.verify');
 // Página pública do curso
 Route::view('/catalogo', 'courses.catalog')->name('courses.public.index');
-Route::get('/catalogo/{course:slug}', PublicCoursePageController::class)->name('courses.public.show');
+Route::get('/catalogo/{course:slug}', PublicCoursePageV4Controller::class)->name('courses.public.show');
 Route::view('/catalogo-2', 'courses.catalog')->name('courses.public.v2.index');
 Route::get('/catalogo-2/{course:slug}', PublicCoursePageV2Controller::class)->name('courses.public.v2.show');
 Route::view('/catalogo-3', 'courses.catalog')->name('courses.public.v3.index');

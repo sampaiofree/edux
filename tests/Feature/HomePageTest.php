@@ -7,6 +7,7 @@ use App\Livewire\PublicCatalog;
 use App\Models\Course;
 use App\Models\CourseCheckout;
 use App\Models\Enrollment;
+use App\Models\SupportWhatsappNumber;
 use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,15 +34,124 @@ class HomePageTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk();
-        $response->assertSee('Escolher meu curso agora!', false);
+        $response->assertSee('QUERO ME INSCREVER AGORA', false);
         $response->assertSee('id="lista-cursos"', false);
-        $response->assertSee('4 motivos para começar uma nova etapa com mais preparo', false);
+        $response->assertSee('4 motivos para você mudar de vida hoje', false);
         $response->assertDontSee('Visão geral da plataforma', false);
         $response->assertDontSee('Entrar', false);
         $response->assertDontSee('Ir para o painel', false);
         $response->assertDontSee('href="'.route('courses.public.index').'"', false);
         $response->assertDontSee('Abrir catálogo com busca', false);
         $response->assertDontSee('http-equiv="refresh"', false);
+    }
+
+    public function test_home_displays_city_name_from_query_string_above_banner_heading(): void
+    {
+        $this->createPublishedCourse('informatica-basica', 'Informática Básica', 29.90);
+
+        $response = $this->get('/?cidade=salvador');
+
+        $response->assertOk();
+        $response->assertDontSee('w3-city-fixed-top', false);
+        $response->assertSeeInOrder([
+            'Salvador',
+            'Inscrições abertas para o Programa Nacional de Capacitação Profissional.',
+        ], false);
+    }
+
+    public function test_home_renders_local_reason_card_images(): void
+    {
+        $this->createPublishedCourse('informatica-basica', 'Informática Básica', 29.90);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('/images/home/reasons/qualificacao.webp', false);
+        $response->assertSee('/images/home/reasons/semexperiencia.webp', false);
+        $response->assertSee('/images/home/reasons/primeiroemprego.webp', false);
+        $response->assertSee('/images/home/reasons/empregomelhor.webp', false);
+    }
+
+    public function test_home_course_card_has_waitlist_metadata_when_course_has_specific_whatsapp(): void
+    {
+        $supportNumber = SupportWhatsappNumber::query()->create([
+            'label' => 'Atendimento principal',
+            'whatsapp' => '+55 (11) 99999-0000',
+            'description' => 'Time comercial',
+            'is_active' => true,
+            'position' => 1,
+        ]);
+
+        $course = $this->createCourse([
+            'slug' => 'curso-com-lista',
+            'title' => 'Curso com Lista',
+            'status' => 'published',
+            'published_at' => now(),
+            'support_whatsapp_mode' => 'specific',
+            'support_whatsapp_number_id' => $supportNumber->id,
+            'checkout_price' => 39.90,
+        ]);
+
+        $response = $this->get('/');
+        $expectedMessage = rawurlencode('Quero entrar na lista de espera do curso '.$course->title.'.');
+        $expectedWaitlistUrl = 'https://wa.me/5511999990000?text='.$expectedMessage;
+
+        $response->assertOk();
+        $response->assertSee('data-home-course-card="1"', false);
+        $response->assertSee('data-course-slug="'.$course->slug.'"', false);
+        $response->assertSee('data-waitlist-url="'.$expectedWaitlistUrl.'"', false);
+        $response->assertSee('data-vacancy-badge', false);
+        $response->assertSee('data-course-cta', false);
+    }
+
+    public function test_home_course_card_has_empty_waitlist_metadata_without_valid_whatsapp(): void
+    {
+        $course = $this->createPublishedCourse('curso-sem-lista', 'Curso Sem Lista', 19.90);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-course-slug="'.$course->slug.'"', false);
+        $response->assertSee('data-city-scope=""', false);
+        $response->assertSee('data-waitlist-url=""', false);
+    }
+
+    public function test_home_course_card_link_includes_home_source_query_param(): void
+    {
+        $course = $this->createPublishedCourse('curso-origem-home', 'Curso Origem Home', 39.90);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('href="'.route('courses.public.show', $course).'?edux_source=home"', false);
+    }
+
+    public function test_home_course_card_link_preserves_city_query_param_when_present(): void
+    {
+        $course = $this->createPublishedCourse('curso-cidade-home', 'Curso Cidade Home', 42.90);
+
+        $response = $this->get('/?cidade=salvador');
+
+        $response->assertOk();
+        $response->assertSee(
+            'href="'.route('courses.public.show', $course).'?edux_source=home&amp;cidade=salvador"',
+            false
+        );
+        $response->assertSee('data-city-scope="salvador"', false);
+    }
+
+    public function test_home_course_cards_render_tracking_metadata_and_click_tracking_script(): void
+    {
+        $course = $this->createPublishedCourse('curso-track-home', 'Curso Track Home', 39.90);
+
+        $response = $this->get('/?cidade=salvador');
+
+        $response->assertOk();
+        $response->assertSee('data-course-id="'.$course->id.'"', false);
+        $response->assertSee('data-course-position="1"', false);
+        $response->assertSee('window.homeMetaTrackStandard(\'ViewContent\'', false);
+        $response->assertSee('window.homeMetaTrackStandard(\'Lead\'', false);
+        $response->assertSee("url.searchParams.set('edux_vc_prefired', '1')", false);
     }
 
     public function test_authenticated_user_sees_same_standalone_home_without_auth_ctas(): void
@@ -52,7 +162,7 @@ class HomePageTest extends TestCase
         $response = $this->actingAs($user)->get('/');
 
         $response->assertOk();
-        $response->assertSee('Escolher meu curso agora!', false);
+        $response->assertSee('QUERO ME INSCREVER AGORA', false);
         $response->assertDontSee('Entrar', false);
         $response->assertDontSee('Ir para o painel', false);
         $response->assertDontSee('href="'.route('courses.public.index').'"', false);
@@ -121,7 +231,7 @@ class HomePageTest extends TestCase
         $responseWithoutAsset = $this->get('/');
 
         $responseWithoutAsset->assertOk();
-        $responseWithoutAsset->assertSee('Materiais extras quando o curso oferecer suporte adicional', false);
+        $responseWithoutAsset->assertSee('Carta de Estágio e Recomendação', false);
         $responseWithoutAsset->assertDontSee('/storage/uploads/carta-estagio.png', false);
 
         SystemSetting::current()->forceFill([
@@ -131,7 +241,7 @@ class HomePageTest extends TestCase
         $responseWithAsset = $this->get('/');
 
         $responseWithAsset->assertOk();
-        $responseWithAsset->assertSee('Carta de estágio configurada na plataforma', false);
+        $responseWithAsset->assertSee('Carta de Estágio e Recomendação', false);
         $responseWithAsset->assertSee('/storage/uploads/carta-estagio.png', false);
     }
 

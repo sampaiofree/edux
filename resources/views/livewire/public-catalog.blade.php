@@ -19,8 +19,21 @@
     @if ($context === 'home')
         <div class="w3-courses-grid">
             @forelse ($courses as $course)
-                <article class="w3-course-item" data-public-course-card>
-                    <a href="{{ $course['course_url'] }}" class="w3-course-card">
+                <article
+                    class="w3-course-item"
+                    data-public-course-card
+                    data-home-course-card="1"
+                    data-course-id="{{ $course['id'] }}"
+                    data-course-slug="{{ $course['slug'] }}"
+                    data-course-title="{{ $course['title'] }}"
+                    data-course-price="{{ $course['min_checkout_price'] ?? '' }}"
+                    data-course-position="{{ $loop->iteration }}"
+                    data-course-url="{{ $course['course_url'] }}"
+                    data-city-scope="{{ $course['city_scope'] ?? '' }}"
+                    data-waitlist-url="{{ $course['waitlist_whatsapp_url'] ?? '' }}"
+                    data-waitlist-message="{{ $course['waitlist_message'] ?? '' }}"
+                >
+                    <a href="{{ $course['course_url'] }}" class="w3-course-card" data-course-link>
                         <div class="w3-course-card__media">
                             @if ($course['cover_url'])
                                 <img src="{{ $course['cover_url'] }}" alt="{{ $course['title'] }}">
@@ -32,15 +45,8 @@
                         <div class="w3-course-card__body">
                             <h3 class="w3-course-card__title">{{ $course['title'] }}</h3>
                             <p class="w3-course-card__headline">{{ $course['headline'] }}</p>
-                            <p class="w3-course-card__meta">
-                                @if ($course['duration_label'])
-                                    {{ $course['duration_label'] }}h de conteudo online
-                                @else
-                                    Duracao informada na pagina publica do curso
-                                @endif
-                            </p>
-                            <p class="w3-course-card__meta">Pagina publica com informacoes do curso</p>
-                            <span class="w3-course-card__cta">Saiba mais</span>
+                            <span class="w3-course-card__vacancy-badge" data-vacancy-badge>Vagas limitadas</span>
+                            <span class="w3-course-card__cta" data-course-cta>Saiba mais</span>
                         </div>
                     </a>
                 </article>
