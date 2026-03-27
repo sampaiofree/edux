@@ -5,6 +5,7 @@ namespace App\Livewire\Account;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 
@@ -13,13 +14,19 @@ class ProfileForm extends Component
     use WithFileUploads;
 
     public string $name = '';
+
     public string $email = '';
+
     public ?string $qualification = null;
+
     public ?string $password = null;
+
     public ?string $password_confirmation = null;
+
     public $profile_photo;
 
     public bool $canRename = true;
+
     public ?string $currentPhotoPath = null;
 
     public function mount(): void
@@ -40,6 +47,7 @@ class ProfileForm extends Component
             $message = 'Voce ja utilizou sua troca de nome.';
             $this->addError('name', $message);
             $this->dispatch('notify', type: 'error', message: $message);
+
             return;
         }
 
@@ -107,11 +115,14 @@ class ProfileForm extends Component
 
     private function rules(): array
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user?->id;
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$userId],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')
+                ->where('system_setting_id', $user?->system_setting_id)
+                ->ignore($userId)],
             'qualification' => ['nullable', 'string'],
             'password' => ['nullable', 'min:8', 'same:password_confirmation'],
             'password_confirmation' => ['nullable'],

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Cache;
 
 class CityCampaignCache
@@ -22,12 +23,12 @@ class CityCampaignCache
 
     public static function catalogDataKey(): string
     {
-        return 'city_campaign:data:courses:v'.self::coursesVersion();
+        return 'city_campaign:data:courses:tenant:'.self::tenantCacheKey().':v'.self::coursesVersion();
     }
 
     public static function settingsDataKey(): string
     {
-        return 'city_campaign:data:settings:v'.self::settingsVersion();
+        return 'city_campaign:data:settings:tenant:'.self::tenantCacheKey().':v'.self::settingsVersion();
     }
 
     public static function bumpCourses(): void
@@ -56,5 +57,10 @@ class CityCampaignCache
     private static function bump(string $key): void
     {
         Cache::forever($key, self::version($key) + 1);
+    }
+
+    private static function tenantCacheKey(): string
+    {
+        return (string) (SystemSetting::currentId() ?? 'global');
     }
 }

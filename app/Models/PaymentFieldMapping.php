@@ -10,14 +10,13 @@ class PaymentFieldMapping extends Model
 {
     use HasFactory;
 
+    public const FIELD_BUYER_NAME = 'buyer_name';
+
     public const FIELD_BUYER_EMAIL = 'buyer_email';
-    public const FIELD_EVENT_CODE = 'event_code';
-    public const FIELD_EXTERNAL_TX_ID = 'external_tx_id';
-    public const FIELD_AMOUNT = 'amount';
-    public const FIELD_CURRENCY = 'currency';
-    public const FIELD_OCCURRED_AT = 'occurred_at';
-    public const FIELD_ITEMS = 'items';
-    public const FIELD_ITEM_PRODUCT_ID = 'item_product_id';
+
+    public const FIELD_COURSE_ID = 'course_id';
+
+    public const FIELD_BUYER_WHATSAPP = 'buyer_whatsapp';
 
     protected $fillable = [
         'payment_webhook_link_id',
@@ -30,6 +29,19 @@ class PaymentFieldMapping extends Model
     {
         return [
             'is_required' => 'boolean',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function configurableFields(): array
+    {
+        return [
+            self::FIELD_BUYER_NAME => 'Nome',
+            self::FIELD_BUYER_EMAIL => 'Email',
+            self::FIELD_COURSE_ID => 'curso_id',
+            self::FIELD_BUYER_WHATSAPP => 'WhatsApp',
         ];
     }
 

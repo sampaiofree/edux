@@ -36,7 +36,6 @@ class UserController extends Controller
         return view('admin.users.index', compact('users', 'search'));
     }
 
-    
     public function edit(User $user): View
     {
         return view('admin.users.edit', [
@@ -49,7 +48,9 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')
+                ->where('system_setting_id', $user->system_setting_id)
+                ->ignore($user->id)],
             'role' => ['required', Rule::in(collect(UserRole::cases())->pluck('value')->all())],
             'whatsapp' => ['nullable', 'string', 'max:32'],
             'qualification' => ['nullable', 'string'],

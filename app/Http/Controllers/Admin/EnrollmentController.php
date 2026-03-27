@@ -148,8 +148,9 @@ class EnrollmentController extends Controller
     {
         $courseId = $request->input('course_id');
         $userId = $request->input('user_id');
+        $systemSettingId = (int) ($request->user()?->system_setting_id ?? 0);
 
-        $courseRules = ['required', 'integer', 'exists:courses,id'];
+        $courseRules = ['required', 'integer', Rule::exists('courses', 'id')->where('system_setting_id', $systemSettingId)];
         if ($courseId !== null && $courseId !== '' && $userId !== null && $userId !== '') {
             $courseRules[] = Rule::unique('enrollments', 'course_id')
                 ->where('user_id', $userId)
@@ -158,7 +159,7 @@ class EnrollmentController extends Controller
 
         return [
             'course_id' => $courseRules,
-            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('system_setting_id', $systemSettingId)],
             'progress_percent' => ['required', 'integer', 'min:0', 'max:100'],
             'completed_at' => ['nullable', 'date'],
             'access_status' => ['required', Rule::in([

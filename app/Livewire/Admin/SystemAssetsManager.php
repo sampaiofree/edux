@@ -2,8 +2,11 @@
 
 namespace App\Livewire\Admin;
 
+use App\Mail\SystemMailTestMessage;
 use App\Models\SystemSetting;
+use App\Support\Mail\TenantMailManager;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -12,9 +15,34 @@ class SystemAssetsManager extends Component
     use WithFileUploads;
 
     public SystemSetting $settings;
+
+    public ?string $domain = null;
+
     public ?string $escola_nome = null;
+
     public ?string $escola_cnpj = null;
+
     public ?string $meta_ads_pixel = null;
+
+    public ?string $mail_mailer = null;
+
+    public ?string $mail_scheme = null;
+
+    public ?string $mail_host = null;
+
+    public ?string $mail_port = null;
+
+    public ?string $mail_username = null;
+
+    public ?string $mail_password = null;
+
+    public ?string $mail_from_address = null;
+
+    public ?string $mail_from_name = null;
+
+    public bool $mail_password_configured = false;
+
+    public ?string $test_email = null;
 
     /** @var array<string, mixed> */
     public array $uploads = [
@@ -68,6 +96,7 @@ class SystemAssetsManager extends Component
     protected function rules(): array
     {
         return [
+            'domain' => $this->domainRules(),
             'escola_nome' => ['nullable', 'string', 'max:255'],
             'escola_cnpj' => ['nullable', 'string', 'max:32'],
             'meta_ads_pixel' => ['nullable', 'string', 'max:64'],
@@ -84,9 +113,20 @@ class SystemAssetsManager extends Component
     public function mount(): void
     {
         $this->settings = SystemSetting::current();
+        $this->domain = $this->settings->domain;
         $this->escola_nome = $this->settings->escola_nome;
         $this->escola_cnpj = $this->settings->escola_cnpj;
         $this->meta_ads_pixel = $this->settings->meta_ads_pixel;
+        $this->mail_mailer = $this->settings->mail_mailer;
+        $this->mail_scheme = $this->settings->mail_scheme;
+        $this->mail_host = $this->settings->mail_host;
+        $this->mail_port = $this->settings->mail_port ? (string) $this->settings->mail_port : null;
+        $this->mail_username = $this->settings->mail_username;
+        $this->mail_from_address = $this->settings->mail_from_address;
+        $this->mail_from_name = $this->settings->mail_from_name;
+        $this->mail_password = null;
+        $this->mail_password_configured = filled($this->settings->getRawOriginal('mail_password'));
+        $this->test_email = (string) (auth()->user()?->email ?? '');
     }
 
     public function updatedUploads(): void
@@ -116,24 +156,101 @@ class SystemAssetsManager extends Component
     public function saveSchoolIdentity(): void
     {
         $this->validate([
+            'domain' => $this->domainRules(),
             'escola_nome' => ['nullable', 'string', 'max:255'],
             'escola_cnpj' => ['nullable', 'string', 'max:32'],
         ]);
 
+        $domain = SystemSetting::normalizeDomain($this->domain);
         $escolaNome = trim((string) ($this->escola_nome ?? ''));
         $escolaCnpj = trim((string) ($this->escola_cnpj ?? ''));
 
         $this->settings->update([
+            'domain' => $domain,
             'escola_nome' => $escolaNome !== '' ? $escolaNome : null,
             'escola_cnpj' => $escolaCnpj !== '' ? $escolaCnpj : null,
         ]);
 
         $this->settings->refresh();
+        $this->domain = $this->settings->domain;
         $this->escola_nome = $this->settings->escola_nome;
         $this->escola_cnpj = $this->settings->escola_cnpj;
 
         $message = 'Dados institucionais atualizados.';
         session()->flash('status_school_identity', $message);
+        $this->dispatch('notify', type: 'success', message: $message);
+    }
+
+    public function saveMailSettings(): void
+    {
+        $validated = $this->validate($this->mailRules());
+
+        $mailMailer = $this->normalizeOptional($validated['mail_mailer'] ?? null);
+        $mailScheme = $this->normalizeOptional($validated['mail_scheme'] ?? null);
+        $mailHost = $this->normalizeOptional($validated['mail_host'] ?? null);
+        $mailPort = $this->normalizeOptional($validated['mail_port'] ?? null);
+        $mailUsername = $this->normalizeOptional($validated['mail_username'] ?? null);
+        $mailPassword = $this->normalizeOptional($validated['mail_password'] ?? null);
+        $mailFromAddress = $this->normalizeOptional($validated['mail_from_address'] ?? null);
+        $mailFromName = $this->normalizeOptional($validated['mail_from_name'] ?? null);
+
+        $attributes = [
+            'mail_mailer' => $mailMailer,
+            'mail_scheme' => $mailScheme,
+            'mail_host' => $mailHost,
+            'mail_port' => $mailPort !== null ? (int) $mailPort : null,
+            'mail_username' => $mailUsername,
+            'mail_from_address' => $mailFromAddress,
+            'mail_from_name' => $mailFromName,
+        ];
+
+        if ($mailPassword !== null) {
+            $attributes['mail_password'] = $mailPassword;
+        }
+
+        $this->settings->update($attributes);
+        $this->settings->refresh();
+
+        $this->mail_mailer = $this->settings->mail_mailer;
+        $this->mail_scheme = $this->settings->mail_scheme;
+        $this->mail_host = $this->settings->mail_host;
+        $this->mail_port = $this->settings->mail_port ? (string) $this->settings->mail_port : null;
+        $this->mail_username = $this->settings->mail_username;
+        $this->mail_from_address = $this->settings->mail_from_address;
+        $this->mail_from_name = $this->settings->mail_from_name;
+        $this->mail_password = null;
+        $this->mail_password_configured = filled($this->settings->getRawOriginal('mail_password'));
+
+        $message = 'Configurações de e-mail atualizadas.';
+        session()->flash('status_mail_settings', $message);
+        $this->dispatch('notify', type: 'success', message: $message);
+    }
+
+    public function sendTestEmail(): void
+    {
+        $this->validate(array_merge($this->mailRules(), [
+            'test_email' => ['required', 'email', 'max:255'],
+        ]));
+
+        $systemSetting = $this->mailPreviewSystemSetting();
+        $recipient = trim((string) $this->test_email);
+
+        try {
+            app(TenantMailManager::class)->send(
+                $systemSetting,
+                $recipient,
+                new SystemMailTestMessage($systemSetting)
+            );
+        } catch (\Throwable $exception) {
+            $message = 'Falha ao enviar e-mail de teste: '.$exception->getMessage();
+            session()->flash('status_mail_test', $message);
+            $this->dispatch('notify', type: 'error', message: $message);
+
+            return;
+        }
+
+        $message = 'E-mail de teste enviado para '.$recipient.'.';
+        session()->flash('status_mail_test', $message);
         $this->dispatch('notify', type: 'success', message: $message);
     }
 
@@ -153,6 +270,7 @@ class SystemAssetsManager extends Component
             $message = 'Selecione um arquivo para continuar.';
             session()->flash('status', $message);
             $this->dispatch('notify', type: 'error', message: $message);
+
             return;
         }
 
@@ -190,5 +308,76 @@ class SystemAssetsManager extends Component
             'fields' => $this->fieldMap,
             'settings' => $this->settings,
         ]);
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private function mailRules(): array
+    {
+        $requiresCustomConfig = fn (): bool => filled($this->normalizeOptional($this->mail_mailer));
+        $usesSmtp = fn (): bool => $this->normalizeOptional($this->mail_mailer) === 'smtp';
+
+        return [
+            'mail_mailer' => ['nullable', Rule::in(['log', 'smtp'])],
+            'mail_scheme' => ['nullable', 'string', 'max:32'],
+            'mail_host' => ['nullable', Rule::requiredIf($usesSmtp), 'string', 'max:255'],
+            'mail_port' => ['nullable', Rule::requiredIf($usesSmtp), 'integer', 'between:1,65535'],
+            'mail_username' => ['nullable', 'string', 'max:255'],
+            'mail_password' => ['nullable', 'string', 'max:1000'],
+            'mail_from_address' => ['nullable', Rule::requiredIf($requiresCustomConfig), 'email', 'max:255'],
+            'mail_from_name' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    private function normalizeOptional(mixed $value): ?string
+    {
+        $normalized = trim((string) $value);
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function domainRules(): array
+    {
+        return [
+            'required',
+            'string',
+            'max:191',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                $message = SystemSetting::tenantDomainValidationMessage(is_string($value) ? $value : null);
+
+                if ($message !== null) {
+                    $fail($message);
+                }
+            },
+            Rule::unique('system_settings', 'domain')->ignore($this->settings->id),
+        ];
+    }
+
+    private function mailPreviewSystemSetting(): SystemSetting
+    {
+        $mailPassword = $this->normalizeOptional($this->mail_password);
+        $systemSetting = clone $this->settings;
+        $domain = SystemSetting::isAllowedTenantDomain($this->domain)
+            ? SystemSetting::normalizeDomain($this->domain)
+            : $this->settings->domain;
+
+        $systemSetting->forceFill([
+            'domain' => $domain,
+            'mail_mailer' => $this->normalizeOptional($this->mail_mailer),
+            'mail_scheme' => $this->normalizeOptional($this->mail_scheme),
+            'mail_host' => $this->normalizeOptional($this->mail_host),
+            'mail_port' => ($port = $this->normalizeOptional($this->mail_port)) !== null ? (int) $port : null,
+            'mail_username' => $this->normalizeOptional($this->mail_username),
+            'mail_password' => $mailPassword ?? $this->settings->mail_password,
+            'mail_from_address' => $this->normalizeOptional($this->mail_from_address),
+            'mail_from_name' => $this->normalizeOptional($this->mail_from_name),
+            'escola_nome' => $this->normalizeOptional($this->escola_nome) ?? $this->settings->escola_nome,
+        ]);
+
+        return $systemSetting;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SystemSetting;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,6 +14,12 @@ class EnsureUserHasRole
         $user = $request->user();
 
         if (! $user) {
+            abort(403);
+        }
+
+        $currentSystemSettingId = SystemSetting::currentId();
+
+        if ($currentSystemSettingId !== null && (int) ($user->system_setting_id ?? 0) !== $currentSystemSettingId) {
             abort(403);
         }
 

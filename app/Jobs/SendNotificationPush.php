@@ -16,9 +16,7 @@ class SendNotificationPush implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(private readonly int $notificationId)
-    {
-    }
+    public function __construct(private readonly int $notificationId) {}
 
     public function handle(): void
     {
@@ -34,6 +32,7 @@ class SendNotificationPush implements ShouldQueue
 
         User::query()
             ->where('role', UserRole::STUDENT)
+            ->where('system_setting_id', $notification->system_setting_id)
             ->whereHas('pushSubscriptions')
             ->chunkById(500, function ($users) use ($notification): void {
                 NotificationFacade::send($users, new StudentAnnouncementPush($notification));

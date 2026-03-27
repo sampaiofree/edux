@@ -3,17 +3,21 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Models\Concerns\BelongsToSystemSetting;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasPushSubscriptions;
+    use BelongsToSystemSetting;
+
+    use HasFactory, HasPushSubscriptions, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -26,6 +30,7 @@ class User extends Authenticatable
         'display_name',
         'password',
         'role',
+        'system_setting_id',
         'whatsapp',
         'qualification',
         'profile_photo_path',
@@ -55,6 +60,79 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'name_change_available' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (self $user): void {
+            if (! $user->isAdmin()) {
+                return;
+            }
+
+            if ($user->system_setting_id) {
+                $setting = $user->systemSetting()->withoutGlobalScopes()->first();
+
+                if ($setting && ! $setting->owner_user_id) {
+                    $setting->forceFill([
+                        'owner_user_id' => $user->id,
+                    ])->save();
+                }
+
+                return;
+            }
+
+            $setting = SystemSetting::query()
+                ->whereNull('owner_user_id')
+                ->orderBy('id')
+                ->first();
+
+            if (! $setting) {
+                $setting = SystemSetting::create([
+                    'owner_user_id' => $user->id,
+                ]);
+            } else {
+                $setting->forceFill([
+                    'owner_user_id' => $setting->owner_user_id ?: $user->id,
+                    'domain' => null,
+                ])->save();
+            }
+
+            $user->forceFill([
+                'system_setting_id' => $setting->id,
+            ])->saveQuietly();
+        });
+    }
+
+    protected function resolveSystemSettingIdForNewRecord(): ?int
+    {
+        $role = $this->getAttribute('role');
+        $roleValue = $role instanceof UserRole ? $role->value : (string) $role;
+
+        if ($roleValue === UserRole::ADMIN->value) {
+            $host = null;
+
+            try {
+                $host = request()->getHost();
+            } catch (\Throwable) {
+                $host = null;
+            }
+
+            $fromDomain = SystemSetting::forDomain($host);
+            if ($fromDomain) {
+                return $fromDomain->id;
+            }
+
+            $fromUser = SystemSetting::forUser(auth()->user());
+
+            return $fromUser?->id;
+        }
+
+        return SystemSetting::currentId();
+    }
+
+    public function systemSetting(): BelongsTo
+    {
+        return $this->belongsTo(SystemSetting::class);
     }
 
     public function ownedCourses(): HasMany

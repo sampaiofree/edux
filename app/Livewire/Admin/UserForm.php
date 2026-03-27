@@ -14,12 +14,19 @@ class UserForm extends Component
     use WithFileUploads;
 
     public string $name = '';
+
     public string $email = '';
+
     public string $role;
+
     public string $password = '';
+
     public string $password_confirmation = '';
+
     public ?string $qualification = null;
+
     public ?string $whatsapp = null;
+
     public $profilePhoto;
 
     public function mount(): void
@@ -29,9 +36,11 @@ class UserForm extends Component
 
     public function save(): void
     {
+        $systemSettingId = auth()->user()?->system_setting_id;
+
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->where('system_setting_id', $systemSettingId)],
             'role' => ['required', Rule::in(collect(UserRole::cases())->pluck('value')->all())],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'whatsapp' => ['nullable', 'string', 'max:32'],
@@ -49,6 +58,7 @@ class UserForm extends Component
             'name' => $data['name'],
             'display_name' => $data['name'],
             'email' => $data['email'],
+            'system_setting_id' => $systemSettingId,
             'role' => $data['role'],
             'password' => Hash::make($data['password']),
             'whatsapp' => $this->whatsapp,

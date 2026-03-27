@@ -2,10 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Course;
 use App\Models\CourseCheckout;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,9 +22,7 @@ class PublicCourseLpV3Test extends TestCase
 
     public function test_public_course_lp_v3_renders_with_variant_tracking_markers_and_v3_sections(): void
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,
@@ -65,9 +61,7 @@ class PublicCourseLpV3Test extends TestCase
 
     public function test_public_course_lp_v3_returns_404_for_unpublished_course(): void
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,

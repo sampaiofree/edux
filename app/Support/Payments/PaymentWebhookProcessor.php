@@ -7,30 +7,31 @@ use App\Enums\PaymentEntitlementState;
 use App\Enums\PaymentInternalAction;
 use App\Enums\PaymentProcessingStatus;
 use App\Enums\UserRole;
+use App\Mail\CourseEnrollmentNotification;
 use App\Mail\WelcomePaymentUser;
 use App\Models\Course;
+use App\Models\CourseWebhookId;
 use App\Models\Enrollment;
 use App\Models\PaymentEntitlement;
 use App\Models\PaymentEvent;
-use App\Models\PaymentEventMapping;
 use App\Models\PaymentFieldMapping;
 use App\Models\PaymentProcessingLog;
-use App\Models\PaymentProductMapping;
 use App\Models\PaymentWebhookLink;
+use App\Models\SystemSetting;
 use App\Models\TrackingEvent;
 use App\Models\User;
+use App\Support\Mail\TenantMailManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class PaymentWebhookProcessor
 {
     public function __construct(
         private readonly JsonPathExtractor $extractor,
-    ) {
-    }
+        private readonly TenantMailManager $tenantMailManager,
+    ) {}
 
     public function process(PaymentEvent $event, bool $force = false): void
     {
@@ -47,8 +48,6 @@ class PaymentWebhookProcessor
 
             $event->loadMissing([
                 'webhookLink.fieldMappings',
-                'webhookLink.eventMappings',
-                'webhookLink.productMappings.course',
             ]);
 
             $link = $event->webhookLink;
@@ -59,54 +58,29 @@ class PaymentWebhookProcessor
             }
 
             $payload = is_array($event->raw_payload) ? $event->raw_payload : [];
-            $fieldMappings = $link->fieldMappings->keyBy('field_key');
-
-            $extracted = $this->extractBaseFields($payload, $fieldMappings);
-
-            $event->forceFill([
-                'external_event_code' => $extracted['event_code'],
-                'buyer_email' => $extracted['buyer_email'],
-                'external_tx_id' => $extracted['external_tx_id'],
-                'amount' => $extracted['amount'],
-                'currency' => $extracted['currency'],
-                'occurred_at' => $extracted['occurred_at'],
-            ])->save();
-
-            $this->logStep($event, 'extract', 'info', 'Campos base extraidos.', $extracted);
-
-            $eventCode = (string) ($extracted['event_code'] ?? '');
-            if ($eventCode === '') {
-                $this->markEvent($event, PaymentProcessingStatus::IGNORED, 'event_code_missing');
-
-                return;
-            }
-
-            $eventMapping = $this->resolveEventMapping($link->eventMappings, $eventCode);
-            if (! $eventMapping) {
-                $this->markEvent($event, PaymentProcessingStatus::IGNORED, 'event_unmapped');
-
-                return;
-            }
-
-            $internalAction = $eventMapping->internal_action instanceof PaymentInternalAction
-                ? $eventMapping->internal_action
-                : PaymentInternalAction::tryFrom((string) $eventMapping->internal_action);
-
-            if (! $internalAction) {
-                $this->markEvent($event, PaymentProcessingStatus::FAILED, 'internal_action_invalid');
-
-                return;
-            }
+            $fieldMappings = $this->supportedFieldMappings($link->fieldMappings);
+            $extracted = $this->extractMappedFields($payload, $fieldMappings);
+            $internalAction = $this->resolveInternalAction($link);
+            $courseReference = trim((string) ($extracted['course_id'] ?? ''));
 
             $event->forceFill([
+                'external_event_code' => null,
                 'internal_action' => $internalAction,
+                'buyer_email' => $extracted['buyer_email'],
+                'external_tx_id' => null,
+                'external_product_id' => $courseReference !== '' ? $courseReference : null,
+                'amount' => null,
+                'currency' => null,
+                'occurred_at' => null,
             ])->save();
 
-            if ($internalAction === PaymentInternalAction::IGNORE) {
-                $this->markEvent($event, PaymentProcessingStatus::IGNORED, 'mapped_to_ignore');
-
-                return;
-            }
+            $this->logStep($event, 'extract', 'info', 'Campos mapeados extraidos.', [
+                'name' => $extracted['buyer_name'],
+                'email' => $extracted['buyer_email'],
+                'course_id' => $extracted['course_id'],
+                'whatsapp' => $extracted['buyer_whatsapp'],
+                'resolved_action' => $internalAction->value,
+            ]);
 
             $buyerEmail = strtolower(trim((string) ($extracted['buyer_email'] ?? '')));
             if ($buyerEmail === '') {
@@ -115,29 +89,15 @@ class PaymentWebhookProcessor
                 return;
             }
 
-            $items = $this->resolveItems($payload, $fieldMappings);
-            if ($items === []) {
-                $this->markEvent($event, PaymentProcessingStatus::IGNORED, 'items_missing');
+            $outcome = $internalAction === PaymentInternalAction::APPROVE
+                ? $this->applyApprove($event, $link, $buyerEmail, $courseReference, $extracted, 0)
+                : $this->applyRevoke($event, $link, $buyerEmail, $courseReference, $extracted, 0);
 
-                return;
-            }
-
-            $outcomes = [];
-            foreach ($items as $index => $itemContext) {
-                $productId = $this->resolveProductId((array) $itemContext, $payload, $fieldMappings);
-
-                if ($internalAction === PaymentInternalAction::APPROVE) {
-                    $outcome = $this->applyApprove($event, $link, $buyerEmail, $productId, $extracted, $index);
-                } else {
-                    $outcome = $this->applyRevoke($event, $link, $buyerEmail, $productId, $extracted, $index);
-                }
-
-                $outcomes[] = [
-                    'index' => $index,
-                    'product_id' => $productId,
-                    ...$outcome,
-                ];
-            }
+            $outcomes = [[
+                'index' => 0,
+                'product_id' => $courseReference,
+                ...$outcome,
+            ]];
 
             $this->finalizeEventFromOutcomes($event, $outcomes);
             $this->logStep($event, 'finalize', 'info', 'Processamento finalizado.', [
@@ -165,40 +125,29 @@ class PaymentWebhookProcessor
      */
     public function preview(PaymentWebhookLink $link, array $payload): array
     {
-        $link->loadMissing(['fieldMappings', 'eventMappings', 'productMappings']);
+        $link->loadMissing(['fieldMappings']);
 
-        $fieldMappings = $link->fieldMappings->keyBy('field_key');
-        $base = $this->extractBaseFields($payload, $fieldMappings);
-
-        $eventCode = (string) ($base['event_code'] ?? '');
-        $eventMapping = $eventCode !== '' ? $this->resolveEventMapping($link->eventMappings, $eventCode) : null;
-        $action = $eventMapping?->internal_action instanceof PaymentInternalAction
-            ? $eventMapping->internal_action->value
-            : (string) ($eventMapping->internal_action ?? '');
-
-        $items = $this->resolveItems($payload, $fieldMappings);
-        $itemsPreview = [];
-
-        foreach ($items as $index => $itemContext) {
-            $productId = $this->resolveProductId((array) $itemContext, $payload, $fieldMappings);
-            $mapping = $link->productMappings
-                ->first(fn (PaymentProductMapping $productMapping) => (string) $productMapping->external_product_id === $productId);
-
-            $itemsPreview[] = [
-                'index' => $index,
-                'product_id' => $productId,
-                'mapped_course_id' => $mapping?->course_id,
-                'mapped_course_title' => $mapping?->course?->title,
-            ];
-        }
+        $fieldMappings = $this->supportedFieldMappings($link->fieldMappings);
+        $base = $this->extractMappedFields($payload, $fieldMappings);
+        $courseReference = trim((string) ($base['course_id'] ?? ''));
+        $course = $this->resolveCourseByWebhookId($courseReference, $link->system_setting_id);
+        $action = $this->resolveInternalAction($link);
 
         return [
-            'base_fields' => $base,
-            'resolved_action' => $action !== '' ? $action : null,
-            'items' => $itemsPreview,
+            'base_fields' => [
+                'name' => $base['buyer_name'],
+                'email' => $base['buyer_email'],
+                'course_id' => $base['course_id'],
+                'whatsapp' => $base['buyer_whatsapp'],
+            ],
+            'resolved_action' => $action->value,
+            'resolved_course' => [
+                'course_id' => $course?->id,
+                'course_title' => $course?->title,
+            ],
             'notes' => [
-                'event_mapped' => $eventMapping !== null,
-                'item_count' => count($itemsPreview),
+                'action_mode' => $link->action_mode,
+                'course_resolved' => $course !== null,
             ],
         ];
     }
@@ -206,75 +155,39 @@ class PaymentWebhookProcessor
     /**
      * @param  array<string, mixed>  $payload
      * @param  \Illuminate\Support\Collection<string, PaymentFieldMapping>  $fieldMappings
-     * @return array{event_code:?string,buyer_email:?string,external_tx_id:?string,amount:?float,currency:?string,occurred_at:?CarbonImmutable}
+     * @return array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}
      */
-    private function extractBaseFields(array $payload, Collection $fieldMappings): array
+    private function extractMappedFields(array $payload, Collection $fieldMappings): array
     {
-        $eventCode = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_EVENT_CODE));
+        $buyerName = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_BUYER_NAME));
         $buyerEmail = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_BUYER_EMAIL));
-        $externalTxId = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_EXTERNAL_TX_ID));
-        $amount = $this->toMoney($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_AMOUNT));
-        $currency = $this->toCurrency($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_CURRENCY));
-        $occurredAt = $this->toDate($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_OCCURRED_AT));
+        $courseId = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_COURSE_ID));
+        $buyerWhatsapp = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_BUYER_WHATSAPP));
 
         return [
-            'event_code' => $eventCode,
+            'buyer_name' => $buyerName,
             'buyer_email' => $buyerEmail,
-            'external_tx_id' => $externalTxId,
-            'amount' => $amount,
-            'currency' => $currency,
-            'occurred_at' => $occurredAt,
+            'course_id' => $courseId,
+            'buyer_whatsapp' => $buyerWhatsapp,
         ];
     }
 
     /**
-     * @param  array<string, mixed>  $payload
-     * @param  \Illuminate\Support\Collection<string, PaymentFieldMapping>  $fieldMappings
-     * @return array<int, array<string, mixed>>
+     * @param  \Illuminate\Support\Collection<int, PaymentFieldMapping>  $fieldMappings
+     * @return \Illuminate\Support\Collection<string, PaymentFieldMapping>
      */
-    private function resolveItems(array $payload, Collection $fieldMappings): array
+    private function supportedFieldMappings(Collection $fieldMappings): Collection
     {
-        $itemsPath = $fieldMappings->get(PaymentFieldMapping::FIELD_ITEMS)?->json_path;
-
-        if ($itemsPath === null || trim((string) $itemsPath) === '') {
-            return [$payload];
-        }
-
-        $items = $this->extractor->get($payload, $itemsPath);
-
-        if (! is_array($items)) {
-            return [$payload];
-        }
-
-        if ($items === []) {
-            return [];
-        }
-
-        if (array_is_list($items)) {
-            return array_values(array_filter($items, static fn ($item) => is_array($item)));
-        }
-
-        return [$items];
+        return $fieldMappings
+            ->whereIn('field_key', array_keys(PaymentFieldMapping::configurableFields()))
+            ->keyBy('field_key');
     }
 
-    /**
-     * @param  array<string, mixed>  $itemContext
-     * @param  array<string, mixed>  $payload
-     * @param  \Illuminate\Support\Collection<string, PaymentFieldMapping>  $fieldMappings
-     */
-    private function resolveProductId(array $itemContext, array $payload, Collection $fieldMappings): string
+    private function resolveInternalAction(PaymentWebhookLink $link): PaymentInternalAction
     {
-        $itemPath = $fieldMappings->get(PaymentFieldMapping::FIELD_ITEM_PRODUCT_ID)?->json_path;
-        if (! $itemPath) {
-            return '';
-        }
-
-        $fromItem = $this->toString($this->extractor->get($itemContext, $itemPath));
-        if ($fromItem !== null && $fromItem !== '') {
-            return $fromItem;
-        }
-
-        return $this->toString($this->extractor->get($payload, $itemPath)) ?? '';
+        return ($link->action_mode ?? PaymentWebhookLink::ACTION_REGISTER) === PaymentWebhookLink::ACTION_BLOCK
+            ? PaymentInternalAction::REVOKE
+            : PaymentInternalAction::APPROVE;
     }
 
     /**
@@ -292,53 +205,54 @@ class PaymentWebhookProcessor
         return $this->extractor->get($payload, $path);
     }
 
-    private function resolveEventMapping(Collection $mappings, string $eventCode): ?PaymentEventMapping
-    {
-        $eventCode = trim($eventCode);
-
-        return $mappings->first(function (PaymentEventMapping $mapping) use ($eventCode): bool {
-            return strcasecmp(trim((string) $mapping->external_event_code), $eventCode) === 0;
-        });
-    }
-
     /**
-     * @param  array{external_tx_id:?string,amount:?float,currency:?string,occurred_at:?CarbonImmutable}  $extracted
+     * @param  array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}  $extracted
      * @return array{status:PaymentProcessingStatus,reason:string,course_id?:int,user_id?:int}
      */
-    private function applyApprove(PaymentEvent $event, PaymentWebhookLink $link, string $buyerEmail, string $productId, array $extracted, int $itemIndex): array
+    private function applyApprove(PaymentEvent $event, PaymentWebhookLink $link, string $buyerEmail, string $courseReference, array $extracted, int $itemIndex): array
     {
-        if ($productId === '') {
+        if ($courseReference === '') {
             return [
                 'status' => PaymentProcessingStatus::PENDING,
-                'reason' => 'product_id_missing',
+                'reason' => 'course_id_missing',
             ];
         }
 
-        $mapping = $this->resolveProductMapping($link, $productId);
-        if (! $mapping || ! $mapping->course) {
+        $course = $this->resolveCourseByWebhookId($courseReference, $link->system_setting_id);
+        if (! $course) {
             return [
                 'status' => PaymentProcessingStatus::PENDING,
-                'reason' => 'product_unmapped',
+                'reason' => 'course_unmapped',
             ];
         }
 
-        $user = $this->resolveUser($buyerEmail);
-        $course = $mapping->course;
+        $userResult = $this->resolveUser(
+            $buyerEmail,
+            $extracted['buyer_name'] ?? null,
+            $extracted['buyer_whatsapp'] ?? null,
+            $link->system_setting_id
+        );
+        $user = $userResult['user'];
 
         $entitlement = PaymentEntitlement::firstOrNew([
             'user_id' => $user->id,
             'course_id' => $course->id,
             'payment_webhook_link_id' => $link->id,
-            'external_tx_id' => (string) ($extracted['external_tx_id'] ?? ''),
-            'external_product_id' => $productId,
+            'external_tx_id' => '',
+            'external_product_id' => $courseReference,
         ]);
 
         $entitlement->state = PaymentEntitlementState::ACTIVE;
-        $entitlement->last_event_at = $extracted['occurred_at'] ?? now();
+        $entitlement->last_event_at = now();
         $entitlement->last_payment_event_id = $event->id;
         $entitlement->save();
 
-        $this->syncEnrollmentAccess($user, $course, 'approve');
+        $enrollmentResult = $this->syncEnrollmentAccess($user, $course, 'approve');
+
+        if (! $userResult['was_created'] && $enrollmentResult['was_created']) {
+            $this->sendEnrollmentNotification($user, $course);
+        }
+
         $this->recordTrackingEvent($event, $itemIndex, 'PurchaseApproved', $user, $course, $extracted);
 
         return [
@@ -350,56 +264,68 @@ class PaymentWebhookProcessor
     }
 
     /**
-     * @param  array{external_tx_id:?string,amount:?float,currency:?string,occurred_at:?CarbonImmutable}  $extracted
+     * @param  array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}  $extracted
      * @return array{status:PaymentProcessingStatus,reason:string,course_id?:int,user_id?:int}
      */
-    private function applyRevoke(PaymentEvent $event, PaymentWebhookLink $link, string $buyerEmail, string $productId, array $extracted, int $itemIndex): array
+    private function applyRevoke(PaymentEvent $event, PaymentWebhookLink $link, string $buyerEmail, string $courseReference, array $extracted, int $itemIndex): array
     {
-        if ($productId === '') {
+        if ($courseReference === '') {
             return [
                 'status' => PaymentProcessingStatus::IGNORED,
-                'reason' => 'product_id_missing',
+                'reason' => 'course_id_missing',
             ];
         }
 
-        $mapping = $this->resolveProductMapping($link, $productId);
-        if (! $mapping || ! $mapping->course) {
+        $course = $this->resolveCourseByWebhookId($courseReference, $link->system_setting_id);
+        if (! $course) {
             return [
                 'status' => PaymentProcessingStatus::IGNORED,
-                'reason' => 'product_unmapped',
+                'reason' => 'course_unmapped',
             ];
         }
 
-        $user = User::query()->whereRaw('LOWER(email) = ?', [strtolower($buyerEmail)])->first();
-        if (! $user) {
-            return [
-                'status' => PaymentProcessingStatus::IGNORED,
-                'reason' => 'buyer_not_found',
-            ];
-        }
+        $userResult = $this->resolveUser(
+            $buyerEmail,
+            $extracted['buyer_name'] ?? null,
+            $extracted['buyer_whatsapp'] ?? null,
+            $link->system_setting_id
+        );
+        $user = $userResult['user'];
 
-        $course = $mapping->course;
         $entitlements = PaymentEntitlement::query()
             ->where('user_id', $user->id)
             ->where('course_id', $course->id)
-            ->where('payment_webhook_link_id', $link->id)
-            ->where('external_product_id', $productId)
-            ->when(
-                (string) ($extracted['external_tx_id'] ?? '') !== '',
-                fn ($query) => $query->where('external_tx_id', (string) $extracted['external_tx_id'])
-            )
+            ->where('external_product_id', $courseReference)
             ->get();
 
         if ($entitlements->isEmpty()) {
+            $entitlement = PaymentEntitlement::firstOrNew([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'payment_webhook_link_id' => $link->id,
+                'external_tx_id' => '',
+                'external_product_id' => $courseReference,
+            ]);
+
+            $entitlement->state = PaymentEntitlementState::REVOKED;
+            $entitlement->last_event_at = now();
+            $entitlement->last_payment_event_id = $event->id;
+            $entitlement->save();
+
+            $this->syncEnrollmentAccess($user, $course, 'revoke');
+            $this->recordTrackingEvent($event, $itemIndex, 'PurchaseRevoked', $user, $course, $extracted);
+
             return [
-                'status' => PaymentProcessingStatus::IGNORED,
-                'reason' => 'revoke_without_active_purchase',
+                'status' => PaymentProcessingStatus::PROCESSED,
+                'reason' => 'revoked',
+                'course_id' => $course->id,
+                'user_id' => $user->id,
             ];
         }
 
         foreach ($entitlements as $entitlement) {
             $entitlement->state = PaymentEntitlementState::REVOKED;
-            $entitlement->last_event_at = $extracted['occurred_at'] ?? now();
+            $entitlement->last_event_at = now();
             $entitlement->last_payment_event_id = $event->id;
             $entitlement->save();
         }
@@ -415,36 +341,80 @@ class PaymentWebhookProcessor
         ];
     }
 
-    private function resolveProductMapping(PaymentWebhookLink $link, string $productId): ?PaymentProductMapping
+    private function resolveCourseByWebhookId(string $courseReference, ?int $systemSettingId = null): ?Course
     {
-        return $link->productMappings
-            ->first(fn (PaymentProductMapping $mapping) => $mapping->is_active && (string) $mapping->external_product_id === $productId);
+        $courseReference = trim($courseReference);
+        if ($courseReference === '') {
+            return null;
+        }
+
+        $matches = CourseWebhookId::query()
+            ->with(['course' => function ($query) use ($systemSettingId): void {
+                if ($systemSettingId !== null) {
+                    $query->where('system_setting_id', $systemSettingId);
+                }
+            }])
+            ->where('webhook_id', $courseReference)
+            ->when($systemSettingId !== null, fn ($query) => $query->whereHas('course', fn ($courseQuery) => $courseQuery->where('system_setting_id', $systemSettingId)))
+            ->get();
+
+        if ($matches->count() !== 1) {
+            return null;
+        }
+
+        return $matches->first()?->course;
     }
 
-    private function resolveUser(string $email): User
+    /**
+     * @return array{user:User,was_created:bool}
+     */
+    private function resolveUser(string $email, ?string $name = null, ?string $whatsapp = null, ?int $systemSettingId = null): array
     {
         $normalized = strtolower(trim($email));
+        $normalizedWhatsapp = trim((string) $whatsapp);
+        $normalizedWhatsapp = $normalizedWhatsapp !== '' ? $normalizedWhatsapp : null;
 
-        $existing = User::query()->whereRaw('LOWER(email) = ?', [$normalized])->first();
+        $existing = User::query()
+            ->when($systemSettingId !== null, fn ($query) => $query->where('system_setting_id', $systemSettingId))
+            ->whereRaw('LOWER(email) = ?', [$normalized])
+            ->first();
         if ($existing) {
-            return $existing;
+            $this->syncUserWhatsapp($existing, $normalizedWhatsapp);
+
+            return [
+                'user' => $existing,
+                'was_created' => false,
+            ];
         }
 
         $temporaryPassword = Str::random(10);
 
-        $name = Str::before($normalized, '@');
-        $name = trim($name) !== '' ? Str::title(str_replace(['.', '_', '-'], ' ', $name)) : $normalized;
+        $resolvedName = trim((string) $name);
+        if ($resolvedName === '') {
+            $resolvedName = Str::before($normalized, '@');
+            $resolvedName = trim($resolvedName) !== '' ? Str::title(str_replace(['.', '_', '-'], ' ', $resolvedName)) : $normalized;
+        }
 
         $user = User::create([
-            'name' => $name,
-            'display_name' => $name,
+            'name' => $resolvedName,
+            'display_name' => $resolvedName,
             'email' => $normalized,
+            'system_setting_id' => $systemSettingId,
+            'whatsapp' => $normalizedWhatsapp,
             'role' => UserRole::STUDENT,
             'password' => $temporaryPassword,
         ]);
 
         try {
-            Mail::to($user->email)->send(new WelcomePaymentUser($user, $temporaryPassword));
+            $this->tenantMailManager->send(
+                $this->systemSettingForId($systemSettingId) ?? $user->systemSetting,
+                $user->email,
+                new WelcomePaymentUser(
+                    $user,
+                    $temporaryPassword,
+                    $this->loginUrlForSystemSettingId($systemSettingId)
+                )
+            );
         } catch (\Throwable $exception) {
             Log::warning('Falha ao enviar e-mail de boas-vindas de pagamento', [
                 'user_id' => $user->id,
@@ -453,13 +423,33 @@ class PaymentWebhookProcessor
             ]);
         }
 
-        return $user;
+        return [
+            'user' => $user,
+            'was_created' => true,
+        ];
     }
 
-    private function syncEnrollmentAccess(User $user, Course $course, string $reason): void
+    private function syncUserWhatsapp(User $user, ?string $whatsapp): void
+    {
+        $normalizedWhatsapp = trim((string) $whatsapp);
+
+        if ($normalizedWhatsapp === '' || filled($user->whatsapp)) {
+            return;
+        }
+
+        $user->forceFill([
+            'whatsapp' => $normalizedWhatsapp,
+        ])->save();
+    }
+
+    /**
+     * @return array{enrollment:Enrollment,was_created:bool}
+     */
+    private function syncEnrollmentAccess(User $user, Course $course, string $reason): array
     {
         $enrollment = Enrollment::query()->firstOrCreate(
             [
+                'system_setting_id' => $course->system_setting_id ?: $user->system_setting_id,
                 'course_id' => $course->id,
                 'user_id' => $user->id,
             ],
@@ -469,6 +459,7 @@ class PaymentWebhookProcessor
                 'completed_at' => null,
             ]
         );
+        $wasCreated = $enrollment->wasRecentlyCreated;
 
         if ($enrollment->manual_override) {
             if ($enrollment->access_status !== EnrollmentAccessStatus::ACTIVE) {
@@ -479,7 +470,10 @@ class PaymentWebhookProcessor
                 ])->save();
             }
 
-            return;
+            return [
+                'enrollment' => $enrollment,
+                'was_created' => $wasCreated,
+            ];
         }
 
         $hasActive = PaymentEntitlement::query()
@@ -501,7 +495,10 @@ class PaymentWebhookProcessor
                 'access_blocked_at' => null,
             ])->save();
 
-            return;
+            return [
+                'enrollment' => $enrollment,
+                'was_created' => $wasCreated,
+            ];
         }
 
         if ($hasRevoked) {
@@ -511,10 +508,62 @@ class PaymentWebhookProcessor
                 'access_blocked_at' => $enrollment->access_blocked_at ?? now(),
             ])->save();
         }
+
+        return [
+            'enrollment' => $enrollment,
+            'was_created' => $wasCreated,
+        ];
+    }
+
+    private function sendEnrollmentNotification(User $user, Course $course): void
+    {
+        try {
+            $this->tenantMailManager->send(
+                $course->systemSetting ?? $user->systemSetting,
+                $user->email,
+                new CourseEnrollmentNotification(
+                    $user,
+                    $course,
+                    $this->loginUrlForCourse($course, $user)
+                )
+            );
+        } catch (\Throwable $exception) {
+            Log::warning('Falha ao enviar e-mail de matricula de pagamento', [
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'email' => $user->email,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function loginUrlForCourse(Course $course, User $user): string
+    {
+        return $course->systemSetting?->appUrl('/login')
+            ?? $user->systemSetting?->appUrl('/login')
+            ?? rtrim(config('app.url'), '/').'/login';
+    }
+
+    private function loginUrlForSystemSettingId(?int $systemSettingId): string
+    {
+        if ($systemSetting = $this->systemSettingForId($systemSettingId)) {
+            return $systemSetting->appUrl('/login');
+        }
+
+        return rtrim(config('app.url'), '/').'/login';
+    }
+
+    private function systemSettingForId(?int $systemSettingId): ?SystemSetting
+    {
+        if (! $systemSettingId) {
+            return null;
+        }
+
+        return SystemSetting::query()->find($systemSettingId);
     }
 
     /**
-     * @param  array{external_tx_id:?string,amount:?float,currency:?string,occurred_at:?CarbonImmutable}  $extracted
+     * @param  array<string, mixed>  $extracted
      */
     private function recordTrackingEvent(
         PaymentEvent $paymentEvent,
@@ -548,12 +597,12 @@ class PaymentWebhookProcessor
                 'city_slug' => null,
                 'city_name' => null,
                 'cta_source' => null,
-                'value' => $extracted['amount'],
+                'value' => $extracted['amount'] ?? null,
                 'currency' => $extracted['currency'] ?? 'BRL',
                 'properties' => [
                     'payment_event_id' => $paymentEvent->id,
                     'webhook_link_id' => $paymentEvent->payment_webhook_link_id,
-                    'transaction_code' => $extracted['external_tx_id'],
+                    'transaction_code' => $extracted['external_tx_id'] ?? null,
                     'item_product_id' => $paymentEvent->external_product_id,
                 ],
             ]

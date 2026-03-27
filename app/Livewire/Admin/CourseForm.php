@@ -18,20 +18,35 @@ class CourseForm extends Component
     use WithFileUploads;
 
     public ?Course $course = null;
+
     public string $title = '';
+
     public ?string $summary = null;
+
     public ?string $description = null;
+
     public ?string $atuacao = null;
+
     public ?string $oquefaz = null;
+
     public string $support_whatsapp_mode = Course::SUPPORT_WHATSAPP_MODE_ALL;
+
     public ?int $support_whatsapp_number_id = null;
+
     public string $status = 'draft';
+
     public ?int $duration_minutes = null;
+
     public ?string $published_at = null;
+
     public ?int $owner_id = null;
+
     public $certificate_front_background;
+
     public $certificate_back_background;
+
     public $cover_image;
+
     public ?string $promo_video_url = null;
 
     public array $statuses = [
@@ -83,6 +98,7 @@ class CourseForm extends Component
             $this->course->update($data);
         } else {
             $data['slug'] = $this->generateUniqueSlug($data['title']);
+            $data['system_setting_id'] = $user?->system_setting_id;
             $this->course = Course::create($data);
         }
 
@@ -125,6 +141,8 @@ class CourseForm extends Component
 
     private function rules(): array
     {
+        $systemSettingId = Auth::user()?->system_setting_id;
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'summary' => ['nullable', 'string', 'max:255'],
@@ -136,13 +154,13 @@ class CourseForm extends Component
                 Rule::requiredIf(fn () => $this->support_whatsapp_mode === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
                 'nullable',
                 'integer',
-                'exists:support_whatsapp_numbers,id',
+                Rule::exists('support_whatsapp_numbers', 'id')->where('system_setting_id', $systemSettingId),
             ],
             'promo_video_url' => ['nullable', 'url'],
             'status' => ['required', 'in:draft,published,archived'],
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'published_at' => ['nullable', 'date'],
-            'owner_id' => ['nullable', 'exists:users,id'],
+            'owner_id' => ['nullable', Rule::exists('users', 'id')->where('system_setting_id', $systemSettingId)],
             'certificate_front_background' => ['nullable', 'image', 'max:4096'],
             'certificate_back_background' => ['nullable', 'image', 'max:4096'],
             'cover_image' => ['nullable', 'image', 'max:4096'],

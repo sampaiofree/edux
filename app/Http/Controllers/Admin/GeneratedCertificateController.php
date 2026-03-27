@@ -33,6 +33,8 @@ class GeneratedCertificateController extends Controller
             abort(404);
         }
 
+        abort_if((int) ($request->user()?->system_setting_id ?? 0) !== (int) $course->system_setting_id, 404);
+
         $pdf = $this->makePdf($certificate, $course);
 
         return response($pdf->output(), 200, [
@@ -49,7 +51,7 @@ class GeneratedCertificateController extends Controller
     private function makePdf(Certificate $certificate, Course $course): Dompdf
     {
         $certificate->loadMissing('user');
-        $options = new Options();
+        $options = new Options;
         $options->set('defaultFont', 'Inter');
         $options->setIsRemoteEnabled(true);
         $dompdf = new Dompdf($options);
@@ -100,7 +102,7 @@ class GeneratedCertificateController extends Controller
                 return null;
             }
 
-            return 'data:image/png;base64,' . base64_encode($response->body());
+            return 'data:image/png;base64,'.base64_encode($response->body());
         } catch (\Throwable $exception) {
             return null;
         }

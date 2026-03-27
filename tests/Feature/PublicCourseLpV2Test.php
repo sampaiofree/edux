@@ -2,10 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Course;
 use App\Models\CourseCheckout;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,9 +22,7 @@ class PublicCourseLpV2Test extends TestCase
 
     public function test_public_course_lp_v2_renders_with_variant_tracking_markers(): void
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,

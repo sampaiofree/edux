@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EnrollmentAccessStatus;
+use App\Models\Concerns\BelongsToSystemSetting;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,9 +11,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Enrollment extends Model
 {
+    use BelongsToSystemSetting;
     use HasFactory;
 
     protected $fillable = [
+        'system_setting_id',
         'course_id',
         'user_id',
         'progress_percent',
@@ -39,6 +42,23 @@ class Enrollment extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    protected function resolveSystemSettingIdForNewRecord(): ?int
+    {
+        if ($this->course_id) {
+            return Course::withoutGlobalScopes()
+                ->whereKey($this->course_id)
+                ->value('system_setting_id');
+        }
+
+        if ($this->user_id) {
+            return User::withoutGlobalScopes()
+                ->whereKey($this->user_id)
+                ->value('system_setting_id');
+        }
+
+        return SystemSetting::currentId();
     }
 
     public function user(): BelongsTo

@@ -32,11 +32,7 @@ class PaymentWebhookIngressController extends Controller
             return response()->json(['status' => 'ok'], 200);
         }
 
-        $payload = $request->json()->all();
-        if (! is_array($payload) || $payload === []) {
-            $decoded = json_decode($rawContent, true);
-            $payload = is_array($decoded) ? $decoded : [];
-        }
+        $payload = $this->extractPayload($request, $rawContent);
 
         $headers = collect($request->headers->all())
             ->map(static fn ($value) => is_array($value) ? implode(', ', $value) : (string) $value)
@@ -88,12 +84,41 @@ class PaymentWebhookIngressController extends Controller
         }
 
         if ($mode === 'hmac_sha256') {
-            $signature = hash_hmac('sha256', $rawContent, $secret);
+            $signature = hash_hmac('sha256', $this->signaturePayload($request, $rawContent), $secret);
 
             return hash_equals($signature, $headerValue);
         }
 
         return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function extractPayload(Request $request, string $rawContent): array
+    {
+        $payload = $request->json()->all();
+        if (is_array($payload) && $payload !== []) {
+            return $payload;
+        }
+
+        $decoded = json_decode($rawContent, true);
+        if (is_array($decoded) && $decoded !== []) {
+            return $decoded;
+        }
+
+        $queryPayload = $request->query();
+
+        return is_array($queryPayload) ? $queryPayload : [];
+    }
+
+    private function signaturePayload(Request $request, string $rawContent): string
+    {
+        if ($rawContent !== '') {
+            return $rawContent;
+        }
+
+        return (string) $request->server('QUERY_STRING', '');
     }
 
     private function isUniqueConstraintViolation(QueryException $exception): bool

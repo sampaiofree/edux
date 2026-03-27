@@ -11,9 +11,7 @@ use NotificationChannels\WebPush\WebPushMessage;
 
 class StudentAnnouncementPush extends Notification
 {
-    public function __construct(private readonly EduNotification $notification)
-    {
-    }
+    public function __construct(private readonly EduNotification $notification) {}
 
     public function via(object $notifiable): array
     {
@@ -22,7 +20,9 @@ class StudentAnnouncementPush extends Notification
 
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
-        $settings = SystemSetting::current();
+        $settings = $this->notification->systemSetting
+            ?? $notifiable->systemSetting
+            ?? SystemSetting::current();
         $icon = $settings->assetUrl('favicon_path') ?? $settings->assetUrl('default_logo_dark_path');
         $image = $this->notification->image_path
             ? asset('storage/'.$this->notification->image_path)
@@ -32,7 +32,7 @@ class StudentAnnouncementPush extends Notification
             : null;
         $targetUrl = $this->notification->button_url ?: route('learning.notifications.index');
 
-        $message = (new WebPushMessage())
+        $message = (new WebPushMessage)
             ->title($this->notification->title)
             ->tag('notification-'.$this->notification->id)
             ->data([

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,10 +17,12 @@ class AuthController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $systemSetting = SystemSetting::current();
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
+        $credentials['system_setting_id'] = $systemSetting->id;
 
         $remember = $request->boolean('remember');
 

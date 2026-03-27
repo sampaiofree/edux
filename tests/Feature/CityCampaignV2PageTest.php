@@ -2,10 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Course;
 use App\Models\CourseCheckout;
-use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -153,9 +151,7 @@ class CityCampaignV2PageTest extends TestCase
         $firstCheckoutPrice = isset($checkoutPrices[0]) ? (float) $checkoutPrices[0] : 19.90;
         $secondCheckoutPrice = isset($checkoutPrices[1]) ? (float) $checkoutPrices[1] : 29.90;
 
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         /** @var Course $course */
         $course = Course::create(array_merge([

@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\Course;
 use App\Models\CourseCheckout;
 use App\Models\SupportWhatsappNumber;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -115,6 +113,7 @@ class PublicCourseLpV4Test extends TestCase
         [$course] = $this->createPublishedCourseWithCheckout();
 
         SupportWhatsappNumber::create([
+            'system_setting_id' => $this->defaultTenantAdmin()->system_setting_id,
             'label' => 'Atendimento',
             'whatsapp' => '(11) 95555-1111',
             'description' => null,
@@ -194,9 +193,7 @@ class PublicCourseLpV4Test extends TestCase
 
     public function test_public_course_lp_v4_uses_whatsapp_fallback_when_no_checkout_exists(): void
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,
@@ -210,6 +207,7 @@ class PublicCourseLpV4Test extends TestCase
         ]);
 
         SupportWhatsappNumber::create([
+            'system_setting_id' => $this->defaultTenantAdmin()->system_setting_id,
             'label' => 'Atendimento',
             'whatsapp' => '(11) 98888-0000',
             'description' => null,
@@ -229,9 +227,7 @@ class PublicCourseLpV4Test extends TestCase
 
     public function test_public_course_lp_v4_returns_404_for_unpublished_course(): void
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,
@@ -252,9 +248,7 @@ class PublicCourseLpV4Test extends TestCase
      */
     private function createPublishedCourseWithCheckout(int $checkoutCount = 1): array
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,

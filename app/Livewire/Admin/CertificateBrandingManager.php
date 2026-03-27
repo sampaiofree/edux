@@ -13,20 +13,32 @@ class CertificateBrandingManager extends Component
     use WithFileUploads;
 
     public ?CertificateBranding $branding = null;
+
     public SystemSetting $settings;
+
     public $front_background;
+
     public $back_background;
+
     public int $titleSize = 68;
+
     public int $subtitleSize = 52;
+
     public int $bodySize = 40;
+
     public string $line1;
+
     public string $line3;
+
     public string $line6;
 
     public function mount(): void
     {
-        $this->branding = CertificateBranding::firstOrCreate(['course_id' => null]);
         $this->settings = SystemSetting::current();
+        $this->branding = CertificateBranding::query()->firstOrCreate([
+            'course_id' => null,
+            'system_setting_id' => $this->settings->id,
+        ]);
         $this->titleSize = $this->settings->certificate_title_size ?? $this->titleSize;
         $this->subtitleSize = $this->settings->certificate_subtitle_size ?? $this->subtitleSize;
         $this->bodySize = $this->settings->certificate_body_size ?? $this->bodySize;

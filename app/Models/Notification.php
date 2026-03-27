@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToSystemSetting;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -9,9 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Notification extends Model
 {
+    use BelongsToSystemSetting;
     use HasFactory;
 
     protected $fillable = [
+        'system_setting_id',
         'title',
         'body',
         'image_path',

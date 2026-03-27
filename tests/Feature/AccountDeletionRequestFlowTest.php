@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AccountDeletionRequest;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +14,7 @@ class AccountDeletionRequestFlowTest extends TestCase
 
     public function test_student_sees_deletion_card_on_account_page(): void
     {
-        $student = User::factory()->student()->create();
+        $student = $this->defaultTenantStudent();
 
         $response = $this->actingAs($student)->get(route('account.edit'));
 
@@ -25,7 +24,7 @@ class AccountDeletionRequestFlowTest extends TestCase
 
     public function test_admin_does_not_see_deletion_card_on_account_page(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = $this->defaultTenantAdmin();
 
         $response = $this->actingAs($admin)->get(route('account.edit'));
 
@@ -35,7 +34,7 @@ class AccountDeletionRequestFlowTest extends TestCase
 
     public function test_student_can_create_deletion_request_with_optional_reason(): void
     {
-        $student = User::factory()->student()->create([
+        $student = $this->defaultTenantStudent([
             'whatsapp' => '11999999999',
         ]);
 
@@ -56,7 +55,7 @@ class AccountDeletionRequestFlowTest extends TestCase
 
     public function test_student_cannot_create_duplicate_pending_request(): void
     {
-        $student = User::factory()->student()->create();
+        $student = $this->defaultTenantStudent();
 
         AccountDeletionRequest::query()->create([
             'user_id' => $student->id,
@@ -78,8 +77,8 @@ class AccountDeletionRequestFlowTest extends TestCase
 
     public function test_only_admin_can_access_admin_listing(): void
     {
-        $student = User::factory()->student()->create();
-        $admin = User::factory()->admin()->create();
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->createStudentForTenant($admin);
 
         $this->actingAs($student)
             ->get(route('admin.account-deletion-requests.index'))
@@ -94,8 +93,8 @@ class AccountDeletionRequestFlowTest extends TestCase
     {
         Storage::fake('public');
 
-        $admin = User::factory()->admin()->create();
-        $student = User::factory()->student()->create([
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->createStudentForTenant($admin, [
             'profile_photo_path' => 'profile-photos/student-photo.jpg',
         ]);
 
@@ -135,8 +134,8 @@ class AccountDeletionRequestFlowTest extends TestCase
 
     public function test_admin_marks_request_as_deleted_when_user_already_missing(): void
     {
-        $admin = User::factory()->admin()->create();
-        $student = User::factory()->student()->create();
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->createStudentForTenant($admin);
 
         $request = AccountDeletionRequest::query()->create([
             'user_id' => $student->id,
@@ -162,8 +161,8 @@ class AccountDeletionRequestFlowTest extends TestCase
 
     public function test_admin_can_reject_request(): void
     {
-        $admin = User::factory()->admin()->create();
-        $student = User::factory()->student()->create();
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->createStudentForTenant($admin);
 
         $request = AccountDeletionRequest::query()->create([
             'user_id' => $student->id,

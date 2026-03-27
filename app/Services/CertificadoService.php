@@ -16,7 +16,9 @@ use Throwable;
 class CertificadoService
 {
     private const INITIAL_FONT_SIZE = 12;
+
     private const MIN_FONT_SIZE = 7;
+
     public function pdfVerso(Course $course): string
     {
         $course->loadMissing(['certificateBranding', 'modules.lessons']);
@@ -34,6 +36,7 @@ class CertificadoService
     {
         if (! extension_loaded('gd')) {
             Log::warning('GD extension missing, skipping preview decoration', ['path' => $path]);
+
             return;
         }
 
@@ -41,6 +44,7 @@ class CertificadoService
 
         if (! $image) {
             Log::warning('Failed to open preview image for decoration', ['path' => $path]);
+
             return;
         }
 
@@ -308,7 +312,7 @@ class CertificadoService
 
     private function createDompdf(string $html): Dompdf
     {
-        $options = new Options();
+        $options = new Options;
         $options->set('defaultFont', 'Helvetica');
         $options->setIsRemoteEnabled(true);
 
@@ -350,7 +354,10 @@ class CertificadoService
 
         $branding = $data['certificate_branding'] ?? $data['branding'] ?? null;
         if (! $branding instanceof CertificateBranding) {
-            $branding = CertificateBranding::firstOrCreate(['course_id' => null]);
+            $branding = CertificateBranding::query()->firstOrCreate([
+                'course_id' => null,
+                'system_setting_id' => \App\Models\SystemSetting::currentId(),
+            ]);
         }
         $brandingPath = $branding->front_background_path;
 
@@ -441,6 +448,7 @@ class CertificadoService
             if ($module->lessons->isNotEmpty()) {
                 $lessonFragments = $module->lessons->values()->map(function ($lesson, $lessonIndex) {
                     $lessonNumber = $lessonIndex + 1;
+
                     return "Aula {$lessonNumber}: {$lesson->title}";
                 })->implode('. ');
 

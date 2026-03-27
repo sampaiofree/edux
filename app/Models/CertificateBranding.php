@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToSystemSetting;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Course;
 
 class CertificateBranding extends Model
 {
+    use BelongsToSystemSetting;
     use HasFactory;
 
     protected $fillable = [
+        'system_setting_id',
         'course_id',
         'front_background_path',
         'back_background_path',
@@ -27,7 +29,10 @@ class CertificateBranding extends Model
     {
         $course->loadMissing('certificateBranding');
         $courseBranding = $course->certificateBranding;
-        $globalBranding = self::firstOrCreate(['course_id' => null]);
+        $globalBranding = self::query()->firstOrCreate([
+            'course_id' => null,
+            'system_setting_id' => $course->system_setting_id,
+        ]);
 
         if (! $courseBranding) {
             return $globalBranding;
@@ -42,6 +47,17 @@ class CertificateBranding extends Model
         }
 
         return $courseBranding;
+    }
+
+    protected function resolveSystemSettingIdForNewRecord(): ?int
+    {
+        if ($this->course_id) {
+            return Course::withoutGlobalScopes()
+                ->whereKey($this->course_id)
+                ->value('system_setting_id');
+        }
+
+        return SystemSetting::currentId();
     }
 
     public function getFrontBackgroundUrlAttribute(): ?string

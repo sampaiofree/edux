@@ -2,22 +2,26 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Enums\UserRole;
+use App\Http\Controllers\Controller;
+use App\Mail\WelcomeKavooUser;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Kavoo;
 use App\Models\User;
-use App\Mail\WelcomeKavooUser;
 use App\Support\KavooTrackingAttributionService;
+use App\Support\Mail\TenantMailManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class KavooWebhookController extends Controller
 {
+    public function __construct(
+        private readonly TenantMailManager $tenantMailManager,
+    ) {}
+
     public function __invoke(Request $request): JsonResponse
     {
         $payload = $request->json()->all();
@@ -84,6 +88,7 @@ class KavooWebhookController extends Controller
                     'transaction_code' => $transactionCode,
                     'item_product_id' => $itemProductId,
                 ]);
+
                 continue;
             }
 
@@ -92,7 +97,7 @@ class KavooWebhookController extends Controller
                 : null;
 
             if ($user === null && $kavooData['status_code'] === 'SALE_APPROVED') {
-                $user = $this->ensureCustomerUser($kavoo);
+                $user = $this->ensureCustomerUser($kavoo, $course);
             }
 
             if ($user) {
@@ -107,7 +112,7 @@ class KavooWebhookController extends Controller
         return response()->json(['status' => 'ok'], 200);
     }
 
-    private function ensureCustomerUser(Kavoo $kavoo): ?User
+    private function ensureCustomerUser(Kavoo $kavoo, ?Course $course = null): ?User
     {
         $customerEmail = $kavoo->customer_email;
 
@@ -131,7 +136,15 @@ class KavooWebhookController extends Controller
             ]);
 
             try {
-                Mail::to($user->email)->send(new WelcomeKavooUser($user, 'mudar123'));
+                $this->tenantMailManager->send(
+                    $course?->systemSetting ?? $user->systemSetting,
+                    $user->email,
+                    new WelcomeKavooUser(
+                        $user,
+                        'mudar123',
+                        $this->loginUrlForCourse($course, $user)
+                    )
+                );
             } catch (\Throwable $mailException) {
                 Log::warning('Falha ao enviar e-mail de boas-vindas Kavoo', [
                     'error' => $mailException->getMessage(),
@@ -190,6 +203,13 @@ class KavooWebhookController extends Controller
         }
 
         return Course::where('kavoo_id', $itemProductId)->first();
+    }
+
+    private function loginUrlForCourse(?Course $course, User $user): string
+    {
+        return $course?->systemSetting?->appUrl('/login')
+            ?? $user->systemSetting?->appUrl('/login')
+            ?? rtrim(config('app.url'), '/').'/login';
     }
 
     private function recordApprovedTracking(Kavoo $kavoo, ?Course $course, ?User $user): void

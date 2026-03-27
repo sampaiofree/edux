@@ -10,6 +10,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -18,19 +19,18 @@ class GeneratedCertificatesManager extends Component
     use WithPagination;
 
     public string $search = '';
-    public ?int $courseId = null;
-    public ?int $userId = null;
-    public ?string $completionDate = null;
-    public ?string $cpf = null;
-    public ?string $statusMessage = null;
-    public ?string $errorMessage = null;
 
-    protected $rules = [
-        'courseId' => ['required', 'integer', 'exists:courses,id'],
-        'userId' => ['required', 'integer', 'exists:users,id'],
-        'completionDate' => ['nullable', 'date'],
-        'cpf' => ['nullable', 'string'],
-    ];
+    public ?int $courseId = null;
+
+    public ?int $userId = null;
+
+    public ?string $completionDate = null;
+
+    public ?string $cpf = null;
+
+    public ?string $statusMessage = null;
+
+    public ?string $errorMessage = null;
 
     public function updatedSearch(): void
     {
@@ -53,13 +53,14 @@ class GeneratedCertificatesManager extends Component
     {
         $this->resetMessages();
 
-        $data = $this->validate();
+        $data = $this->validate($this->rules());
 
         $course = Course::find($data['courseId']);
         $user = User::find($data['userId']);
 
         if (! $course || ! $user) {
             $this->errorMessage = 'Aluno ou curso n\u00e3o encontrado.';
+
             return;
         }
 
@@ -70,6 +71,7 @@ class GeneratedCertificatesManager extends Component
 
         if (! $enrollment) {
             $this->errorMessage = 'Este aluno n\u00e3o est\u00e1 matriculado no curso selecionado.';
+
             return;
         }
 
@@ -83,7 +85,7 @@ class GeneratedCertificatesManager extends Component
         ]);
 
         if (! $certificate->number) {
-            $certificate->number = 'EDUX-' . strtoupper(Str::random(8));
+            $certificate->number = 'EDUX-'.strtoupper(Str::random(8));
         }
 
         if (! $certificate->public_token) {
@@ -126,6 +128,7 @@ class GeneratedCertificatesManager extends Component
         $isNumericSearch = $search !== '' && is_numeric($search);
 
         $certificates = Certificate::query()
+            ->whereHas('course')
             ->with(['course', 'user'])
             ->when($search !== '', function ($query) use ($search, $isNumericSearch) {
                 $query->where(function ($sub) use ($search, $isNumericSearch) {
@@ -180,6 +183,18 @@ class GeneratedCertificatesManager extends Component
             'formattedCompletionDate' => $this->formatDate($this->completionDate),
             'formattedCpf' => $this->formatCpf($this->cpf),
         ]);
+    }
+
+    protected function rules(): array
+    {
+        $systemSettingId = auth()->user()?->system_setting_id;
+
+        return [
+            'courseId' => ['required', 'integer', Rule::exists('courses', 'id')->where('system_setting_id', $systemSettingId)],
+            'userId' => ['required', 'integer', Rule::exists('users', 'id')->where('system_setting_id', $systemSettingId)],
+            'completionDate' => ['nullable', 'date'],
+            'cpf' => ['nullable', 'string'],
+        ];
     }
 
     private function syncCompletionDate(): void
@@ -273,7 +288,7 @@ class GeneratedCertificatesManager extends Component
                 return null;
             }
 
-            return 'data:image/png;base64,' . base64_encode($response->body());
+            return 'data:image/png;base64,'.base64_encode($response->body());
         } catch (\Throwable $exception) {
             return null;
         }

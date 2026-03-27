@@ -1,3 +1,7 @@
+@php
+    use App\Models\PaymentWebhookLink as PaymentWebhookLinkModel;
+@endphp
+
 @extends('layouts.app')
 
 @section('title', 'Novo Link de Webhook')
@@ -23,6 +27,16 @@
                     <span>Nome do link</span>
                     <input type="text" name="name" required value="{{ old('name') }}" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
                     @error('name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Acao do webhook</span>
+                    <select name="action_mode" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                        @foreach (PaymentWebhookLinkModel::actionModes() as $value => $label)
+                            <option value="{{ $value }}" @selected(old('action_mode', PaymentWebhookLinkModel::ACTION_REGISTER) === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('action_mode') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </label>
 
                 <label class="space-y-2 text-sm font-semibold text-slate-600">

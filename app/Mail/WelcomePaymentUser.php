@@ -13,13 +13,15 @@ class WelcomePaymentUser extends Mailable
 
     public function __construct(
         public User $user,
-        public string $plainPassword
-    ) {
-    }
+        public string $plainPassword,
+        public ?string $loginUrl = null,
+    ) {}
 
     public function build(): self
     {
-        $loginUrl = rtrim(config('app.url'), '/').'/login';
+        $loginUrl = $this->loginUrl
+            ?: $this->user->systemSetting?->appUrl('/login')
+            ?: rtrim(config('app.url'), '/').'/login';
 
         return $this->subject('Bem-vindo(a) à EduX')
             ->view('emails.welcome-payment-user')

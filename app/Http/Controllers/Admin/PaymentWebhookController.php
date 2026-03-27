@@ -10,10 +10,10 @@ use App\Models\PaymentEventMapping;
 use App\Models\PaymentFieldMapping;
 use App\Models\PaymentProductMapping;
 use App\Models\PaymentWebhookLink;
-use App\Models\Course;
 use App\Support\Payments\PaymentWebhookProcessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -57,9 +57,11 @@ class PaymentWebhookController extends Controller
         $validated = $request->validate($this->linkValidationRules());
 
         $link = PaymentWebhookLink::create([
+            'system_setting_id' => $request->user()?->system_setting_id,
             'name' => $validated['name'],
             'endpoint_uuid' => (string) Str::uuid(),
             'is_active' => (bool) ($validated['is_active'] ?? false),
+            'action_mode' => $validated['action_mode'],
             'security_mode' => $validated['security_mode'] ?: null,
             'secret' => $validated['secret'] ?: null,
             'signature_header' => $validated['signature_header'] ?: null,
@@ -74,13 +76,12 @@ class PaymentWebhookController extends Controller
     public function edit(PaymentWebhookLink $webhookLink): View
     {
         $webhookLink->load([
-            'fieldMappings' => fn ($query) => $query->orderBy('field_key'),
-            'eventMappings' => fn ($query) => $query->orderBy('external_event_code'),
-            'productMappings' => fn ($query) => $query->with('course')->orderBy('external_product_id'),
+            'fieldMappings' => fn ($query) => $query
+                ->whereIn('field_key', $this->fieldKeys())
+                ->orderBy('field_key'),
             'events' => fn ($query) => $query->latest()->limit(20),
         ]);
 
-        $courses = Course::query()->orderBy('title')->limit(200)->get(['id', 'title', 'slug']);
         $simulationPayload = (string) session(
             $this->simulationPayloadSessionKey($webhookLink),
             (string) session('simulation_payload', '')
@@ -93,10 +94,10 @@ class PaymentWebhookController extends Controller
 
         return view('admin.webhooks.edit', [
             'link' => $webhookLink,
-            'courses' => $courses,
             'simulationPreview' => $simulationPreview,
             'simulationPayload' => $simulationPayload,
             'jsonPathOptions' => $jsonPathOptions,
+            'fieldLabels' => PaymentFieldMapping::configurableFields(),
         ]);
     }
 
@@ -107,6 +108,7 @@ class PaymentWebhookController extends Controller
         $webhookLink->update([
             'name' => $validated['name'],
             'is_active' => (bool) ($validated['is_active'] ?? false),
+            'action_mode' => $validated['action_mode'],
             'security_mode' => $validated['security_mode'] ?: null,
             'secret' => $validated['secret'] ?: null,
             'signature_header' => $validated['signature_header'] ?: null,
@@ -133,32 +135,42 @@ class PaymentWebhookController extends Controller
             (string) session($this->simulationPayloadSessionKey($webhookLink), (string) session('simulation_payload', ''))
         );
 
-        if ($allowedJsonPaths === []) {
-            return redirect()
-                ->route('admin.webhooks.edit', $webhookLink)
-                ->withErrors(['json_path' => 'Defina um payload base primeiro para liberar as opcoes de JSON path.']);
+        $rules = [
+            'field_mappings' => ['nullable', 'array'],
+        ];
+
+        foreach ($this->fieldKeys() as $fieldKey) {
+            $rules["field_mappings.{$fieldKey}.json_path"] = ['nullable', 'string', 'max:255', Rule::in($allowedJsonPaths)];
         }
 
-        $validated = $request->validate([
-            'field_key' => ['required', Rule::in($this->fieldKeys())],
-            'json_path' => ['required', 'string', 'max:255', Rule::in($allowedJsonPaths)],
-            'is_required' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validate($rules);
+        $fieldMappings = $this->normalizeFieldMappings($validated['field_mappings'] ?? []);
 
-        PaymentFieldMapping::updateOrCreate(
-            [
-                'payment_webhook_link_id' => $webhookLink->id,
-                'field_key' => $validated['field_key'],
-            ],
-            [
-                'json_path' => trim($validated['json_path']),
-                'is_required' => (bool) ($validated['is_required'] ?? false),
-            ]
-        );
+        DB::transaction(function () use ($fieldMappings, $webhookLink): void {
+            $webhookLink->fieldMappings()
+                ->whereIn('field_key', $this->fieldKeys())
+                ->delete();
+
+            $records = collect($fieldMappings)
+                ->map(fn (?string $jsonPath, string $fieldKey): ?array => $jsonPath === null
+                    ? null
+                    : [
+                        'field_key' => $fieldKey,
+                        'json_path' => $jsonPath,
+                        'is_required' => false,
+                    ])
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($records !== []) {
+                $webhookLink->fieldMappings()->createMany($records);
+            }
+        });
 
         return redirect()
             ->route('admin.webhooks.edit', $webhookLink)
-            ->with('status', 'Mapeamento de campo salvo.');
+            ->with('status', 'Mapeamentos de campos salvos.');
     }
 
     public function removeFieldMapping(PaymentWebhookLink $webhookLink, PaymentFieldMapping $mapping): RedirectResponse
@@ -212,7 +224,7 @@ class PaymentWebhookController extends Controller
     {
         $validated = $request->validate([
             'external_product_id' => ['required', 'string', 'max:191'],
-            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'course_id' => ['required', 'integer', Rule::exists('courses', 'id')->where('system_setting_id', $request->user()?->system_setting_id)],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -333,6 +345,7 @@ class PaymentWebhookController extends Controller
     {
         $paths = $this->extractJsonPathsFromPayload($simulationPayload);
         $currentMappings = $webhookLink->fieldMappings
+            ->whereIn('field_key', $this->fieldKeys())
             ->pluck('json_path')
             ->filter(fn (mixed $path): bool => is_string($path) && trim($path) !== '')
             ->map(fn (string $path): string => trim($path))
@@ -456,6 +469,7 @@ class PaymentWebhookController extends Controller
         return [
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
+            'action_mode' => ['required', Rule::in(array_keys(PaymentWebhookLink::actionModes()))],
             'security_mode' => ['nullable', Rule::in(['', 'header_secret', 'hmac_sha256'])],
             'secret' => ['nullable', 'string', 'max:255'],
             'signature_header' => ['nullable', 'string', 'max:120'],
@@ -467,15 +481,24 @@ class PaymentWebhookController extends Controller
      */
     private function fieldKeys(): array
     {
-        return [
-            PaymentFieldMapping::FIELD_BUYER_EMAIL,
-            PaymentFieldMapping::FIELD_EVENT_CODE,
-            PaymentFieldMapping::FIELD_EXTERNAL_TX_ID,
-            PaymentFieldMapping::FIELD_AMOUNT,
-            PaymentFieldMapping::FIELD_CURRENCY,
-            PaymentFieldMapping::FIELD_OCCURRED_AT,
-            PaymentFieldMapping::FIELD_ITEMS,
-            PaymentFieldMapping::FIELD_ITEM_PRODUCT_ID,
-        ];
+        return array_keys(PaymentFieldMapping::configurableFields());
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    private function normalizeFieldMappings(mixed $rawFieldMappings): array
+    {
+        $rawFieldMappings = is_array($rawFieldMappings) ? $rawFieldMappings : [];
+        $normalized = [];
+
+        foreach ($this->fieldKeys() as $fieldKey) {
+            $jsonPath = data_get($rawFieldMappings, "{$fieldKey}.json_path");
+            $jsonPath = is_string($jsonPath) ? trim($jsonPath) : '';
+
+            $normalized[$fieldKey] = $jsonPath !== '' ? $jsonPath : null;
+        }
+
+        return $normalized;
     }
 }

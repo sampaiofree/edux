@@ -2,14 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Livewire\PublicCatalog;
 use App\Models\Course;
 use App\Models\CourseCheckout;
 use App\Models\Enrollment;
 use App\Models\SupportWhatsappNumber;
 use App\Models\SystemSetting;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -75,6 +73,7 @@ class HomePageTest extends TestCase
     public function test_home_course_card_has_waitlist_metadata_when_course_has_specific_whatsapp(): void
     {
         $supportNumber = SupportWhatsappNumber::query()->create([
+            'system_setting_id' => $this->defaultTenantAdmin()->system_setting_id,
             'label' => 'Atendimento principal',
             'whatsapp' => '+55 (11) 99999-0000',
             'description' => 'Time comercial',
@@ -156,7 +155,7 @@ class HomePageTest extends TestCase
 
     public function test_authenticated_user_sees_same_standalone_home_without_auth_ctas(): void
     {
-        $user = User::factory()->admin()->create();
+        $user = $this->defaultTenantAdmin();
         $this->createPublishedCourse('auxiliar-rh', 'Auxiliar de RH', 24.90);
 
         $response = $this->actingAs($user)->get('/');
@@ -179,8 +178,8 @@ class HomePageTest extends TestCase
             'published_at' => null,
         ]);
 
-        $studentA = User::factory()->student()->create();
-        $studentB = User::factory()->student()->create();
+        $studentA = $this->defaultTenantStudent();
+        $studentB = $this->defaultTenantStudent();
 
         Enrollment::create([
             'course_id' => $published->id,
@@ -234,7 +233,7 @@ class HomePageTest extends TestCase
         $responseWithoutAsset->assertSee('Carta de Estágio e Recomendação', false);
         $responseWithoutAsset->assertDontSee('/storage/uploads/carta-estagio.png', false);
 
-        SystemSetting::current()->forceFill([
+        SystemSetting::forDomain($this->defaultTenantDomain())?->forceFill([
             'carta_estagio' => 'uploads/carta-estagio.png',
         ])->save();
 
@@ -276,9 +275,7 @@ class HomePageTest extends TestCase
         $checkoutPrice = isset($overrides['checkout_price']) ? (float) $overrides['checkout_price'] : 29.90;
         unset($overrides['checkout_price']);
 
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         /** @var Course $course */
         $course = Course::create(array_merge([

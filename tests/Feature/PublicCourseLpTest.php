@@ -2,14 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\CheckoutBonus;
 use App\Models\Course;
 use App\Models\CourseCheckout;
 use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\SupportWhatsappNumber;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -90,6 +88,7 @@ class PublicCourseLpTest extends TestCase
         [$course] = $this->createPublishedCourseWithModulesAndCheckouts();
 
         $supportNumber = SupportWhatsappNumber::create([
+            'system_setting_id' => $this->defaultTenantAdmin()->system_setting_id,
             'label' => 'Atendimento principal',
             'whatsapp' => '+55 (11) 99999-0000',
             'description' => null,
@@ -137,9 +136,7 @@ class PublicCourseLpTest extends TestCase
 
     public function test_public_course_lp_returns_404_for_unpublished_course(): void
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,
@@ -228,6 +225,7 @@ class PublicCourseLpTest extends TestCase
         [$course] = $this->createPublishedCourseWithModulesAndCheckouts(0);
 
         SupportWhatsappNumber::create([
+            'system_setting_id' => $this->defaultTenantAdmin()->system_setting_id,
             'label' => 'Atendimento',
             'whatsapp' => '(11) 95555-1111',
             'description' => null,
@@ -295,9 +293,7 @@ class PublicCourseLpTest extends TestCase
      */
     private function createPublishedCourseWithModulesAndCheckouts(int $checkoutCount = 2, bool $withModules = true): array
     {
-        $owner = User::factory()->create([
-            'role' => UserRole::ADMIN->value,
-        ]);
+        $owner = $this->defaultTenantAdmin();
 
         $course = Course::create([
             'owner_id' => $owner->id,

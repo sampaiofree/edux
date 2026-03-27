@@ -7,6 +7,7 @@ use App\Models\AccountDeletionRequest;
 use App\Services\AccountDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AccountDeletionRequestController extends Controller
@@ -31,6 +32,7 @@ class AccountDeletionRequestController extends Controller
         }
 
         $requests = AccountDeletionRequest::query()
+            ->whereHas('user')
             ->with(['user', 'resolver'])
             ->when($status !== 'all', fn ($query) => $query->where('status', $status))
             ->orderByDesc('requested_at')
@@ -45,6 +47,8 @@ class AccountDeletionRequestController extends Controller
 
     public function destroyAccount(Request $request, AccountDeletionRequest $accountDeletionRequest, AccountDeletionService $deletionService): RedirectResponse
     {
+        $this->ensureRequestBelongsToCurrentSystem($request, $accountDeletionRequest);
+
         if ($accountDeletionRequest->status !== AccountDeletionRequest::STATUS_PENDING) {
             return back()->with('status', 'Solicitacao ja resolvida anteriormente.');
         }
@@ -88,6 +92,8 @@ class AccountDeletionRequestController extends Controller
 
     public function reject(Request $request, AccountDeletionRequest $accountDeletionRequest): RedirectResponse
     {
+        $this->ensureRequestBelongsToCurrentSystem($request, $accountDeletionRequest);
+
         if ($accountDeletionRequest->status !== AccountDeletionRequest::STATUS_PENDING) {
             return back()->with('status', 'Solicitacao ja resolvida anteriormente.');
         }
@@ -106,5 +112,18 @@ class AccountDeletionRequestController extends Controller
         ]);
 
         return back()->with('status', 'Solicitacao recusada.');
+    }
+
+    private function ensureRequestBelongsToCurrentSystem(Request $request, AccountDeletionRequest $accountDeletionRequest): void
+    {
+        $systemSettingId = DB::table('users')
+            ->where('id', $accountDeletionRequest->user_id)
+            ->value('system_setting_id');
+
+        if ($systemSettingId === null) {
+            return;
+        }
+
+        abort_if((int) $systemSettingId !== (int) ($request->user()?->system_setting_id ?? 0), 404);
     }
 }

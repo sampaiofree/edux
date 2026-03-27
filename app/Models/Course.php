@@ -2,22 +2,23 @@
 
 namespace App\Models;
 
-use App\Models\Kavoo;
-use App\Models\SupportWhatsappNumber;
+use App\Models\Concerns\BelongsToSystemSetting;
 use App\Support\CityCampaignCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Course extends Model
 {
+    use BelongsToSystemSetting;
     use HasFactory;
 
     public const SUPPORT_WHATSAPP_MODE_ALL = 'all';
+
     public const SUPPORT_WHATSAPP_MODE_SPECIFIC = 'specific';
 
     protected static function booted(): void
@@ -27,6 +28,7 @@ class Course extends Model
     }
 
     protected $fillable = [
+        'system_setting_id',
         'owner_id',
         'title',
         'slug',
@@ -62,6 +64,17 @@ class Course extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    protected function resolveSystemSettingIdForNewRecord(): ?int
+    {
+        if ($this->owner_id) {
+            return User::withoutGlobalScopes()
+                ->whereKey($this->owner_id)
+                ->value('system_setting_id');
+        }
+
+        return SystemSetting::currentId();
     }
 
     public function modules(): HasMany
@@ -117,6 +130,11 @@ class Course extends Model
     public function paymentProductMappings(): HasMany
     {
         return $this->hasMany(PaymentProductMapping::class);
+    }
+
+    public function courseWebhookIds(): HasMany
+    {
+        return $this->hasMany(CourseWebhookId::class)->orderBy('id');
     }
 
     public function supportWhatsappNumber(): BelongsTo
