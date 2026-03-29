@@ -41,6 +41,20 @@ class SystemMailSettingsTest extends TestCase
         $response->assertSee('Enviar e-mail de teste', false);
     }
 
+    public function test_smtp_fields_are_rendered_when_mailer_is_switched_to_smtp(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(SystemAssetsManager::class)
+            ->set('mail_mailer', 'smtp')
+            ->assertSee('Host SMTP', false)
+            ->assertSee('Porta SMTP', false)
+            ->assertSee('Usuário SMTP', false)
+            ->assertSee('Senha SMTP', false);
+    }
+
     public function test_admin_can_save_tenant_mail_settings_and_keep_existing_password(): void
     {
         $admin = User::factory()->admin()->create();
@@ -143,13 +157,37 @@ class SystemMailSettingsTest extends TestCase
 
         $this->assertIsArray($config);
         $this->assertSame('smtp', $config['transport']);
-        $this->assertSame('tls', $config['scheme']);
+        $this->assertSame('smtp', $config['scheme']);
+        $this->assertTrue($config['require_tls']);
         $this->assertSame('smtp.mailer.test', $config['host']);
         $this->assertSame(2525, $config['port']);
         $this->assertSame('mailer-user', $config['username']);
         $this->assertSame('mailer-secret', $config['password']);
         $this->assertSame('nao-responda@mailer.test', $config['from']['address']);
         $this->assertSame('Mailer Tenant', $config['from']['name']);
+    }
+
+    public function test_tenant_mail_manager_maps_ssl_scheme_to_smtps(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $setting = $admin->systemSetting;
+
+        $setting->update([
+            'mail_mailer' => 'smtp',
+            'mail_scheme' => 'ssl',
+            'mail_host' => 'smtp.mailer.test',
+            'mail_port' => 465,
+            'mail_username' => 'mailer-user',
+            'mail_password' => 'mailer-secret',
+            'mail_from_address' => 'nao-responda@mailer.test',
+            'mail_from_name' => 'Mailer Tenant',
+        ]);
+
+        $config = app(TenantMailManager::class)->mailerConfigFor($setting->fresh());
+
+        $this->assertIsArray($config);
+        $this->assertSame('smtps', $config['scheme']);
+        $this->assertArrayNotHasKey('require_tls', $config);
     }
 
     public function test_admin_can_send_test_email_with_current_form_values(): void

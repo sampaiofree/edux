@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\PaymentProcessingStatus;
 use App\Models\Course;
+use App\Models\PaymentEvent;
 use App\Models\PaymentFieldMapping;
 use App\Models\PaymentWebhookLink;
 use App\Models\User;
@@ -126,6 +128,76 @@ class PaymentWebhookFieldMappingsTest extends TestCase
         ]);
     }
 
+    public function test_admin_edit_page_uses_latest_received_event_payload_as_mapping_reference(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $link = $this->makeWebhookLink($admin);
+
+        $this->makePaymentEvent($link, [
+            'name' => 'Bruno',
+            'whatsapp' => '5562995772922',
+            'email' => 'sampaio.free@gmail.com',
+            'curso' => '123',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.webhooks.edit', $link));
+
+        $response->assertOk();
+        $response->assertSee('Bruno', false);
+        $response->assertSee('value="name"', false);
+        $response->assertSee('value="email"', false);
+        $response->assertSee('value="whatsapp"', false);
+        $response->assertSee('value="curso"', false);
+    }
+
+    public function test_admin_can_save_field_mappings_from_latest_received_event_payload_without_simulation_session(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $link = $this->makeWebhookLink($admin);
+
+        $this->makePaymentEvent($link, [
+            'name' => 'Bruno',
+            'whatsapp' => '5562995772922',
+            'email' => 'sampaio.free@gmail.com',
+            'curso' => '123',
+        ]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->post(route('admin.webhooks.field-mappings.upsert', $link), [
+                'field_mappings' => [
+                    'buyer_name' => ['json_path' => 'name'],
+                    'buyer_email' => ['json_path' => 'email'],
+                    'course_id' => ['json_path' => 'curso'],
+                    'buyer_whatsapp' => ['json_path' => 'whatsapp'],
+                ],
+            ]);
+
+        $response->assertRedirect(route('admin.webhooks.edit', $link));
+        $response->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_BUYER_NAME,
+            'json_path' => 'name',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_BUYER_EMAIL,
+            'json_path' => 'email',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_COURSE_ID,
+            'json_path' => 'curso',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_BUYER_WHATSAPP,
+            'json_path' => 'whatsapp',
+        ]);
+    }
+
     public function test_simulation_preview_uses_fixed_fields_and_resolves_course(): void
     {
         $admin = $this->defaultTenantAdmin();
@@ -216,5 +288,20 @@ class PaymentWebhookFieldMappingsTest extends TestCase
     private function simulationPayloadKey(PaymentWebhookLink $link): string
     {
         return 'admin.webhooks.simulation_payload.'.$link->id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function makePaymentEvent(PaymentWebhookLink $link, array $payload): PaymentEvent
+    {
+        return PaymentEvent::create([
+            'payment_webhook_link_id' => $link->id,
+            'payload_hash' => Str::uuid()->toString(),
+            'raw_payload' => $payload,
+            'raw_headers' => [],
+            'processing_status' => PaymentProcessingStatus::QUEUED,
+            'received_at' => now(),
+        ]);
     }
 }

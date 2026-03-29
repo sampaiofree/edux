@@ -88,7 +88,7 @@
             <label class="space-y-1 text-sm font-semibold text-slate-600">
                 <span>Mailer</span>
                 <select
-                    wire:model.defer="mail_mailer"
+                    wire:model.live="mail_mailer"
                     class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
                 >
                     <option value="">Usar padrão do servidor</option>
@@ -111,7 +111,7 @@
                 @error('mail_scheme')
                     <p class="text-xs text-red-500">{{ $message }}</p>
                 @enderror
-                <p class="text-xs text-slate-500">Opcional. Ex.: <code>tls</code> ou <code>ssl</code>.</p>
+                <p class="text-xs text-slate-500">Opcional. Use <code>tls</code> para STARTTLS na porta 587 ou <code>ssl</code> para conexão segura direta na porta 465.</p>
             </label>
 
             <label class="space-y-1 text-sm font-semibold text-slate-600">

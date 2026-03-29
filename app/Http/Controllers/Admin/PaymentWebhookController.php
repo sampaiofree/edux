@@ -83,10 +83,7 @@ class PaymentWebhookController extends Controller
             'events' => fn ($query) => $query->latest()->limit(20),
         ]);
 
-        $simulationPayload = (string) session(
-            $this->simulationPayloadSessionKey($webhookLink),
-            (string) session('simulation_payload', '')
-        );
+        $simulationPayload = $this->referencePayloadForLink($webhookLink);
         $simulationPreview = session(
             $this->simulationPreviewSessionKey($webhookLink),
             session('simulation_preview')
@@ -131,10 +128,7 @@ class PaymentWebhookController extends Controller
 
     public function upsertFieldMapping(Request $request, PaymentWebhookLink $webhookLink): RedirectResponse
     {
-        $allowedJsonPaths = $this->allowedJsonPathsForLink(
-            $webhookLink,
-            (string) session($this->simulationPayloadSessionKey($webhookLink), (string) session('simulation_payload', ''))
-        );
+        $allowedJsonPaths = $this->allowedJsonPathsForLink($webhookLink, $this->referencePayloadForLink($webhookLink));
 
         $rules = [
             'field_mappings' => ['nullable', 'array'],
@@ -339,6 +333,30 @@ class PaymentWebhookController extends Controller
     private function simulationPreviewSessionKey(PaymentWebhookLink $webhookLink): string
     {
         return 'admin.webhooks.simulation_preview.'.$webhookLink->id;
+    }
+
+    private function referencePayloadForLink(PaymentWebhookLink $webhookLink): string
+    {
+        $simulationPayload = (string) session(
+            $this->simulationPayloadSessionKey($webhookLink),
+            (string) session('simulation_payload', '')
+        );
+
+        if (trim($simulationPayload) !== '') {
+            return $simulationPayload;
+        }
+
+        $latestEventPayload = $webhookLink->events()
+            ->latest()
+            ->first()?->raw_payload;
+
+        if (! is_array($latestEventPayload) || $latestEventPayload === []) {
+            return '';
+        }
+
+        $encoded = json_encode($latestEventPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return is_string($encoded) ? $encoded : '';
     }
 
     /**

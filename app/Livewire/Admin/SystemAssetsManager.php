@@ -186,7 +186,7 @@ class SystemAssetsManager extends Component
         $validated = $this->validate($this->mailRules());
 
         $mailMailer = $this->normalizeOptional($validated['mail_mailer'] ?? null);
-        $mailScheme = $this->normalizeOptional($validated['mail_scheme'] ?? null);
+        $mailScheme = $this->normalizeMailScheme($validated['mail_scheme'] ?? null);
         $mailHost = $this->normalizeOptional($validated['mail_host'] ?? null);
         $mailPort = $this->normalizeOptional($validated['mail_port'] ?? null);
         $mailUsername = $this->normalizeOptional($validated['mail_username'] ?? null);
@@ -320,7 +320,7 @@ class SystemAssetsManager extends Component
 
         return [
             'mail_mailer' => ['nullable', Rule::in(['log', 'smtp'])],
-            'mail_scheme' => ['nullable', 'string', 'max:32'],
+            'mail_scheme' => ['nullable', Rule::in(['smtp', 'smtps', 'tls', 'ssl', 'starttls'])],
             'mail_host' => ['nullable', Rule::requiredIf($usesSmtp), 'string', 'max:255'],
             'mail_port' => ['nullable', Rule::requiredIf($usesSmtp), 'integer', 'between:1,65535'],
             'mail_username' => ['nullable', 'string', 'max:255'],
@@ -368,7 +368,7 @@ class SystemAssetsManager extends Component
         $systemSetting->forceFill([
             'domain' => $domain,
             'mail_mailer' => $this->normalizeOptional($this->mail_mailer),
-            'mail_scheme' => $this->normalizeOptional($this->mail_scheme),
+            'mail_scheme' => $this->normalizeMailScheme($this->mail_scheme),
             'mail_host' => $this->normalizeOptional($this->mail_host),
             'mail_port' => ($port = $this->normalizeOptional($this->mail_port)) !== null ? (int) $port : null,
             'mail_username' => $this->normalizeOptional($this->mail_username),
@@ -379,5 +379,12 @@ class SystemAssetsManager extends Component
         ]);
 
         return $systemSetting;
+    }
+
+    private function normalizeMailScheme(mixed $value): ?string
+    {
+        $normalized = $this->normalizeOptional($value);
+
+        return $normalized !== null ? strtolower($normalized) : null;
     }
 }

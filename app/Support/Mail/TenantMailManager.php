@@ -63,7 +63,6 @@ class TenantMailManager
             'smtp' => [
                 'name' => 'tenant-smtp-'.$systemSetting->id,
                 'transport' => 'smtp',
-                'scheme' => $this->nullableString($systemSetting->mail_scheme) ?? config('mail.mailers.smtp.scheme'),
                 'host' => $this->nullableString($systemSetting->mail_host) ?? config('mail.mailers.smtp.host'),
                 'port' => $systemSetting->mail_port ?: config('mail.mailers.smtp.port'),
                 'username' => $this->nullableString($systemSetting->mail_username),
@@ -71,6 +70,9 @@ class TenantMailManager
                 'timeout' => config('mail.mailers.smtp.timeout'),
                 'local_domain' => $systemSetting->domain ?: config('mail.mailers.smtp.local_domain'),
                 'from' => $from,
+                ...$this->smtpSchemeConfig(
+                    $this->nullableString($systemSetting->mail_scheme) ?? config('mail.mailers.smtp.scheme')
+                ),
             ],
             'log' => [
                 'name' => 'tenant-log-'.$systemSetting->id,
@@ -87,5 +89,23 @@ class TenantMailManager
         $normalized = trim((string) $value);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function smtpSchemeConfig(?string $value): array
+    {
+        $normalized = strtolower(trim((string) $value));
+
+        return match ($normalized) {
+            '', 'smtp' => ['scheme' => 'smtp'],
+            'tls', 'starttls' => [
+                'scheme' => 'smtp',
+                'require_tls' => true,
+            ],
+            'ssl', 'smtps' => ['scheme' => 'smtps'],
+            default => ['scheme' => $normalized],
+        };
     }
 }
