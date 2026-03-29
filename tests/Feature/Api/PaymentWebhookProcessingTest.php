@@ -18,6 +18,7 @@ use App\Models\PaymentFieldMapping;
 use App\Models\PaymentWebhookLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Support\Str;
@@ -64,6 +65,7 @@ class PaymentWebhookProcessingTest extends TestCase
 
         $this->assertSame('Aluno Um', $user->name);
         $this->assertSame('5511999999999', $user->whatsapp);
+        $this->assertTrue(Hash::check(PaymentWebhookProcessor::INITIAL_PASSWORD, $user->getAuthPassword()));
         $this->assertDatabaseHas('payment_entitlements', [
             'user_id' => $user->id,
             'course_id' => $course->id,
@@ -83,7 +85,10 @@ class PaymentWebhookProcessingTest extends TestCase
             'course_id' => $course->id,
             'user_id' => $user->id,
         ]);
-        Mail::assertSent(WelcomePaymentUser::class, 1);
+        Mail::assertSent(WelcomePaymentUser::class, function (WelcomePaymentUser $mail) use ($user): bool {
+            return $mail->user->is($user)
+                && $mail->plainPassword === PaymentWebhookProcessor::INITIAL_PASSWORD;
+        });
         Mail::assertNotSent(CourseEnrollmentNotification::class);
     }
 

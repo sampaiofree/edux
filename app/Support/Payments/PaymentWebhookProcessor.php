@@ -28,6 +28,8 @@ use Illuminate\Support\Str;
 
 class PaymentWebhookProcessor
 {
+    public const INITIAL_PASSWORD = 'mudar123';
+
     public const ENROLLMENT_CREATED = 'enrollment_created';
 
     public const ENROLLMENT_ACTIVATED = 'enrollment_activated';
@@ -463,7 +465,7 @@ class PaymentWebhookProcessor
             ];
         }
 
-        $temporaryPassword = Str::random(10);
+        $temporaryPassword = self::INITIAL_PASSWORD;
 
         $resolvedName = trim((string) $name);
         if ($resolvedName === '') {
