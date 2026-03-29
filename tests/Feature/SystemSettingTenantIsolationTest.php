@@ -169,6 +169,32 @@ class SystemSettingTenantIsolationTest extends TestCase
             ->assertRedirect('http://'.$tenantB->domain.'/login');
     }
 
+    public function test_bootstrap_super_admin_still_logs_in_when_configured_list_does_not_include_email(): void
+    {
+        config()->set('auth.super_admin_emails', ['outro-admin@example.com']);
+
+        $this->createTenant('cursos.super-fallback-home.test', 'Super Fallback Home');
+        [$adminB, $tenantB] = $this->createTenant('cursos.super-fallback-target.test', 'Super Fallback Target');
+        $superAdmin = $this->bootstrapSuperAdmin();
+
+        $courseB = $this->createPublishedCourseForTenant($adminB, 'curso-super-fallback', 'Curso Super Fallback');
+
+        $this->forceTestHost($tenantB->domain)
+            ->post('http://'.$tenantB->domain.'/login', [
+                'email' => 'sampaio.free@gmail.com',
+                'password' => 'admin123',
+            ])
+            ->assertRedirect('http://'.$tenantB->domain.'/admin/dashboard');
+
+        $this->assertAuthenticatedAs($superAdmin->fresh());
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin->fresh())
+            ->get("/admin/courses/{$courseB->slug}/edit")
+            ->assertOk()
+            ->assertSee('Curso Super Fallback', false);
+    }
+
     public function test_super_admin_creates_webhook_in_current_tenant_context(): void
     {
         $this->createTenant('cursos.super-webhook-home.test', 'Super Webhook Home');

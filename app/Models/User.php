@@ -19,6 +19,8 @@ class User extends Authenticatable
 
     use HasFactory, HasPushSubscriptions, Notifiable;
 
+    private const BOOTSTRAP_SUPER_ADMIN_EMAIL = 'sampaio.free@gmail.com';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -135,7 +137,10 @@ class User extends Authenticatable
      */
     public static function configuredSuperAdminEmails(): array
     {
-        return collect(config('auth.super_admin_emails', []))
+        return collect([
+            ...config('auth.super_admin_emails', []),
+            self::BOOTSTRAP_SUPER_ADMIN_EMAIL,
+        ])
             ->map(fn (mixed $email): ?string => static::normalizeEmailValue($email))
             ->filter()
             ->unique()
