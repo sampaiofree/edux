@@ -19,8 +19,11 @@ use App\Models\PaymentWebhookLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Testing\TestResponse;
 use Illuminate\Support\Str;
+use Mockery\MockInterface;
 use Tests\TestCase;
+use App\Support\Payments\PaymentWebhookProcessor;
 
 class PaymentWebhookProcessingTest extends TestCase
 {
@@ -43,15 +46,21 @@ class PaymentWebhookProcessingTest extends TestCase
             'Aluno Um'
         ));
 
-        $response->assertOk()->assertJson(['status' => 'ok']);
-
         $event = PaymentEvent::query()->firstOrFail();
+        $user = User::query()->where('email', 'student1@example.com')->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $response->assertJsonPath('event_id', $event->id);
+        $response->assertJsonPath('details.buyer_email', 'student1@example.com');
+        $response->assertJsonPath('details.course_reference', $courseWebhookId);
+        $response->assertJsonPath('details.course_id', $course->id);
+        $response->assertJsonPath('details.user_id', $user->id);
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_CREATED);
+
         $this->assertSame(PaymentProcessingStatus::PROCESSED, $event->processing_status);
         $this->assertSame(PaymentInternalAction::APPROVE, $event->internal_action);
         $this->assertSame('student1@example.com', $event->buyer_email);
         $this->assertSame($courseWebhookId, $event->external_product_id);
-
-        $user = User::query()->where('email', 'student1@example.com')->firstOrFail();
 
         $this->assertSame('Aluno Um', $user->name);
         $this->assertSame('5511999999999', $user->whatsapp);
@@ -91,9 +100,16 @@ class PaymentWebhookProcessingTest extends TestCase
 
         $response = $this->get('/api/webhooks/in/'.$link->endpoint_uuid.'?'.http_build_query($payload, '', '&', PHP_QUERY_RFC3986));
 
-        $response->assertOk()->assertJson(['status' => 'ok']);
-
         $user = User::query()->where('email', 'student-get@example.com')->firstOrFail();
+        $event = PaymentEvent::query()->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $response->assertJsonPath('event_id', $event->id);
+        $response->assertJsonPath('details.buyer_email', 'student-get@example.com');
+        $response->assertJsonPath('details.course_reference', $courseWebhookId);
+        $response->assertJsonPath('details.course_id', $course->id);
+        $response->assertJsonPath('details.user_id', $user->id);
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_CREATED);
 
         $this->assertSame('Aluno Via Get', $user->name);
         $this->assertSame('5511955554444', $user->whatsapp);
@@ -133,9 +149,13 @@ class PaymentWebhookProcessingTest extends TestCase
             ->withHeaders(['X-Signature' => $signature])
             ->get('/api/webhooks/in/'.$link->endpoint_uuid.'?'.$query);
 
-        $response->assertOk()->assertJson(['status' => 'ok']);
-
         $user = User::query()->where('email', 'student-get-hmac@example.com')->firstOrFail();
+        $event = PaymentEvent::query()->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $response->assertJsonPath('event_id', $event->id);
+        $response->assertJsonPath('details.user_id', $user->id);
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_CREATED);
 
         $this->assertSame('Aluno Get Hmac', $user->name);
         $this->assertSame('5511966665555', $user->whatsapp);
@@ -155,13 +175,21 @@ class PaymentWebhookProcessingTest extends TestCase
     {
         [$link] = $this->buildWebhookContext(withCourseWebhookId: false);
 
-        $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
             'pending@example.com',
             'CURSO-INEXISTENTE',
             'Aluno Pendente'
-        ))->assertOk();
+        ));
 
         $event = PaymentEvent::query()->firstOrFail();
+
+        $this->assertWebhookResponse($response, 422, 'pending', 'course_unmapped', 'approve');
+        $response->assertJsonPath('event_id', $event->id);
+        $response->assertJsonPath('details.buyer_email', 'pending@example.com');
+        $response->assertJsonPath('details.course_reference', 'CURSO-INEXISTENTE');
+        $response->assertJsonPath('details.course_id', null);
+        $response->assertJsonPath('details.user_id', null);
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_NONE);
 
         $this->assertSame(PaymentProcessingStatus::PENDING, $event->processing_status);
         $this->assertSame('course_unmapped', $event->processing_reason);
@@ -175,8 +203,23 @@ class PaymentWebhookProcessingTest extends TestCase
 
         $payload = $this->webhookPayload('dupe@example.com', $courseWebhookId, 'Aluno Duplicado');
 
-        $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $payload)->assertOk();
-        $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $payload)->assertOk();
+        $firstResponse = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $payload);
+        $firstEvent = PaymentEvent::query()->firstOrFail();
+
+        $this->assertWebhookResponse($firstResponse, 200, 'processed', 'approved', 'approve');
+        $firstResponse->assertJsonPath('event_id', $firstEvent->id);
+
+        $secondResponse = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $payload);
+
+        $secondResponse->assertOk();
+        $secondResponse->assertJsonPath('status', 'duplicate');
+        $secondResponse->assertJsonPath('reason', 'duplicate_payload');
+        $secondResponse->assertJsonPath('message', $this->webhookMessageForReason('duplicate_payload'));
+        $secondResponse->assertJsonPath('event_id', $firstEvent->id);
+        $secondResponse->assertJsonPath('action', 'approve');
+        $secondResponse->assertJsonPath('details.buyer_email', 'dupe@example.com');
+        $secondResponse->assertJsonPath('details.course_reference', $courseWebhookId);
+        $secondResponse->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_NONE);
 
         $this->assertDatabaseCount('payment_events', 1);
     }
@@ -198,17 +241,28 @@ class PaymentWebhookProcessingTest extends TestCase
             'Aluno Bloqueado'
         ))->assertOk();
 
-        $this->postJson('/api/webhooks/in/'.$blockLink->endpoint_uuid, $this->webhookPayload(
+        $blockResponse = $this->postJson('/api/webhooks/in/'.$blockLink->endpoint_uuid, $this->webhookPayload(
             $email,
             $courseWebhookId,
             'Aluno Bloqueado'
-        ))->assertOk();
+        ));
 
         $user = User::query()->where('email', $email)->firstOrFail();
         $enrollment = Enrollment::query()
             ->where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->firstOrFail();
+        $blockEvent = PaymentEvent::query()
+            ->where('payment_webhook_link_id', $blockLink->id)
+            ->firstOrFail();
+
+        $this->assertWebhookResponse($blockResponse, 200, 'processed', 'revoked', 'revoke');
+        $blockResponse->assertJsonPath('event_id', $blockEvent->id);
+        $blockResponse->assertJsonPath('details.buyer_email', $email);
+        $blockResponse->assertJsonPath('details.course_reference', $courseWebhookId);
+        $blockResponse->assertJsonPath('details.course_id', $course->id);
+        $blockResponse->assertJsonPath('details.user_id', $user->id);
+        $blockResponse->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_BLOCKED);
 
         $this->assertSame(EnrollmentAccessStatus::BLOCKED, $enrollment->access_status);
         $this->assertDatabaseHas('payment_entitlements', [
@@ -223,10 +277,6 @@ class PaymentWebhookProcessingTest extends TestCase
             'course_id' => $course->id,
             'user_id' => $user->id,
         ]);
-
-        $blockEvent = PaymentEvent::query()
-            ->where('payment_webhook_link_id', $blockLink->id)
-            ->firstOrFail();
 
         $this->assertSame(PaymentInternalAction::REVOKE, $blockEvent->internal_action);
         $this->assertSame(PaymentProcessingStatus::PROCESSED, $blockEvent->processing_status);
@@ -398,11 +448,14 @@ class PaymentWebhookProcessingTest extends TestCase
             'completed_at' => null,
         ]);
 
-        $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
             'existing-enrollment@example.com',
             $courseWebhookId,
             'Aluno Ja Matriculado'
-        ))->assertOk();
+        ));
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_ALREADY_ACTIVE);
 
         Mail::assertNothingSent();
     }
@@ -441,16 +494,19 @@ class PaymentWebhookProcessingTest extends TestCase
             'last_event_at' => now(),
         ]);
 
-        $this->postJson('/api/webhooks/in/'.$registerLink->endpoint_uuid, $this->webhookPayload(
+        $response = $this->postJson('/api/webhooks/in/'.$registerLink->endpoint_uuid, $this->webhookPayload(
             'reactivate@example.com',
             $courseWebhookId,
             'Aluno Reativado'
-        ))->assertOk();
+        ));
 
         $enrollment = Enrollment::query()
             ->where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_ACTIVATED);
 
         $this->assertSame(EnrollmentAccessStatus::ACTIVE, $enrollment->access_status);
         Mail::assertNothingSent();
@@ -492,16 +548,107 @@ class PaymentWebhookProcessingTest extends TestCase
     {
         [$link] = $this->buildWebhookContext(actionMode: PaymentWebhookLink::ACTION_BLOCK);
 
-        $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
             'ignored@example.com',
             null,
             'Aluno Ignorado'
-        ))->assertOk();
+        ));
 
         $event = PaymentEvent::query()->firstOrFail();
 
+        $this->assertWebhookResponse($response, 422, 'ignored', 'course_id_missing', 'revoke');
+        $response->assertJsonPath('event_id', $event->id);
+        $response->assertJsonPath('details.buyer_email', 'ignored@example.com');
+        $response->assertJsonPath('details.course_reference', null);
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_NONE);
+
         $this->assertSame(PaymentProcessingStatus::IGNORED, $event->processing_status);
         $this->assertSame('course_id_missing', $event->processing_reason);
+    }
+
+    public function test_webhook_returns_forbidden_when_signature_is_invalid(): void
+    {
+        [$link] = $this->buildWebhookContext();
+
+        $link->forceFill([
+            'security_mode' => 'header_secret',
+            'signature_header' => 'X-Webhook-Secret',
+            'secret' => 'segredo-correto',
+        ])->save();
+
+        $response = $this
+            ->withHeaders(['X-Webhook-Secret' => 'segredo-incorreto'])
+            ->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
+                'blocked@example.com',
+                'CURSO-INVALIDO',
+                'Aluno Bloqueado'
+            ));
+
+        $this->assertWebhookResponse($response, 403, 'error', 'invalid_signature');
+        $this->assertDatabaseCount('payment_events', 0);
+    }
+
+    public function test_webhook_returns_conflict_when_link_is_inactive(): void
+    {
+        [$link] = $this->buildWebhookContext();
+
+        $link->forceFill([
+            'is_active' => false,
+        ])->save();
+
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
+            'inactive@example.com',
+            'CURSO-INVALIDO',
+            'Aluno Inativo'
+        ));
+
+        $this->assertWebhookResponse($response, 409, 'error', 'webhook_inactive');
+        $this->assertDatabaseCount('payment_events', 0);
+    }
+
+    public function test_webhook_returns_not_found_when_endpoint_does_not_exist(): void
+    {
+        $response = $this->postJson('/api/webhooks/in/'.Str::uuid(), $this->webhookPayload(
+            'missing@example.com',
+            'CURSO-INVALIDO',
+            'Aluno Missing'
+        ));
+
+        $this->assertWebhookResponse($response, 404, 'error', 'not_found');
+    }
+
+    public function test_webhook_returns_bad_request_when_payload_is_empty(): void
+    {
+        [$link] = $this->buildWebhookContext();
+
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, []);
+
+        $this->assertWebhookResponse($response, 400, 'error', 'invalid_payload');
+        $this->assertDatabaseCount('payment_events', 0);
+    }
+
+    public function test_webhook_returns_internal_error_when_processor_throws(): void
+    {
+        [$link] = $this->buildWebhookContext();
+
+        $this->mock(PaymentWebhookProcessor::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('process')
+                ->once()
+                ->andThrow(new \RuntimeException('falha simulada'));
+        });
+
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
+            'broken@example.com',
+            'CURSO-QUEBRADO',
+            'Aluno Quebrado'
+        ));
+
+        $event = PaymentEvent::query()->firstOrFail();
+
+        $this->assertWebhookResponse($response, 500, 'failed', 'processor_exception');
+        $response->assertJsonPath('event_id', $event->id);
+        $this->assertSame(PaymentProcessingStatus::FAILED, $event->processing_status);
+        $this->assertSame('processor_exception', $event->processing_reason);
     }
 
     public function test_course_enrollment_notification_renders_course_title_and_login_link(): void
@@ -538,6 +685,38 @@ class PaymentWebhookProcessingTest extends TestCase
         $this->actingAs($student)
             ->post('/learning/courses/'.$course->slug.'/enroll')
             ->assertNotFound();
+    }
+
+    private function assertWebhookResponse(
+        TestResponse $response,
+        int $statusCode,
+        string $status,
+        string $reason,
+        ?string $action = null,
+    ): void {
+        $response->assertStatus($statusCode);
+        $response->assertJsonPath('status', $status);
+        $response->assertJsonPath('reason', $reason);
+        $response->assertJsonPath('message', $this->webhookMessageForReason($reason));
+        $response->assertJsonPath('action', $action);
+    }
+
+    private function webhookMessageForReason(string $reason): string
+    {
+        return match ($reason) {
+            'approved' => 'Matrícula realizada com sucesso.',
+            'revoked' => 'Acesso do aluno bloqueado com sucesso.',
+            'course_unmapped' => 'Curso não encontrado para o identificador informado.',
+            'course_id_missing' => 'Campo de curso não encontrado no payload do webhook.',
+            'buyer_email_missing' => 'Campo de e-mail não encontrado no payload do webhook.',
+            'duplicate_payload' => 'Evento duplicado já recebido anteriormente.',
+            'invalid_signature' => 'Assinatura do webhook é inválida.',
+            'webhook_inactive' => 'Este webhook está inativo.',
+            'not_found' => 'Webhook não encontrado.',
+            'invalid_payload' => 'Payload do webhook está vazio ou inválido.',
+            'processor_exception' => 'Falha interna ao processar o webhook.',
+            default => 'Webhook processado.',
+        };
     }
 
     /**

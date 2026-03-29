@@ -28,13 +28,41 @@ use Illuminate\Support\Str;
 
 class PaymentWebhookProcessor
 {
+    public const ENROLLMENT_CREATED = 'enrollment_created';
+
+    public const ENROLLMENT_ACTIVATED = 'enrollment_activated';
+
+    public const ENROLLMENT_ALREADY_ACTIVE = 'enrollment_already_active';
+
+    public const ENROLLMENT_BLOCKED = 'enrollment_blocked';
+
+    public const ENROLLMENT_ALREADY_BLOCKED = 'enrollment_already_blocked';
+
+    public const ENROLLMENT_NONE = 'none';
+
     public function __construct(
         private readonly JsonPathExtractor $extractor,
         private readonly TenantMailManager $tenantMailManager,
     ) {}
 
-    public function process(PaymentEvent $event, bool $force = false): void
+    /**
+     * @return array{
+     *     processing_status:PaymentProcessingStatus,
+     *     processing_reason:string,
+     *     action:?PaymentInternalAction,
+     *     buyer_email:?string,
+     *     course_reference:?string,
+     *     course_id:?int,
+     *     user_id:?int,
+     *     enrollment_result:string
+     * }
+     */
+    public function process(PaymentEvent $event, bool $force = false): array
     {
+        $action = null;
+        $buyerEmail = null;
+        $courseReference = null;
+
         try {
             $event->refresh();
 
@@ -43,7 +71,7 @@ class PaymentWebhookProcessor
                 : PaymentProcessingStatus::tryFrom((string) $event->processing_status);
 
             if (! $force && $currentStatus && ! in_array($currentStatus, [PaymentProcessingStatus::QUEUED, PaymentProcessingStatus::FAILED], true)) {
-                return;
+                return $this->resultFromEvent($event);
             }
 
             $event->loadMissing([
@@ -54,13 +82,14 @@ class PaymentWebhookProcessor
             if (! $link) {
                 $this->markEvent($event, PaymentProcessingStatus::FAILED, 'webhook_link_not_found');
 
-                return;
+                return $this->resultFromEvent($event);
             }
 
             $payload = is_array($event->raw_payload) ? $event->raw_payload : [];
             $fieldMappings = $this->supportedFieldMappings($link->fieldMappings);
             $extracted = $this->extractMappedFields($payload, $fieldMappings);
             $internalAction = $this->resolveInternalAction($link);
+            $action = $internalAction;
             $courseReference = trim((string) ($extracted['course_id'] ?? ''));
 
             $event->forceFill([
@@ -86,7 +115,15 @@ class PaymentWebhookProcessor
             if ($buyerEmail === '') {
                 $this->markEvent($event, PaymentProcessingStatus::IGNORED, 'buyer_email_missing');
 
-                return;
+                return $this->buildResult(
+                    $event,
+                    $action,
+                    $extracted['buyer_email'],
+                    $courseReference,
+                    null,
+                    null,
+                    self::ENROLLMENT_NONE,
+                );
             }
 
             $outcome = $internalAction === PaymentInternalAction::APPROVE
@@ -107,6 +144,16 @@ class PaymentWebhookProcessor
                     : $event->processing_status,
                 'reason' => $event->processing_reason,
             ]);
+
+            return $this->buildResult(
+                $event,
+                $action,
+                $extracted['buyer_email'],
+                $courseReference,
+                $outcome['course_id'] ?? null,
+                $outcome['user_id'] ?? null,
+                $outcome['enrollment_result'] ?? self::ENROLLMENT_NONE,
+            );
         } catch (\Throwable $exception) {
             Log::error('Erro ao processar evento de webhook de pagamento', [
                 'payment_event_id' => $event->id,
@@ -117,6 +164,16 @@ class PaymentWebhookProcessor
             $this->logStep($event, 'exception', 'error', 'Falha no processamento.', [
                 'error' => $exception->getMessage(),
             ]);
+
+            return $this->buildResult(
+                $event,
+                $action,
+                $buyerEmail,
+                $courseReference,
+                null,
+                null,
+                self::ENROLLMENT_NONE,
+            );
         }
     }
 
@@ -207,7 +264,13 @@ class PaymentWebhookProcessor
 
     /**
      * @param  array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}  $extracted
-     * @return array{status:PaymentProcessingStatus,reason:string,course_id?:int,user_id?:int}
+     * @return array{
+     *     status:PaymentProcessingStatus,
+     *     reason:string,
+     *     course_id?:int,
+     *     user_id?:int,
+     *     enrollment_result:string
+     * }
      */
     private function applyApprove(PaymentEvent $event, PaymentWebhookLink $link, string $buyerEmail, string $courseReference, array $extracted, int $itemIndex): array
     {
@@ -215,6 +278,7 @@ class PaymentWebhookProcessor
             return [
                 'status' => PaymentProcessingStatus::PENDING,
                 'reason' => 'course_id_missing',
+                'enrollment_result' => self::ENROLLMENT_NONE,
             ];
         }
 
@@ -223,6 +287,7 @@ class PaymentWebhookProcessor
             return [
                 'status' => PaymentProcessingStatus::PENDING,
                 'reason' => 'course_unmapped',
+                'enrollment_result' => self::ENROLLMENT_NONE,
             ];
         }
 
@@ -260,12 +325,19 @@ class PaymentWebhookProcessor
             'reason' => 'approved',
             'course_id' => $course->id,
             'user_id' => $user->id,
+            'enrollment_result' => $enrollmentResult['enrollment_result'],
         ];
     }
 
     /**
      * @param  array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}  $extracted
-     * @return array{status:PaymentProcessingStatus,reason:string,course_id?:int,user_id?:int}
+     * @return array{
+     *     status:PaymentProcessingStatus,
+     *     reason:string,
+     *     course_id?:int,
+     *     user_id?:int,
+     *     enrollment_result:string
+     * }
      */
     private function applyRevoke(PaymentEvent $event, PaymentWebhookLink $link, string $buyerEmail, string $courseReference, array $extracted, int $itemIndex): array
     {
@@ -273,6 +345,7 @@ class PaymentWebhookProcessor
             return [
                 'status' => PaymentProcessingStatus::IGNORED,
                 'reason' => 'course_id_missing',
+                'enrollment_result' => self::ENROLLMENT_NONE,
             ];
         }
 
@@ -281,6 +354,7 @@ class PaymentWebhookProcessor
             return [
                 'status' => PaymentProcessingStatus::IGNORED,
                 'reason' => 'course_unmapped',
+                'enrollment_result' => self::ENROLLMENT_NONE,
             ];
         }
 
@@ -312,7 +386,7 @@ class PaymentWebhookProcessor
             $entitlement->last_payment_event_id = $event->id;
             $entitlement->save();
 
-            $this->syncEnrollmentAccess($user, $course, 'revoke');
+            $enrollmentResult = $this->syncEnrollmentAccess($user, $course, 'revoke');
             $this->recordTrackingEvent($event, $itemIndex, 'PurchaseRevoked', $user, $course, $extracted);
 
             return [
@@ -320,6 +394,7 @@ class PaymentWebhookProcessor
                 'reason' => 'revoked',
                 'course_id' => $course->id,
                 'user_id' => $user->id,
+                'enrollment_result' => $enrollmentResult['enrollment_result'],
             ];
         }
 
@@ -330,7 +405,7 @@ class PaymentWebhookProcessor
             $entitlement->save();
         }
 
-        $this->syncEnrollmentAccess($user, $course, 'revoke');
+        $enrollmentResult = $this->syncEnrollmentAccess($user, $course, 'revoke');
         $this->recordTrackingEvent($event, $itemIndex, 'PurchaseRevoked', $user, $course, $extracted);
 
         return [
@@ -338,6 +413,7 @@ class PaymentWebhookProcessor
             'reason' => 'revoked',
             'course_id' => $course->id,
             'user_id' => $user->id,
+            'enrollment_result' => $enrollmentResult['enrollment_result'],
         ];
     }
 
@@ -443,7 +519,7 @@ class PaymentWebhookProcessor
     }
 
     /**
-     * @return array{enrollment:Enrollment,was_created:bool}
+     * @return array{enrollment:Enrollment,was_created:bool,enrollment_result:string}
      */
     private function syncEnrollmentAccess(User $user, Course $course, string $reason): array
     {
@@ -460,6 +536,7 @@ class PaymentWebhookProcessor
             ]
         );
         $wasCreated = $enrollment->wasRecentlyCreated;
+        $previousStatus = $wasCreated ? null : $this->enrollmentStatusValue($enrollment->access_status);
 
         if ($enrollment->manual_override) {
             if ($enrollment->access_status !== EnrollmentAccessStatus::ACTIVE) {
@@ -473,6 +550,7 @@ class PaymentWebhookProcessor
             return [
                 'enrollment' => $enrollment,
                 'was_created' => $wasCreated,
+                'enrollment_result' => $this->resolveEnrollmentResult($previousStatus, EnrollmentAccessStatus::ACTIVE->value, $wasCreated),
             ];
         }
 
@@ -498,6 +576,7 @@ class PaymentWebhookProcessor
             return [
                 'enrollment' => $enrollment,
                 'was_created' => $wasCreated,
+                'enrollment_result' => $this->resolveEnrollmentResult($previousStatus, EnrollmentAccessStatus::ACTIVE->value, $wasCreated),
             ];
         }
 
@@ -512,6 +591,7 @@ class PaymentWebhookProcessor
         return [
             'enrollment' => $enrollment,
             'was_created' => $wasCreated,
+            'enrollment_result' => $this->resolveEnrollmentResult($previousStatus, $this->enrollmentStatusValue($enrollment->access_status), $wasCreated),
         ];
     }
 
@@ -633,6 +713,14 @@ class PaymentWebhookProcessor
         }
 
         if ($hasProcessed) {
+            if (count($outcomes) === 1) {
+                $outcome = $outcomes[0];
+
+                $this->markEvent($event, PaymentProcessingStatus::PROCESSED, (string) $outcome['reason']);
+
+                return;
+            }
+
             $reason = collect($outcomes)->contains(fn (array $outcome) => $outcome['status'] === PaymentProcessingStatus::IGNORED)
                 ? 'processed_with_ignores'
                 : 'processed';
@@ -744,5 +832,110 @@ class PaymentWebhookProcessor
         }
 
         return round((float) $value, 2);
+    }
+
+    private function resolveEnrollmentResult(?string $previousStatus, string $currentStatus, bool $wasCreated): string
+    {
+        if ($currentStatus === EnrollmentAccessStatus::ACTIVE->value) {
+            if ($wasCreated) {
+                return self::ENROLLMENT_CREATED;
+            }
+
+            if ($previousStatus === EnrollmentAccessStatus::BLOCKED->value) {
+                return self::ENROLLMENT_ACTIVATED;
+            }
+
+            return self::ENROLLMENT_ALREADY_ACTIVE;
+        }
+
+        if ($currentStatus === EnrollmentAccessStatus::BLOCKED->value) {
+            if ($previousStatus === EnrollmentAccessStatus::BLOCKED->value) {
+                return self::ENROLLMENT_ALREADY_BLOCKED;
+            }
+
+            return self::ENROLLMENT_BLOCKED;
+        }
+
+        return self::ENROLLMENT_NONE;
+    }
+
+    private function enrollmentStatusValue(mixed $status): string
+    {
+        return $status instanceof EnrollmentAccessStatus
+            ? $status->value
+            : (string) $status;
+    }
+
+    /**
+     * @return array{
+     *     processing_status:PaymentProcessingStatus,
+     *     processing_reason:string,
+     *     action:?PaymentInternalAction,
+     *     buyer_email:?string,
+     *     course_reference:?string,
+     *     course_id:?int,
+     *     user_id:?int,
+     *     enrollment_result:string
+     * }
+     */
+    private function buildResult(
+        PaymentEvent $event,
+        ?PaymentInternalAction $action,
+        ?string $buyerEmail,
+        ?string $courseReference,
+        ?int $courseId,
+        ?int $userId,
+        string $enrollmentResult,
+    ): array {
+        $status = $event->processing_status instanceof PaymentProcessingStatus
+            ? $event->processing_status
+            : PaymentProcessingStatus::tryFrom((string) $event->processing_status)
+                ?? PaymentProcessingStatus::FAILED;
+
+        return [
+            'processing_status' => $status,
+            'processing_reason' => (string) ($event->processing_reason ?? ''),
+            'action' => $action,
+            'buyer_email' => $buyerEmail !== null && trim($buyerEmail) !== '' ? $buyerEmail : null,
+            'course_reference' => $courseReference !== null && trim($courseReference) !== '' ? $courseReference : null,
+            'course_id' => $courseId,
+            'user_id' => $userId,
+            'enrollment_result' => $enrollmentResult,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     processing_status:PaymentProcessingStatus,
+     *     processing_reason:string,
+     *     action:?PaymentInternalAction,
+     *     buyer_email:?string,
+     *     course_reference:?string,
+     *     course_id:?int,
+     *     user_id:?int,
+     *     enrollment_result:string
+     * }
+     */
+    private function resultFromEvent(PaymentEvent $event): array
+    {
+        $status = $event->processing_status instanceof PaymentProcessingStatus
+            ? $event->processing_status
+            : PaymentProcessingStatus::tryFrom((string) $event->processing_status)
+                ?? PaymentProcessingStatus::FAILED;
+
+        $action = $event->internal_action instanceof PaymentInternalAction
+            ? $event->internal_action
+            : PaymentInternalAction::tryFrom((string) $event->internal_action);
+
+        return [
+            'processing_status' => $status,
+            'processing_reason' => (string) ($event->processing_reason ?? ''),
+            'action' => $action,
+            'buyer_email' => filled($event->buyer_email) ? (string) $event->buyer_email : null,
+            'course_reference' => filled($event->external_product_id) ? (string) $event->external_product_id : null,
+            'course_id' => null,
+            'user_id' => null,
+            'enrollment_result' => self::ENROLLMENT_NONE,
+        ];
     }
 }

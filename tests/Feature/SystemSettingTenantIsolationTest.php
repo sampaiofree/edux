@@ -272,7 +272,11 @@ class SystemSettingTenantIsolationTest extends TestCase
                 ],
             ])
             ->assertOk()
-            ->assertJson(['status' => 'ok']);
+            ->assertJson([
+                'status' => 'processed',
+                'reason' => 'approved',
+                'action' => 'approve',
+            ]);
 
         $this->assertDatabaseHas('enrollments', [
             'system_setting_id' => $adminA->system_setting_id,
