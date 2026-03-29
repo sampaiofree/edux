@@ -55,9 +55,10 @@ class PaymentWebhookController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->linkValidationRules());
+        $systemSettingId = $request->user()?->adminContextSystemSettingId();
 
         $link = PaymentWebhookLink::create([
-            'system_setting_id' => $request->user()?->system_setting_id,
+            'system_setting_id' => $systemSettingId,
             'name' => $validated['name'],
             'endpoint_uuid' => (string) Str::uuid(),
             'is_active' => (bool) ($validated['is_active'] ?? false),
@@ -222,9 +223,11 @@ class PaymentWebhookController extends Controller
 
     public function upsertProductMapping(Request $request, PaymentWebhookLink $webhookLink): RedirectResponse
     {
+        $systemSettingId = (int) ($request->user()?->adminContextSystemSettingId() ?? 0);
+
         $validated = $request->validate([
             'external_product_id' => ['required', 'string', 'max:191'],
-            'course_id' => ['required', 'integer', Rule::exists('courses', 'id')->where('system_setting_id', $request->user()?->system_setting_id)],
+            'course_id' => ['required', 'integer', Rule::exists('courses', 'id')->where('system_setting_id', $systemSettingId)],
             'is_active' => ['nullable', 'boolean'],
         ]);
 

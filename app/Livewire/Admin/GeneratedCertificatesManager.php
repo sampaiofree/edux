@@ -187,7 +187,7 @@ class GeneratedCertificatesManager extends Component
 
     protected function rules(): array
     {
-        $systemSettingId = auth()->user()?->system_setting_id;
+        $systemSettingId = auth()->user()?->adminContextSystemSettingId();
 
         return [
             'courseId' => ['required', 'integer', Rule::exists('courses', 'id')->where('system_setting_id', $systemSettingId)],

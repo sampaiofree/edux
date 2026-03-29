@@ -9,7 +9,11 @@ trait HandlesCourseAuthorization
 {
     protected function ensureCanManageCourse(User $user, Course $course): void
     {
-        if ($user->isAdmin() && (int) $user->system_setting_id === (int) $course->system_setting_id) {
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        if ($user->isAdmin() && $user->canAccessSystemSetting($course->system_setting_id)) {
             return;
         }
 

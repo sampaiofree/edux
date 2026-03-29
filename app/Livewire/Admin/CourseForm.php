@@ -74,7 +74,7 @@ class CourseForm extends Component
                 'owner_id' => $this->course->owner_id,
             ]);
         } else {
-            $this->owner_id = Auth::id();
+            $this->owner_id = $this->defaultOwnerId();
         }
     }
 
@@ -84,7 +84,7 @@ class CourseForm extends Component
         $data = $this->validate($this->rules());
         unset($data['cover_image']);
 
-        if (! $user->isAdmin()) {
+        if (! $user->hasAdminPrivileges()) {
             $data['owner_id'] = $user->id;
             $data['support_whatsapp_mode'] = $this->course?->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL;
             $data['support_whatsapp_number_id'] = $this->course?->support_whatsapp_number_id;
@@ -98,7 +98,7 @@ class CourseForm extends Component
             $this->course->update($data);
         } else {
             $data['slug'] = $this->generateUniqueSlug($data['title']);
-            $data['system_setting_id'] = $user?->system_setting_id;
+            $data['system_setting_id'] = $user?->adminContextSystemSettingId();
             $this->course = Course::create($data);
         }
 
@@ -136,12 +136,12 @@ class CourseForm extends Component
 
     public function getIsAdminProperty(): bool
     {
-        return Auth::user()->isAdmin();
+        return Auth::user()->hasAdminPrivileges();
     }
 
     private function rules(): array
     {
-        $systemSettingId = Auth::user()?->system_setting_id;
+        $systemSettingId = Auth::user()?->adminContextSystemSettingId();
 
         return [
             'title' => ['required', 'string', 'max:255'],
@@ -256,5 +256,26 @@ class CourseForm extends Component
             ->orderBy('position')
             ->orderBy('label')
             ->get();
+    }
+
+    private function defaultOwnerId(): ?int
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return null;
+        }
+
+        if (! $user->hasAdminPrivileges()) {
+            return $user->id;
+        }
+
+        $currentSystemSettingId = $user->adminContextSystemSettingId();
+
+        if ($currentSystemSettingId !== null && (int) ($user->system_setting_id ?? 0) === (int) $currentSystemSettingId) {
+            return $user->id;
+        }
+
+        return $this->owners()->first()?->id;
     }
 }

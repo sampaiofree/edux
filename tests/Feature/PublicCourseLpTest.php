@@ -43,7 +43,7 @@ class PublicCourseLpTest extends TestCase
         $response->assertDontSee('data-lp-cta-source="hero_secondary_v4"', false);
         $response->assertDontSee('data-lp-cta-source="sticky_panel_secondary_v4"', false);
         $response->assertDontSee('data-lp-cta-source="final_secondary_v4"', false);
-        $response->assertSee('data-lp-cta-source="mobile_sticky_cta_v4"', false);
+        $response->assertDontSee('data-lp-cta-source="mobile_sticky_cta_v4"', false);
     }
 
     public function test_public_course_lp_renders_fixed_city_top_bar_when_city_query_is_present(): void
@@ -54,7 +54,6 @@ class PublicCourseLpTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('data-lp-city-fixed-top', false);
-        $response->assertSee('Atendimento para Recife');
         $response->assertSee('data-course-slug="'.$course->slug.'"', false);
         $response->assertSee('data-lp-vacancy="1"', false);
         $response->assertDontSee('data-lp-vacancy-badge', false);

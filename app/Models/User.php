@@ -130,6 +130,19 @@ class User extends Authenticatable
         return SystemSetting::currentId();
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function configuredSuperAdminEmails(): array
+    {
+        return collect(config('auth.super_admin_emails', []))
+            ->map(fn (mixed $email): ?string => static::normalizeEmailValue($email))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function systemSetting(): BelongsTo
     {
         return $this->belongsTo(SystemSetting::class);
@@ -185,6 +198,44 @@ class User extends Authenticatable
         return $this->role === UserRole::ADMIN;
     }
 
+    public function isSuperAdmin(): bool
+    {
+        $email = static::normalizeEmailValue($this->email);
+
+        return $email !== null
+            && in_array($email, static::configuredSuperAdminEmails(), true);
+    }
+
+    public function hasAdminPrivileges(): bool
+    {
+        return $this->isAdmin() || $this->isSuperAdmin();
+    }
+
+    public function adminContextSystemSettingId(): ?int
+    {
+        if ($this->isSuperAdmin()) {
+            return SystemSetting::currentId()
+                ?? ((int) ($this->system_setting_id ?? 0) ?: null)
+                ?? SystemSetting::forUser($this)?->id;
+        }
+
+        return ((int) ($this->system_setting_id ?? 0) ?: null)
+            ?? SystemSetting::forUser($this)?->id;
+    }
+
+    public function canAccessSystemSetting(?int $systemSettingId): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $currentSystemSettingId = $this->adminContextSystemSettingId();
+
+        return $systemSettingId !== null
+            && $currentSystemSettingId !== null
+            && (int) $currentSystemSettingId === (int) $systemSettingId;
+    }
+
     public function isStudent(): bool
     {
         return $this->role === UserRole::STUDENT;
@@ -200,5 +251,16 @@ class User extends Authenticatable
         return $this->profile_photo_path
             ? asset('storage/'.$this->profile_photo_path)
             : null;
+    }
+
+    private static function normalizeEmailValue(mixed $value): ?string
+    {
+        $email = trim((string) $value);
+
+        if ($email === '') {
+            return null;
+        }
+
+        return mb_strtolower($email, 'UTF-8');
     }
 }

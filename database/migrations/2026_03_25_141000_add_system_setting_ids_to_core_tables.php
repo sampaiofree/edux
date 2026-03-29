@@ -9,109 +9,41 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->foreignId('system_setting_id')
-                ->nullable()
-                ->after('role')
-                ->constrained('system_settings')
-                ->nullOnDelete()
-                ->index();
-        });
-
-        Schema::table('courses', function (Blueprint $table): void {
-            $table->foreignId('system_setting_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('system_settings')
-                ->nullOnDelete()
-                ->index();
-        });
-
-        Schema::table('payment_webhook_links', function (Blueprint $table): void {
-            $table->foreignId('system_setting_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('system_settings')
-                ->nullOnDelete()
-                ->index();
-        });
-
-        Schema::table('enrollments', function (Blueprint $table): void {
-            $table->foreignId('system_setting_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('system_settings')
-                ->nullOnDelete()
-                ->index();
-        });
-
-        Schema::table('support_whatsapp_numbers', function (Blueprint $table): void {
-            $table->foreignId('system_setting_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('system_settings')
-                ->nullOnDelete()
-                ->index();
-        });
-
-        Schema::table('notifications', function (Blueprint $table): void {
-            $table->foreignId('system_setting_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('system_settings')
-                ->nullOnDelete()
-                ->index();
-        });
-
-        Schema::table('certificate_brandings', function (Blueprint $table): void {
-            $table->foreignId('system_setting_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('system_settings')
-                ->nullOnDelete()
-                ->index();
-        });
+        $this->ensureSystemSettingColumn('users', 'role');
+        $this->ensureSystemSettingColumn('courses', 'id');
+        $this->ensureSystemSettingColumn('payment_webhook_links', 'id');
+        $this->ensureSystemSettingColumn('enrollments', 'id');
+        $this->ensureSystemSettingColumn('support_whatsapp_numbers', 'id');
+        $this->ensureSystemSettingColumn('notifications', 'id');
+        $this->ensureSystemSettingColumn('certificate_brandings', 'id');
 
         $this->backfillSystemSettings();
         $this->backfillTenantOwnership();
 
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropUnique('users_email_unique');
-            $table->unique(['system_setting_id', 'email']);
-        });
+        $this->ensureUsersEmailUniquePerTenant();
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropUnique('users_system_setting_id_email_unique');
-            $table->unique('email');
-            $table->dropConstrainedForeignId('system_setting_id');
-        });
+        if ($this->hasIndexNamed('users', 'users_system_setting_id_email_unique')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->dropUnique('users_system_setting_id_email_unique');
+            });
+        }
 
-        Schema::table('courses', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('system_setting_id');
-        });
+        if (! $this->hasIndexNamed('users', 'users_email_unique')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->unique('email');
+            });
+        }
 
-        Schema::table('payment_webhook_links', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('system_setting_id');
-        });
-
-        Schema::table('enrollments', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('system_setting_id');
-        });
-
-        Schema::table('support_whatsapp_numbers', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('system_setting_id');
-        });
-
-        Schema::table('notifications', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('system_setting_id');
-        });
-
-        Schema::table('certificate_brandings', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('system_setting_id');
-        });
+        $this->dropSystemSettingColumn('users');
+        $this->dropSystemSettingColumn('courses');
+        $this->dropSystemSettingColumn('payment_webhook_links');
+        $this->dropSystemSettingColumn('enrollments');
+        $this->dropSystemSettingColumn('support_whatsapp_numbers');
+        $this->dropSystemSettingColumn('notifications');
+        $this->dropSystemSettingColumn('certificate_brandings');
     }
 
     private function backfillSystemSettings(): void
@@ -522,5 +454,125 @@ return new class extends Migration
         $candidate = trim(mb_strtolower($candidate, 'UTF-8'));
 
         return $candidate !== '' ? $candidate : null;
+    }
+
+    private function ensureSystemSettingColumn(string $tableName, string $afterColumn): void
+    {
+        if (! Schema::hasColumn($tableName, 'system_setting_id')) {
+            Schema::table($tableName, function (Blueprint $table) use ($afterColumn): void {
+                $table->foreignId('system_setting_id')
+                    ->nullable()
+                    ->after($afterColumn);
+            });
+        }
+
+        if (! $this->hasIndexForColumns($tableName, ['system_setting_id'])) {
+            Schema::table($tableName, function (Blueprint $table): void {
+                $table->index('system_setting_id');
+            });
+        }
+
+        if (! $this->hasForeignKeyForColumns($tableName, ['system_setting_id'], 'system_settings', ['id'])) {
+            Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
+                $table->foreign('system_setting_id', "{$tableName}_system_setting_id_foreign")
+                    ->references('id')
+                    ->on('system_settings')
+                    ->nullOnDelete();
+            });
+        }
+    }
+
+    private function ensureUsersEmailUniquePerTenant(): void
+    {
+        if ($this->hasIndexForColumns('users', ['system_setting_id', 'email'], true)) {
+            return;
+        }
+
+        if ($this->hasIndexNamed('users', 'users_email_unique')) {
+            Schema::table('users', function (Blueprint $table): void {
+                $table->dropUnique('users_email_unique');
+            });
+        }
+
+        Schema::table('users', function (Blueprint $table): void {
+            $table->unique(['system_setting_id', 'email']);
+        });
+    }
+
+    private function dropSystemSettingColumn(string $tableName): void
+    {
+        if (! Schema::hasColumn($tableName, 'system_setting_id')) {
+            return;
+        }
+
+        foreach ($this->foreignKeyNamesForColumn($tableName, 'system_setting_id') as $foreignKeyName) {
+            Schema::table($tableName, function (Blueprint $table) use ($foreignKeyName): void {
+                $table->dropForeign($foreignKeyName);
+            });
+        }
+
+        if ($this->hasIndexNamed($tableName, "{$tableName}_system_setting_id_index")) {
+            Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
+                $table->dropIndex("{$tableName}_system_setting_id_index");
+            });
+        }
+
+        Schema::table($tableName, function (Blueprint $table): void {
+            $table->dropColumn('system_setting_id');
+        });
+    }
+
+    /**
+     * @param  list<string>  $columns
+     * @param  list<string>|null  $foreignColumns
+     */
+    private function hasForeignKeyForColumns(string $tableName, array $columns, ?string $foreignTable = null, ?array $foreignColumns = null): bool
+    {
+        foreach (Schema::getForeignKeys($tableName) as $foreignKey) {
+            $matchesColumns = array_values($foreignKey['columns'] ?? []) === $columns;
+            $matchesTable = $foreignTable === null || ($foreignKey['foreign_table'] ?? null) === $foreignTable;
+            $matchesForeignColumns = $foreignColumns === null || array_values($foreignKey['foreign_columns'] ?? []) === $foreignColumns;
+
+            if ($matchesColumns && $matchesTable && $matchesForeignColumns) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function foreignKeyNamesForColumn(string $tableName, string $column): array
+    {
+        return collect(Schema::getForeignKeys($tableName))
+            ->filter(fn (array $foreignKey) => array_values($foreignKey['columns'] ?? []) === [$column])
+            ->pluck('name')
+            ->filter(fn ($name) => is_string($name) && $name !== '')
+            ->values()
+            ->all();
+    }
+
+    private function hasIndexNamed(string $tableName, string $indexName): bool
+    {
+        return in_array($indexName, Schema::getIndexListing($tableName), true);
+    }
+
+    /**
+     * @param  list<string>  $columns
+     */
+    private function hasIndexForColumns(string $tableName, array $columns, ?bool $unique = null): bool
+    {
+        foreach (Schema::getIndexes($tableName) as $index) {
+            $matchesColumns = array_values($index['columns'] ?? []) === $columns;
+            $matchesUnique = $unique === null || (bool) ($index['unique'] ?? false) === $unique;
+
+            if ($matchesColumns && $matchesUnique) {
+                return true;
+            }
+        }
+
+        return false;
     }
 };

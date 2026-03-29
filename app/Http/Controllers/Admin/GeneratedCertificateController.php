@@ -33,7 +33,7 @@ class GeneratedCertificateController extends Controller
             abort(404);
         }
 
-        abort_if((int) ($request->user()?->system_setting_id ?? 0) !== (int) $course->system_setting_id, 404);
+        abort_if(! $request->user()?->canAccessSystemSetting($course->system_setting_id), 404);
 
         $pdf = $this->makePdf($certificate, $course);
 

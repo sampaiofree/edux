@@ -112,4 +112,9 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    'super_admin_emails' => array_values(array_filter(array_map(
+        static fn (string $email): string => trim($email),
+        explode(',', (string) env('SUPER_ADMIN_EMAILS', 'sampaio.free@gmail.com'))
+    ))),
+
 ];

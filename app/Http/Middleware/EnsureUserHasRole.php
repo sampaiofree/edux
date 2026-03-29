@@ -17,9 +17,13 @@ class EnsureUserHasRole
             abort(403);
         }
 
+        if ($user->isSuperAdmin() && in_array('admin', $roles, true)) {
+            return $next($request);
+        }
+
         $currentSystemSettingId = SystemSetting::currentId();
 
-        if ($currentSystemSettingId !== null && (int) ($user->system_setting_id ?? 0) !== $currentSystemSettingId) {
+        if ($currentSystemSettingId !== null && ! $user->canAccessSystemSetting($currentSystemSettingId)) {
             abort(403);
         }
 

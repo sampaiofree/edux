@@ -99,7 +99,6 @@
         $primaryActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Quero me matricular agora';
         $stickyActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Ir para matrÃ­cula';
         $checkoutOptionActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Quero esta opÃ§Ã£o';
-        $mobileStickyActionLabel = $isWhatsappCtaMode ? 'Falar no WhatsApp' : 'Matricular agora';
         $heroVacancyWaitlistUrl = trim((string) ($lpVacancyWaitlistUrl ?? ''));
         $heroVacancyWaitlistMessage = trim((string) ($lpVacancyWaitlistMessage ?? ''));
         $vacancyCityScope = isset($cityQueryNormalized) && is_string($cityQueryNormalized)
@@ -1415,23 +1414,4 @@
             })();
         </script>
     @endpush
-
-    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-700 bg-slate-950/95 p-3 text-white shadow-2xl backdrop-blur md:hidden">
-        <div class="flex items-center gap-3">
-            <div class="min-w-0">
-                <p class="text-xs font-semibold uppercase tracking-wide text-white/60">A partir de</p>
-                <p class="text-base font-black leading-none text-white">{{ $stickyCheckoutPriceLabel }}</p>
-            </div>
-            <a
-                href="#matricula"
-                data-lp-cta-source="mobile_sticky_cta_v4"
-                class="inline-flex min-h-[50px] flex-1 items-center justify-center rounded-xl bg-amber-300 px-4 py-3 text-center text-sm font-black text-slate-950 shadow-md transition hover:bg-amber-200"
-            >
-                Ir para matrícula
-            </a>
-        </div>
-        <p class="mt-2 text-xs leading-4 text-white/60">
-            {{ $cityStickyFooterLine }}
-        </p>
-    </div>
 @endsection

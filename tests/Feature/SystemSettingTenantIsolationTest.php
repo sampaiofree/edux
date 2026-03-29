@@ -141,6 +141,65 @@ class SystemSettingTenantIsolationTest extends TestCase
         $this->assertAuthenticatedAs($studentB);
     }
 
+    public function test_configured_super_admin_can_login_on_another_tenant_domain_and_manage_courses(): void
+    {
+        [$superAdmin, $tenantA] = $this->createTenant('cursos.super-home.test', 'Super Home');
+        [$adminB, $tenantB] = $this->createTenant('cursos.super-target.test', 'Super Target');
+
+        $superAdmin->forceFill([
+            'email' => 'sampaio.free@gmail.com',
+        ])->save();
+
+        $courseB = $this->createPublishedCourseForTenant($adminB, 'curso-super-target', 'Curso Super Target');
+
+        $this->forceTestHost($tenantB->domain)
+            ->post('http://'.$tenantB->domain.'/login', [
+                'email' => 'sampaio.free@gmail.com',
+                'password' => 'password',
+            ])
+            ->assertRedirect('http://'.$tenantB->domain.'/admin/dashboard');
+
+        $this->assertAuthenticatedAs($superAdmin->fresh());
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin->fresh())
+            ->get("/admin/courses/{$courseB->slug}/edit")
+            ->assertOk()
+            ->assertSee('Curso Super Target', false);
+
+        $this->forceTestHost($tenantB->domain)
+            ->post('http://'.$tenantB->domain.'/logout')
+            ->assertRedirect('http://'.$tenantB->domain.'/login');
+    }
+
+    public function test_super_admin_creates_webhook_in_current_tenant_context(): void
+    {
+        [$superAdmin] = $this->createTenant('cursos.super-webhook-home.test', 'Super Webhook Home');
+        [$adminB, $tenantB] = $this->createTenant('cursos.super-webhook-target.test', 'Super Webhook Target');
+
+        $superAdmin->forceFill([
+            'email' => 'sampaio.free@gmail.com',
+        ])->save();
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin->fresh())
+            ->post('/admin/webhooks', [
+                'name' => 'Webhook Super Admin',
+                'is_active' => '1',
+                'action_mode' => PaymentWebhookLink::ACTION_REGISTER,
+                'security_mode' => '',
+                'secret' => '',
+                'signature_header' => '',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('payment_webhook_links', [
+            'name' => 'Webhook Super Admin',
+            'system_setting_id' => $adminB->system_setting_id,
+            'created_by' => $superAdmin->id,
+        ]);
+    }
+
     public function test_webhook_uses_link_tenant_to_resolve_duplicate_email_and_course_ids(): void
     {
         [$adminA, $tenantA] = $this->createTenant('cursos.webhook-alpha.test', 'Webhook Alpha');

@@ -148,7 +148,7 @@ class EnrollmentController extends Controller
     {
         $courseId = $request->input('course_id');
         $userId = $request->input('user_id');
-        $systemSettingId = (int) ($request->user()?->system_setting_id ?? 0);
+        $systemSettingId = (int) ($request->user()?->adminContextSystemSettingId() ?? 0);
 
         $courseRules = ['required', 'integer', Rule::exists('courses', 'id')->where('system_setting_id', $systemSettingId)];
         if ($courseId !== null && $courseId !== '' && $userId !== null && $userId !== '') {

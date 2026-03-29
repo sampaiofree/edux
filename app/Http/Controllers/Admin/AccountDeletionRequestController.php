@@ -116,6 +116,10 @@ class AccountDeletionRequestController extends Controller
 
     private function ensureRequestBelongsToCurrentSystem(Request $request, AccountDeletionRequest $accountDeletionRequest): void
     {
+        if ($request->user()?->isSuperAdmin()) {
+            return;
+        }
+
         $systemSettingId = DB::table('users')
             ->where('id', $accountDeletionRequest->user_id)
             ->value('system_setting_id');
@@ -124,6 +128,6 @@ class AccountDeletionRequestController extends Controller
             return;
         }
 
-        abort_if((int) $systemSettingId !== (int) ($request->user()?->system_setting_id ?? 0), 404);
+        abort_if(! $request->user()?->canAccessSystemSetting((int) $systemSettingId), 404);
     }
 }

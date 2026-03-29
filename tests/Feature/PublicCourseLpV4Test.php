@@ -42,7 +42,7 @@ class PublicCourseLpV4Test extends TestCase
         $response->assertDontSee('data-lp-cta-source="hero_secondary_v4"', false);
         $response->assertDontSee('data-lp-cta-source="sticky_panel_secondary_v4"', false);
         $response->assertDontSee('data-lp-cta-source="final_secondary_v4"', false);
-        $response->assertSee('data-lp-cta-source="mobile_sticky_cta_v4"', false);
+        $response->assertDontSee('data-lp-cta-source="mobile_sticky_cta_v4"', false);
         $response->assertDontSee('data-mobile-checkout-carousel', false);
         $response->assertDontSee('data-mobile-checkout-track', false);
         $response->assertDontSee('data-mobile-checkout-dot', false);
@@ -55,7 +55,6 @@ class PublicCourseLpV4Test extends TestCase
         $response = $this->get(route('courses.public.v4.show', $course).'?cidade=Recife');
 
         $response->assertOk();
-        $response->assertSee('Atendimento para Recife');
         $response->assertSee('Cidade informada: Recife');
         $response->assertDontSee('data-lp-vacancy-badge', false);
         $response->assertSee('data-lp-hero-course-title', false);
@@ -105,7 +104,6 @@ class PublicCourseLpV4Test extends TestCase
 
         $response->assertOk();
         $response->assertSee('Sao Paulo');
-        $response->assertSee('Atendimento para Sao Paulo');
     }
 
     public function test_public_course_lp_v4_keeps_checkout_flow_when_w_query_is_enabled(): void

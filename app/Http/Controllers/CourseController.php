@@ -27,7 +27,7 @@ class CourseController extends Controller
         $user = $request->user();
         $course = new Course([
             'status' => 'draft',
-            'owner_id' => $user->id,
+            'owner_id' => $this->defaultOwnerId($user),
             'support_whatsapp_mode' => Course::SUPPORT_WHATSAPP_MODE_ALL,
         ]);
         $supportWhatsappNumbers = $this->supportWhatsappNumbers();
@@ -38,7 +38,8 @@ class CourseController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $systemSettingId = (int) $user->system_setting_id;
+        $systemSettingId = (int) ($user->adminContextSystemSettingId() ?? 0);
+        $hasAdminPrivileges = $user->hasAdminPrivileges();
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -52,12 +53,12 @@ class CourseController extends Controller
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', Rule::exists('users', 'id')->where('system_setting_id', $systemSettingId)],
             'support_whatsapp_mode' => [
-                Rule::requiredIf(fn () => $user->isAdmin()),
+                Rule::requiredIf(fn () => $hasAdminPrivileges),
                 'nullable',
                 Rule::in([Course::SUPPORT_WHATSAPP_MODE_ALL, Course::SUPPORT_WHATSAPP_MODE_SPECIFIC]),
             ],
             'support_whatsapp_number_id' => [
-                Rule::requiredIf(fn () => $user->isAdmin() && $request->input('support_whatsapp_mode') === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
+                Rule::requiredIf(fn () => $hasAdminPrivileges && $request->input('support_whatsapp_mode') === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
                 'nullable',
                 'integer',
                 Rule::exists('support_whatsapp_numbers', 'id')->where('system_setting_id', $systemSettingId),
@@ -76,13 +77,13 @@ class CourseController extends Controller
         $courseWebhookIds = $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? []);
         $this->ensureUniqueCourseWebhookIds($courseWebhookIds);
 
-        $ownerId = $user->isAdmin()
-            ? ($validated['owner_id'] ?? $user->id)
+        $ownerId = $hasAdminPrivileges
+            ? ($validated['owner_id'] ?? $this->defaultOwnerId($user))
             : $user->id;
 
-        $course = DB::transaction(function () use ($courseWebhookIds, $ownerId, $user, $validated): Course {
+        $course = DB::transaction(function () use ($courseWebhookIds, $hasAdminPrivileges, $ownerId, $systemSettingId, $validated): Course {
             $course = Course::create([
-                'system_setting_id' => $user->system_setting_id,
+                'system_setting_id' => $systemSettingId,
                 'owner_id' => $ownerId,
                 'title' => $validated['title'],
                 'slug' => $this->generateUniqueSlug($validated['title']),
@@ -94,10 +95,10 @@ class CourseController extends Controller
                 'status' => $validated['status'],
                 'duration_minutes' => $validated['duration_minutes'] ?? null,
                 'published_at' => $validated['published_at'] ?? null,
-                'support_whatsapp_mode' => $user->isAdmin()
+                'support_whatsapp_mode' => $hasAdminPrivileges
                     ? ($validated['support_whatsapp_mode'] ?? Course::SUPPORT_WHATSAPP_MODE_ALL)
                     : Course::SUPPORT_WHATSAPP_MODE_ALL,
-                'support_whatsapp_number_id' => $user->isAdmin() && (($validated['support_whatsapp_mode'] ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
+                'support_whatsapp_number_id' => $hasAdminPrivileges && (($validated['support_whatsapp_mode'] ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
                     ? ($validated['support_whatsapp_number_id'] ?? null)
                     : null,
             ]);
@@ -163,7 +164,8 @@ class CourseController extends Controller
     {
         $user = $request->user();
         $this->ensureCanManageCourse($user, $course);
-        $systemSettingId = (int) $user->system_setting_id;
+        $systemSettingId = (int) ($user->adminContextSystemSettingId() ?? 0);
+        $hasAdminPrivileges = $user->hasAdminPrivileges();
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -177,12 +179,12 @@ class CourseController extends Controller
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', Rule::exists('users', 'id')->where('system_setting_id', $systemSettingId)],
             'support_whatsapp_mode' => [
-                Rule::requiredIf(fn () => $user->isAdmin()),
+                Rule::requiredIf(fn () => $hasAdminPrivileges),
                 'nullable',
                 Rule::in([Course::SUPPORT_WHATSAPP_MODE_ALL, Course::SUPPORT_WHATSAPP_MODE_SPECIFIC]),
             ],
             'support_whatsapp_number_id' => [
-                Rule::requiredIf(fn () => $user->isAdmin() && $request->input('support_whatsapp_mode') === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
+                Rule::requiredIf(fn () => $hasAdminPrivileges && $request->input('support_whatsapp_mode') === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),
                 'nullable',
                 'integer',
                 Rule::exists('support_whatsapp_numbers', 'id')->where('system_setting_id', $systemSettingId),
@@ -198,7 +200,7 @@ class CourseController extends Controller
         $courseWebhookIds = $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? []);
         $this->ensureUniqueCourseWebhookIds($courseWebhookIds);
 
-        DB::transaction(function () use ($course, $courseWebhookIds, $user, $validated): void {
+        DB::transaction(function () use ($course, $courseWebhookIds, $hasAdminPrivileges, $validated): void {
             $course->fill([
                 'title' => $validated['title'],
                 'summary' => $validated['summary'] ?? null,
@@ -209,15 +211,15 @@ class CourseController extends Controller
                 'status' => $validated['status'],
                 'duration_minutes' => $validated['duration_minutes'] ?? null,
                 'published_at' => $validated['published_at'] ?? null,
-                'support_whatsapp_mode' => $user->isAdmin()
+                'support_whatsapp_mode' => $hasAdminPrivileges
                     ? ($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL)
                     : ($course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL),
-                'support_whatsapp_number_id' => $user->isAdmin() && (($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
+                'support_whatsapp_number_id' => $hasAdminPrivileges && (($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
                     ? ($validated['support_whatsapp_number_id'] ?? null)
                     : null,
             ]);
 
-            if ($user->isAdmin() && isset($validated['owner_id'])) {
+            if ($hasAdminPrivileges && isset($validated['owner_id'])) {
                 $course->owner_id = $validated['owner_id'];
             }
 
@@ -280,6 +282,21 @@ class CourseController extends Controller
             ->orderBy('position')
             ->orderBy('label')
             ->get();
+    }
+
+    private function defaultOwnerId(User $user): ?int
+    {
+        if (! $user->hasAdminPrivileges()) {
+            return $user->id;
+        }
+
+        $currentSystemSettingId = $user->adminContextSystemSettingId();
+
+        if ($currentSystemSettingId !== null && (int) ($user->system_setting_id ?? 0) === (int) $currentSystemSettingId) {
+            return $user->id;
+        }
+
+        return $this->owners()->first()?->id;
     }
 
     /**

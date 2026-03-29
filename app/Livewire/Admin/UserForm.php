@@ -36,7 +36,7 @@ class UserForm extends Component
 
     public function save(): void
     {
-        $systemSettingId = auth()->user()?->system_setting_id;
+        $systemSettingId = auth()->user()?->adminContextSystemSettingId();
 
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
