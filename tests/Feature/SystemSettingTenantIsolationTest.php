@@ -143,19 +143,16 @@ class SystemSettingTenantIsolationTest extends TestCase
 
     public function test_configured_super_admin_can_login_on_another_tenant_domain_and_manage_courses(): void
     {
-        [$superAdmin, $tenantA] = $this->createTenant('cursos.super-home.test', 'Super Home');
+        $this->createTenant('cursos.super-home.test', 'Super Home');
         [$adminB, $tenantB] = $this->createTenant('cursos.super-target.test', 'Super Target');
-
-        $superAdmin->forceFill([
-            'email' => 'sampaio.free@gmail.com',
-        ])->save();
+        $superAdmin = $this->bootstrapSuperAdmin();
 
         $courseB = $this->createPublishedCourseForTenant($adminB, 'curso-super-target', 'Curso Super Target');
 
         $this->forceTestHost($tenantB->domain)
             ->post('http://'.$tenantB->domain.'/login', [
                 'email' => 'sampaio.free@gmail.com',
-                'password' => 'password',
+                'password' => 'admin123',
             ])
             ->assertRedirect('http://'.$tenantB->domain.'/admin/dashboard');
 
@@ -174,12 +171,9 @@ class SystemSettingTenantIsolationTest extends TestCase
 
     public function test_super_admin_creates_webhook_in_current_tenant_context(): void
     {
-        [$superAdmin] = $this->createTenant('cursos.super-webhook-home.test', 'Super Webhook Home');
+        $this->createTenant('cursos.super-webhook-home.test', 'Super Webhook Home');
         [$adminB, $tenantB] = $this->createTenant('cursos.super-webhook-target.test', 'Super Webhook Target');
-
-        $superAdmin->forceFill([
-            'email' => 'sampaio.free@gmail.com',
-        ])->save();
+        $superAdmin = $this->bootstrapSuperAdmin();
 
         $this->forceTestHost($tenantB->domain)
             ->actingAs($superAdmin->fresh())
@@ -390,5 +384,12 @@ class SystemSettingTenantIsolationTest extends TestCase
         }
 
         return $link;
+    }
+
+    private function bootstrapSuperAdmin(): User
+    {
+        return User::withoutGlobalScopes()
+            ->whereRaw('LOWER(email) = ?', ['sampaio.free@gmail.com'])
+            ->firstOrFail();
     }
 }
