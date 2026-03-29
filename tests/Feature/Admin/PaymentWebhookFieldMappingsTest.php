@@ -198,6 +198,67 @@ class PaymentWebhookFieldMappingsTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_save_valid_json_paths_even_without_reference_payload(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $link = $this->makeWebhookLink($admin);
+
+        $response = $this
+            ->actingAs($admin)
+            ->post(route('admin.webhooks.field-mappings.upsert', $link), [
+                'field_mappings' => [
+                    'buyer_name' => ['json_path' => 'customer.name'],
+                    'buyer_email' => ['json_path' => 'email'],
+                    'course_id' => ['json_path' => 'items.*.curso'],
+                    'buyer_whatsapp' => ['json_path' => 'buyer.whatsapp'],
+                ],
+            ]);
+
+        $response->assertRedirect(route('admin.webhooks.edit', $link));
+        $response->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_BUYER_NAME,
+            'json_path' => 'customer.name',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_BUYER_EMAIL,
+            'json_path' => 'email',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_COURSE_ID,
+            'json_path' => 'items.*.curso',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_BUYER_WHATSAPP,
+            'json_path' => 'buyer.whatsapp',
+        ]);
+    }
+
+    public function test_admin_cannot_save_malformed_json_path(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $link = $this->makeWebhookLink($admin);
+
+        $response = $this
+            ->actingAs($admin)
+            ->from(route('admin.webhooks.edit', $link))
+            ->post(route('admin.webhooks.field-mappings.upsert', $link), [
+                'field_mappings' => [
+                    'buyer_email' => ['json_path' => 'customer..email'],
+                ],
+            ]);
+
+        $response->assertRedirect(route('admin.webhooks.edit', $link));
+        $response->assertSessionHasErrors([
+            'field_mappings.buyer_email.json_path' => 'O JSON path informado é inválido.',
+        ]);
+    }
+
     public function test_simulation_preview_uses_fixed_fields_and_resolves_course(): void
     {
         $admin = $this->defaultTenantAdmin();

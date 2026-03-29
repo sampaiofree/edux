@@ -128,14 +128,12 @@ class PaymentWebhookController extends Controller
 
     public function upsertFieldMapping(Request $request, PaymentWebhookLink $webhookLink): RedirectResponse
     {
-        $allowedJsonPaths = $this->allowedJsonPathsForLink($webhookLink, $this->referencePayloadForLink($webhookLink));
-
         $rules = [
             'field_mappings' => ['nullable', 'array'],
         ];
 
         foreach ($this->fieldKeys() as $fieldKey) {
-            $rules["field_mappings.{$fieldKey}.json_path"] = ['nullable', 'string', 'max:255', Rule::in($allowedJsonPaths)];
+            $rules["field_mappings.{$fieldKey}.json_path"] = ['nullable', 'string', 'max:255', $this->jsonPathRule()];
         }
 
         $validated = $request->validate($rules);
@@ -521,5 +519,20 @@ class PaymentWebhookController extends Controller
         }
 
         return $normalized;
+    }
+
+    private function jsonPathRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            $path = is_string($value) ? trim($value) : '';
+
+            if ($path === '') {
+                return;
+            }
+
+            if (! preg_match('/^(?:[A-Za-z0-9_-]+|\*)(?:\.(?:[A-Za-z0-9_-]+|\*))*$/', $path)) {
+                $fail('O JSON path informado é inválido.');
+            }
+        };
     }
 }
