@@ -159,6 +159,10 @@ class SystemSettingTenantIsolationTest extends TestCase
         $this->assertAuthenticatedAs($superAdmin->fresh());
 
         $this->forceTestHost($tenantB->domain)
+            ->get('http://'.$tenantB->domain.'/admin/dashboard')
+            ->assertOk();
+
+        $this->forceTestHost($tenantB->domain)
             ->actingAs($superAdmin->fresh())
             ->get("/admin/courses/{$courseB->slug}/edit")
             ->assertOk()
