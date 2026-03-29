@@ -11,6 +11,11 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AccountDeletionRequestController;
 use App\Http\Controllers\AccountProfileController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SuperAdmin\CourseController as SuperAdminCourseController;
+use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdmin\EnrollmentController as SuperAdminEnrollmentController;
+use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
+use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
 use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\CourseCertificateController;
 use App\Http\Controllers\CourseController;
@@ -98,6 +103,29 @@ Route::post('/logout', [AuthController::class, 'destroy'])
 
 // --- Rotas protegidas (usuário autenticado) ---
 Route::middleware('auth')->group(function (): void {
+    Route::prefix('sa')
+        ->name('sa.')
+        ->middleware('super_admin')
+        ->group(function (): void {
+            Route::get('/', SuperAdminDashboardController::class)->name('dashboard');
+
+            Route::get('tenants', [SuperAdminTenantController::class, 'index'])->name('tenants.index');
+            Route::get('users', [SuperAdminUserController::class, 'index'])->name('users.index');
+            Route::get('users/{id}/edit', [SuperAdminUserController::class, 'edit'])->name('users.edit');
+            Route::put('users/{id}', [SuperAdminUserController::class, 'update'])->name('users.update');
+            Route::delete('users/{id}', [SuperAdminUserController::class, 'destroy'])->name('users.destroy');
+
+            Route::get('courses', [SuperAdminCourseController::class, 'index'])->name('courses.index');
+            Route::get('courses/{id}/edit', [SuperAdminCourseController::class, 'edit'])->name('courses.edit');
+            Route::put('courses/{id}', [SuperAdminCourseController::class, 'update'])->name('courses.update');
+            Route::delete('courses/{id}', [SuperAdminCourseController::class, 'destroy'])->name('courses.destroy');
+
+            Route::get('enrollments', [SuperAdminEnrollmentController::class, 'index'])->name('enrollments.index');
+            Route::get('enrollments/{id}/edit', [SuperAdminEnrollmentController::class, 'edit'])->name('enrollments.edit');
+            Route::put('enrollments/{id}', [SuperAdminEnrollmentController::class, 'update'])->name('enrollments.update');
+            Route::delete('enrollments/{id}', [SuperAdminEnrollmentController::class, 'destroy'])->name('enrollments.destroy');
+        });
+
     // Dashboard geral do usuário autenticado
     Route::get('/dashboard', DashboardController::class)->name('dashboard'); 
     Route::get('/certificado', [CertificadoController::class, 'index'])->name('certificado.index');
