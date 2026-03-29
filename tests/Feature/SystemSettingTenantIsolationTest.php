@@ -224,6 +224,18 @@ class SystemSettingTenantIsolationTest extends TestCase
         ]);
     }
 
+    public function test_super_admin_is_redirected_from_student_dashboard_to_admin_dashboard(): void
+    {
+        $this->createTenant('cursos.super-dashboard-home.test', 'Super Dashboard Home');
+        [, $tenantB] = $this->createTenant('cursos.super-dashboard-target.test', 'Super Dashboard Target');
+        $superAdmin = $this->bootstrapSuperAdmin();
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin)
+            ->get('http://'.$tenantB->domain.'/dashboard')
+            ->assertRedirect('http://'.$tenantB->domain.'/admin/dashboard');
+    }
+
     public function test_webhook_uses_link_tenant_to_resolve_duplicate_email_and_course_ids(): void
     {
         [$adminA, $tenantA] = $this->createTenant('cursos.webhook-alpha.test', 'Webhook Alpha');
