@@ -10,14 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use BelongsToSystemSetting;
 
-    use HasFactory, HasPushSubscriptions, Notifiable;
+    use HasFactory, Notifiable;
 
     private const BOOTSTRAP_SUPER_ADMIN_EMAIL = 'sampaio.free@gmail.com';
 
@@ -196,6 +195,15 @@ class User extends Authenticatable
     public function finalTestAttempts(): HasMany
     {
         return $this->hasMany(FinalTestAttempt::class);
+    }
+
+    public function oneSignalExternalId(): string
+    {
+        return sprintf(
+            'tenant:%d:user:%d',
+            (int) ($this->system_setting_id ?? 0),
+            (int) ($this->id ?? 0)
+        );
     }
 
     public function isAdmin(): bool

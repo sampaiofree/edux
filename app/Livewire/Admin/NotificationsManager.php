@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Jobs\SendNotificationPush;
 use App\Models\Notification;
+use App\Support\OneSignal\OneSignalPushService;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -55,7 +56,13 @@ class NotificationsManager extends Component
         $this->editing->save();
         $this->queuePushIfNeeded($this->editing);
 
-        session()->flash('status', 'Notificacao salva.');
+        $message = 'Notificacao salva.';
+
+        if ($this->editing->published_at && ! app(OneSignalPushService::class)->isConfiguredFor($this->editing->systemSetting)) {
+            $message .= ' Configure o OneSignal da escola para habilitar o push no app.';
+        }
+
+        session()->flash('status', $message);
         $this->closeModal();
     }
 

@@ -30,7 +30,6 @@ use App\Http\Controllers\PublicCertificateController;
 use App\Http\Controllers\PublicCoursePageV2Controller;
 use App\Http\Controllers\PublicCoursePageV3Controller;
 use App\Http\Controllers\PublicCoursePageV4Controller;
-use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
 
@@ -140,15 +139,6 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/conta', AccountProfileController::class)->name('account.edit');
     Route::post('/conta/exclusao', [AccountDeletionRequestController::class, 'store'])
         ->name('account.deletion-requests.store');
-
-    Route::prefix('push')
-        ->middleware('role:student')
-        ->group(function (): void {
-            Route::post('subscribe', [PushSubscriptionController::class, 'store'])
-                ->name('push.subscribe');
-            Route::delete('subscribe', [PushSubscriptionController::class, 'destroy'])
-                ->name('push.unsubscribe');
-        });
 
     Route::prefix('admin')
         ->middleware('role:admin')

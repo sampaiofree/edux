@@ -4,7 +4,6 @@ import intlTelInput from 'intl-tel-input';
 import utilsScriptUrl from 'intl-tel-input/build/js/utils.js?url';
 import 'intl-tel-input/build/css/intlTelInput.css';
 import { initCertificateShare } from './certificate-share';
-import { initPushManager } from './push';
 
 document.addEventListener('alpine:init', () => {
     window.Alpine.plugin(collapse);
@@ -527,7 +526,6 @@ document.addEventListener('livewire:initialized', () => {
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
     initCertificateShare();
-    initPushManager();
 });
 
 document.addEventListener('livewire:navigated', () => {
@@ -536,7 +534,6 @@ document.addEventListener('livewire:navigated', () => {
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
     initCertificateShare();
-    initPushManager();
 });
 
 document.addEventListener('livewire:navigate', () => {
@@ -552,7 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setupHomeCourseVacancies();
     initCertificateShare();
-    initPushManager();
 });
 
 document.addEventListener('edux:student-busy:start', (event) => {

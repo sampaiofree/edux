@@ -107,15 +107,6 @@
             </template>
         </div>
 
-        <!-- Service Worker para cache -->
-        @push('scripts')
-        <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
-        }
-        </script>
-        @endpush
-
         <div
             data-student-navigation-overlay="1"
             class="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/10 backdrop-blur-[1px]"

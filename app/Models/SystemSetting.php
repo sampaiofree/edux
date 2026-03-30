@@ -34,6 +34,8 @@ class SystemSetting extends Model
         'mail_password',
         'mail_from_address',
         'mail_from_name',
+        'onesignal_app_id',
+        'onesignal_rest_api_key',
         'escola_nome',
         'escola_cnpj',
         'meta_ads_pixel',
@@ -57,6 +59,7 @@ class SystemSetting extends Model
         return [
             'mail_port' => 'integer',
             'mail_password' => 'encrypted',
+            'onesignal_rest_api_key' => 'encrypted',
         ];
     }
 
