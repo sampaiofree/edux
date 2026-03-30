@@ -36,7 +36,6 @@
                     Baixar PDF
                 </span>
             </a>
-            <a href="{{ $publicUrl }}" class="edux-btn bg-white text-edux-primary">Abrir link público</a>
             <a href="{{ route('dashboard') }}" wire:navigate class="edux-btn bg-white text-edux-primary">Voltar para dashboard</a>
         </div>
 

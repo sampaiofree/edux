@@ -15,7 +15,7 @@
         <div class="flex items-center justify-between gap-3">
             <div>
                 <p class="uppercase tracking-wide text-edux-primary">Certificados gerados</p>
-                <p class="text-slate-500 text-sm">Lista de certificados ja emitidos com seus links publicos.</p>
+                <p class="text-slate-500 text-sm">Lista de certificados ja emitidos para baixar ou compartilhar.</p>
             </div>
             <span class="text-xs uppercase tracking-wide text-slate-400">{{ $certificates->count() }} certificados</span>
         </div>
@@ -79,14 +79,6 @@
                                     >
                                         Baixar PDF
                                     </span>
-                                </a>
-                            @endif
-                            @if ($publicUrl)
-                                <a
-                                    href="{{ $publicUrl }}"
-                                    class="edux-btn bg-edux-primary px-4 py-2 text-sm font-semibold text-white hover:bg-edux-primary/80"
-                                >
-                                    Ver link publico
                                 </a>
                             @endif
                         </div>

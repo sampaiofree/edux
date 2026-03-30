@@ -96,10 +96,13 @@
                 <button
                     type="button"
                     wire:click="generateCertificate"
+                    wire:loading.attr="disabled"
+                    wire:target="generateCertificate"
                     class="edux-btn w-full"
                     @disabled($disableGenerate)
                 >
-                    Gerar certificado
+                    <span wire:loading.remove wire:target="generateCertificate">Gerar certificado</span>
+                    <span wire:loading wire:target="generateCertificate">Gerando PDF...</span>
                 </button>
             @endif
         </div>
@@ -130,6 +133,21 @@
                     </span>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div
+        wire:loading.flex
+        wire:target="generateCertificate"
+        class="fixed inset-0 z-[80] items-center justify-center bg-slate-950/20 backdrop-blur-[2px]"
+        aria-hidden="true"
+    >
+        <div class="inline-flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-slate-200/80">
+            <span class="relative flex h-3.5 w-3.5">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-edux-primary/40"></span>
+                <span class="relative inline-flex h-3.5 w-3.5 rounded-full bg-edux-primary"></span>
+            </span>
+            <span class="text-sm font-semibold text-slate-700">Gerando PDF...</span>
         </div>
     </div>
 </section>

@@ -35,7 +35,16 @@
                 visibility: hidden;
                 transition: opacity 160ms ease, visibility 160ms ease;
             }
+            [data-student-action-overlay] {
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 160ms ease, visibility 160ms ease;
+            }
             html[data-student-navigating='1'] [data-student-navigation-overlay] {
+                opacity: 1;
+                visibility: visible;
+            }
+            html[data-student-busy='1'] [data-student-action-overlay] {
                 opacity: 1;
                 visibility: visible;
             }
@@ -54,6 +63,9 @@
                     animation: none;
                 }
                 [data-student-navigation-overlay] {
+                    transition: none;
+                }
+                [data-student-action-overlay] {
                     transition: none;
                 }
             }
@@ -177,6 +189,20 @@
                     <span class="relative inline-flex h-3.5 w-3.5 rounded-full bg-edux-primary"></span>
                 </span>
                 <span class="text-sm font-semibold text-slate-700">Carregando</span>
+            </div>
+        </div>
+
+        <div
+            data-student-action-overlay="1"
+            class="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/20 backdrop-blur-[2px]"
+            aria-hidden="true"
+        >
+            <div class="inline-flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-xl ring-1 ring-slate-200/80">
+                <span class="relative flex h-3.5 w-3.5">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-edux-primary/40"></span>
+                    <span class="relative inline-flex h-3.5 w-3.5 rounded-full bg-edux-primary"></span>
+                </span>
+                <span data-student-action-overlay-label class="text-sm font-semibold text-slate-700">Preparando PDF...</span>
             </div>
         </div>
     </body>

@@ -7,6 +7,18 @@ const LABEL_SELECTOR = '[data-certificate-share-label]';
 
 let listenerBound = false;
 
+const showBusyOverlay = (label) => {
+    window.EduxStudentBusy?.show?.(label || 'Preparando PDF...');
+};
+
+const hideBusyOverlay = () => {
+    window.EduxStudentBusy?.hide?.();
+};
+
+const queueBusyOverlayHide = (delayMs = 3200) => {
+    window.EduxStudentBusy?.queueHide?.(delayMs);
+};
+
 const isNativeCapacitor = () => {
     try {
         return Capacitor.isNativePlatform();
@@ -130,7 +142,16 @@ const shareCertificatePdf = async (trigger) => {
 const handleCertificateShareClick = async (event) => {
     const target = event.target instanceof Element ? event.target.closest(TRIGGER_SELECTOR) : null;
 
-    if (! target || ! isNativeCapacitor()) {
+    if (! target) {
+        return;
+    }
+
+    const busyLabel = target.dataset.certificateSharingLabel || 'Preparando PDF...';
+
+    if (! isNativeCapacitor()) {
+        showBusyOverlay(busyLabel);
+        queueBusyOverlayHide(4000);
+
         return;
     }
 
@@ -141,10 +162,10 @@ const handleCertificateShareClick = async (event) => {
     }
 
     const label = target.querySelector(LABEL_SELECTOR);
-    const busyLabel = target.dataset.certificateSharingLabel || 'Preparando PDF...';
 
     target.dataset.shareBusy = '1';
     target.setAttribute('aria-busy', 'true');
+    showBusyOverlay(busyLabel);
 
     if (label) {
         label.textContent = busyLabel;
@@ -158,6 +179,7 @@ const handleCertificateShareClick = async (event) => {
     } finally {
         delete target.dataset.shareBusy;
         target.removeAttribute('aria-busy');
+        hideBusyOverlay();
         updateNativeLabels();
     }
 };

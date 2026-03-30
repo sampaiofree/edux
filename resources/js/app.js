@@ -408,11 +408,23 @@ const setupHomeCourseVacancies = () => {
 };
 
 const STUDENT_NAVIGATION_DELAY_MS = 180;
+const STUDENT_ACTION_OVERLAY_DEFAULT_LABEL = 'Preparando PDF...';
 
 let studentNavigationDelayId = null;
 let studentNavigationVisible = false;
+let studentActionHideTimeoutId = null;
 
 const hasStudentShell = () => document.body?.dataset.studentShell === '1';
+
+const setStudentActionOverlayLabel = (label) => {
+    const overlayLabel = document.querySelector('[data-student-action-overlay-label]');
+
+    if (!overlayLabel) {
+        return;
+    }
+
+    overlayLabel.textContent = String(label || STUDENT_ACTION_OVERLAY_DEFAULT_LABEL);
+};
 
 const showStudentNavigationOverlay = () => {
     studentNavigationDelayId = null;
@@ -439,6 +451,38 @@ const stopStudentNavigationOverlay = () => {
 
     studentNavigationVisible = false;
     delete document.documentElement.dataset.studentNavigating;
+};
+
+const clearStudentActionOverlayTimeout = () => {
+    if (studentActionHideTimeoutId === null) {
+        return;
+    }
+
+    window.clearTimeout(studentActionHideTimeoutId);
+    studentActionHideTimeoutId = null;
+};
+
+const showStudentActionOverlay = (label = STUDENT_ACTION_OVERLAY_DEFAULT_LABEL) => {
+    if (! hasStudentShell()) {
+        return;
+    }
+
+    clearStudentActionOverlayTimeout();
+    setStudentActionOverlayLabel(label);
+    document.documentElement.dataset.studentBusy = '1';
+};
+
+const hideStudentActionOverlay = () => {
+    clearStudentActionOverlayTimeout();
+    delete document.documentElement.dataset.studentBusy;
+    setStudentActionOverlayLabel(STUDENT_ACTION_OVERLAY_DEFAULT_LABEL);
+};
+
+const queueStudentActionOverlayHide = (delayMs = 3200) => {
+    clearStudentActionOverlayTimeout();
+    studentActionHideTimeoutId = window.setTimeout(() => {
+        hideStudentActionOverlay();
+    }, delayMs);
 };
 
 const queueStudentNavigationOverlay = () => {
@@ -488,6 +532,7 @@ document.addEventListener('livewire:initialized', () => {
 
 document.addEventListener('livewire:navigated', () => {
     stopStudentNavigationOverlay();
+    hideStudentActionOverlay();
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
     initCertificateShare();
@@ -500,6 +545,7 @@ document.addEventListener('livewire:navigate', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     stopStudentNavigationOverlay();
+    hideStudentActionOverlay();
 
     if (!window.Livewire) {
         setupIntlPhoneInputs();
@@ -508,3 +554,29 @@ document.addEventListener('DOMContentLoaded', () => {
     initCertificateShare();
     initPushManager();
 });
+
+document.addEventListener('edux:student-busy:start', (event) => {
+    const label = event instanceof CustomEvent ? event.detail?.label : null;
+
+    showStudentActionOverlay(label || STUDENT_ACTION_OVERLAY_DEFAULT_LABEL);
+});
+
+document.addEventListener('edux:student-busy:stop', () => {
+    hideStudentActionOverlay();
+});
+
+window.addEventListener('pageshow', () => {
+    hideStudentActionOverlay();
+});
+
+window.addEventListener('focus', () => {
+    if (document.documentElement.dataset.studentBusy === '1') {
+        queueStudentActionOverlayHide(250);
+    }
+});
+
+window.EduxStudentBusy = {
+    show: showStudentActionOverlay,
+    hide: hideStudentActionOverlay,
+    queueHide: queueStudentActionOverlayHide,
+};
