@@ -23,6 +23,7 @@ use App\Http\Controllers\CityCampaignController;
 use App\Http\Controllers\CityCampaignV2Controller;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LegalPageController;
 use App\Http\Controllers\LessonProgressController;
 use App\Http\Controllers\PublicLessonController;
 use App\Http\Controllers\PublicCertificateController;
@@ -77,7 +78,9 @@ Route::get('/cidade-2/{cidade}', CityCampaignV2Controller::class)->name('city.ca
 // Termos e condições
 Route::view('/termos', 'legal.terms')->name('legal.terms');
 // Política de privacidade
-Route::view('/privacidade', 'legal.privacy')->name('legal.privacy');
+Route::get('/privacidade', [LegalPageController::class, 'privacy'])->name('legal.privacy');
+// Página pública de suporte por tenant
+Route::get('/suporte', [LegalPageController::class, 'support'])->name('legal.support');
 // Acesso às aulas públicas (sem autenticação)
 Route::get('/assistir/{course:slug}', [PublicLessonController::class, 'show'])->name('public.lessons.show');
 // Envia OTP via WhatsApp (antes do logout removido)

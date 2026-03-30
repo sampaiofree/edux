@@ -115,9 +115,9 @@
         <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-center md:flex-row md:text-left">
             <p class="font-semibold">© {{ now()->year }} {{ $footerSchoolName }} — Aprender e simples.</p>
             <div class="flex gap-4 text-sm opacity-80">
-                <a href="#">Politicas</a>
-                <a href="#">Suporte</a>
-                <a href="#">Status</a>
+                <a href="{{ route('legal.terms') }}" class="hover:opacity-100">Termos</a>
+                <a href="{{ route('legal.privacy') }}" class="hover:opacity-100">Privacidade</a>
+                <a href="{{ route('legal.support') }}" class="hover:opacity-100">Suporte</a>
             </div>
         </div>
     </footer>

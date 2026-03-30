@@ -146,7 +146,11 @@ class StudentMobileNavigationTest extends TestCase
 
         $this->assertNavigableLink($certificateHtml, route('dashboard'));
         $this->assertNavigableLink($certificateHtml, route('account.edit'));
+        $this->assertStringContainsString('data-certificate-share-trigger="1"', $certificateHtml);
         $this->assertStringContainsString('href="'.route('learning.courses.certificate.download', [$course, $certificate]).'"', $certificateHtml);
+        $this->assertStringContainsString('data-certificate-download-url="'.route('learning.courses.certificate.download', [$course, $certificate]).'"', $certificateHtml);
+        $this->assertStringContainsString('data-certificate-public-url="'.route('certificates.verify', $certificate->fresh()->public_token).'"', $certificateHtml);
+        $this->assertStringContainsString('data-native-label="Compartilhar PDF"', $certificateHtml);
         $this->assertNotNavigableLink($certificateHtml, route('learning.courses.certificate.download', [$course, $certificate]));
 
         $finalTestResponse = $this->actingAs($student)
@@ -158,6 +162,53 @@ class StudentMobileNavigationTest extends TestCase
         $this->assertNavigableLink($finalTestHtml, route('dashboard'));
         $this->assertStringContainsString('action="'.route('learning.courses.final-test.start', $course).'"', $finalTestHtml);
         $this->assertStringNotContainsString('action="'.route('learning.courses.final-test.start', $course).'" wire:navigate', $finalTestHtml);
+    }
+
+    public function test_certificate_modal_renders_as_fullscreen_above_bottom_navigation(): void
+    {
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-modal-cert@example.com',
+        ]);
+
+        $response = $this->actingAs($student)->get(route('certificado.index'));
+
+        $response->assertOk();
+        $response->assertSee('data-certificate-modal-shell="1"', false);
+        $response->assertSee('class="fixed inset-0 z-[80] bg-white"', false);
+        $response->assertSee('data-certificate-modal-panel="1"', false);
+        $response->assertSee('class="flex h-[100dvh] w-full flex-col bg-white"', false);
+        $response->assertSee('data-certificate-modal-scroll="1"', false);
+    }
+
+    public function test_certificate_index_renders_share_metadata_for_existing_certificates(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-cert-index@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-cert-index', 'Curso Cert Index');
+
+        $certificate = Certificate::create([
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'number' => 'CERT-INDEX-001',
+            'issued_at' => now(),
+            'front_content' => '<p>Frente</p>',
+            'back_content' => '<p>Verso</p>',
+        ]);
+        $certificate->forceFill([
+            'public_token' => (string) Str::uuid(),
+        ])->save();
+
+        $response = $this->actingAs($student)->get(route('certificado.index'));
+
+        $response->assertOk();
+        $html = $response->getContent();
+
+        $this->assertStringContainsString('data-certificate-share-trigger="1"', $html);
+        $this->assertStringContainsString('data-certificate-download-url="'.route('learning.courses.certificate.download', [$course, $certificate]).'"', $html);
+        $this->assertStringContainsString('data-certificate-public-url="'.route('certificates.verify', $certificate->public_token).'"', $html);
+        $this->assertStringContainsString('data-native-label="Compartilhar PDF"', $html);
     }
 
     private function createCourseForTenant(User $owner, string $slug, string $title): Course

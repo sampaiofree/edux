@@ -4,9 +4,15 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "cap:sync": "npx cap sync",
+        "cap:open:android": "npx cap open android",
+        "cap:open:ios": "npx cap open ios"
     },
     "devDependencies": {
+        "@capacitor/android": "^8.3.0",
+        "@capacitor/cli": "^8.3.0",
+        "@capacitor/ios": "^8.3.0",
         "@tailwindcss/forms": "^0.5.7",
         "autoprefixer": "^10.4.19",
         "axios": "^1.11.0",
@@ -18,6 +24,9 @@
     },
     "dependencies": {
         "@alpinejs/collapse": "^3.14.8",
+        "@capacitor/core": "^8.3.0",
+        "@capacitor/filesystem": "^8.1.2",
+        "@capacitor/share": "^8.0.1",
         "alpinejs": "^3.14.8",
         "intl-tel-input": "^25.14.0"
     }

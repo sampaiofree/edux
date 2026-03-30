@@ -2,7 +2,7 @@
     <header class="rounded-card bg-white p-6 shadow-card">
         <p class="text-sm uppercase tracking-wide text-edux-primary">Certificado</p>
         <h1 class="font-display text-3xl text-edux-primary">Meus certificados</h1>
-        <p class="text-slate-600 text-sm">Baixe seu certificado ou clique em Gerar certificado.</p>
+        <p class="text-slate-600 text-sm">Acesse, baixe ou compartilhe seu certificado. Se ainda não existir, clique em Gerar certificado.</p>
     </header>
 
     @if ($errorMessage)
@@ -70,18 +70,26 @@
                             @if ($downloadRoute)
                                 <a
                                     href="{{ $downloadRoute }}"
-                                    target="_blank"
-                                    rel="noopener"
+                                    data-certificate-share-trigger="1"
+                                    data-certificate-download-url="{{ $downloadRoute }}"
+                                    data-certificate-public-url="{{ $publicUrl ?? '' }}"
+                                    data-certificate-title="{{ $certificate->course?->title ?? 'Certificado' }}"
+                                    data-certificate-filename="{{ $certificate->course ? 'certificado-'.$certificate->course->slug.'.pdf' : 'certificado.pdf' }}"
+                                    data-certificate-sharing-label="Preparando PDF..."
                                     class="edux-btn text-white px-4 py-2 text-sm font-semibold text-edux-primary shadow-sm"
                                 >
-                                    Baixar PDF
+                                    <span
+                                        data-certificate-share-label
+                                        data-web-label="Baixar PDF"
+                                        data-native-label="Compartilhar PDF"
+                                    >
+                                        Baixar PDF
+                                    </span>
                                 </a>
                             @endif
                             @if ($publicUrl)
                                 <a
                                     href="{{ $publicUrl }}"
-                                    target="_blank"
-                                    rel="noopener"
                                     class="edux-btn bg-edux-primary px-4 py-2 text-sm font-semibold text-white hover:bg-edux-primary/80"
                                 >
                                     Ver link publico
@@ -108,29 +116,40 @@
         x-show="modalOpen"
         x-cloak
         x-transition.opacity
-        class="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/60 px-4 py-10"
+        data-certificate-modal-shell="1"
+        class="fixed inset-0 z-[80] bg-white"
     >
         <div
             x-show="modalOpen"
             x-transition
-            x-on:click.outside="modalOpen = false"
             x-on:keydown.escape.window="modalOpen = false"
-            class="w-full max-w-5xl rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-black/5"
+            data-certificate-modal-panel="1"
+            class="flex h-[100dvh] w-full flex-col bg-white"
         >
-            <div class="flex items-center justify-between border-b border-edux-line/50 pb-4">
-                <div>
+            <div
+                class="sticky top-0 z-10 border-b border-edux-line/50 bg-white px-4 pb-4 shadow-sm"
+                style="padding-top: max(env(safe-area-inset-top), 1rem);"
+            >
+                <div class="flex items-start justify-between gap-4">
+                    <div>
                     <p class="text-sm uppercase tracking-wide text-edux-primary">Certificado</p>
                     <h2 class="font-display text-2xl text-slate-900">Gerar certificado</h2>
                     <p class="text-xs text-slate-500">Selecione o curso, confirme os dados e gere seu PDF.</p>
+                    </div>
+                    <button type="button" @click="modalOpen = false" class="text-slate-500 hover:text-slate-800">
+                        <span class="sr-only">Fechar</span>
+                        &times;
+                    </button>
                 </div>
-                <button type="button" @click="modalOpen = false" class="text-slate-500 hover:text-slate-800">
-                    <span class="sr-only">Fechar</span>
-                    &times;
-                </button>
             </div>
 
-            <div class="grid gap-6 mt-6">
-                <div class="rounded-card bg-white p-6 shadow-card space-y-4">
+            <div
+                data-certificate-modal-scroll="1"
+                class="flex-1 overflow-y-auto px-4 py-4"
+                style="padding-bottom: max(env(safe-area-inset-bottom), 1rem);"
+            >
+                <div class="grid gap-6">
+                    <div class="rounded-card bg-white p-6 shadow-card space-y-4">
                     @if ($enrollments->isEmpty())
                         <p class="text-sm text-slate-500">
                             Voce ainda nao possui matriculas. Entre em um curso para gerar certificados.
@@ -204,32 +223,33 @@
                             Gerar certificado
                         </button>
                     @endif
-                </div>
+                    </div>
 
-                <div class="rounded-card bg-white p-6 shadow-card">
-                    <p class="text-sm uppercase tracking-wide text-edux-primary">Resumo</p>
-                    <div class="space-y-2 text-sm text-slate-600">
-                        <div class="flex items-center justify-between gap-3">
-                            <span>Aluno</span>
-                            <span class="font-semibold text-slate-800">{{ $studentName }}</span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span>Curso</span>
-                            <span class="font-semibold text-slate-800">{{ $courseName ?? 'Selecione um curso' }}</span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span>Conclusao</span>
-                            <span class="font-semibold text-slate-800">{{ $formattedCompletionDate ?? 'Nao definida' }}</span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span>CPF</span>
-                            <span class="font-semibold text-slate-800">{{ $formattedCpf ?? 'Nao informado' }}</span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span>Confirmacao</span>
-                            <span class="font-semibold text-slate-800">
-                                {{ $completionConfirmed === 'yes' ? 'Concluido' : 'Pendente' }}
-                            </span>
+                    <div class="rounded-card bg-white p-6 shadow-card">
+                        <p class="text-sm uppercase tracking-wide text-edux-primary">Resumo</p>
+                        <div class="space-y-2 text-sm text-slate-600">
+                            <div class="flex items-center justify-between gap-3">
+                                <span>Aluno</span>
+                                <span class="font-semibold text-slate-800">{{ $studentName }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span>Curso</span>
+                                <span class="font-semibold text-slate-800">{{ $courseName ?? 'Selecione um curso' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span>Conclusao</span>
+                                <span class="font-semibold text-slate-800">{{ $formattedCompletionDate ?? 'Nao definida' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span>CPF</span>
+                                <span class="font-semibold text-slate-800">{{ $formattedCpf ?? 'Nao informado' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span>Confirmacao</span>
+                                <span class="font-semibold text-slate-800">
+                                    {{ $completionConfirmed === 'yes' ? 'Concluido' : 'Pendente' }}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

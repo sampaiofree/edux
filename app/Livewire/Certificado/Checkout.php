@@ -8,8 +8,6 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -134,35 +132,14 @@ class Checkout extends Component
             'settings' => $settings,
         ])->render();
 
-        $frontPdfContent = view('learning.certificates.templates.front', [
-            'course' => $course,
-            'branding' => $branding,
-            'displayName' => $user->preferredName(),
-            'issuedAt' => $issuedAt,
-            'publicUrl' => $publicUrl,
-            'settings' => $settings,
-            'cpf' => $formattedCpf,
-            'mode' => 'pdf',
-            'qrDataUri' => $qrDataUri,
-        ])->render();
-
-        $backPdfContent = view('learning.certificates.templates.back', [
-            'course' => $course,
-            'branding' => $branding,
-            'settings' => $settings,
-            'mode' => 'pdf',
-        ])->render();
-
         $certificate->front_content = $frontContent;
         $certificate->back_content = $backContent;
         $certificate->issued_at = $issuedAt;
         $certificate->save();
 
-        $pdf = $this->buildPdf($frontPdfContent, $backPdfContent);
+        session()->flash('status', 'Certificado emitido com sucesso!');
 
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, 'certificado-' . $course->slug . '.pdf');
+        return $this->redirectRoute('learning.courses.certificate.show', [$course, $certificate], navigate: true);
     }
 
     public function render()
@@ -383,22 +360,6 @@ class Checkout extends Component
         } catch (\Throwable $exception) {
             return null;
         }
-    }
-
-    private function buildPdf(string $frontContent, string $backContent): Dompdf
-    {
-        $options = new Options();
-        $options->set('defaultFont', 'Inter');
-        $options->setIsRemoteEnabled(true);
-
-        $dompdf = new Dompdf($options);
-        $html = view('learning.certificates.pdf', compact('frontContent', 'backContent'))->render();
-
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('a4', 'landscape');
-        $dompdf->render();
-
-        return $dompdf;
     }
 
 }

@@ -3,6 +3,7 @@ import collapse from '@alpinejs/collapse';
 import intlTelInput from 'intl-tel-input';
 import utilsScriptUrl from 'intl-tel-input/build/js/utils.js?url';
 import 'intl-tel-input/build/css/intlTelInput.css';
+import { initCertificateShare } from './certificate-share';
 import { initPushManager } from './push';
 
 document.addEventListener('alpine:init', () => {
@@ -469,6 +470,7 @@ const registerLivewireHooks = () => {
         succeed(() => {
             setupIntlPhoneInputs();
             setupHomeCourseVacancies();
+            initCertificateShare();
         });
     });
 };
@@ -480,6 +482,7 @@ document.addEventListener('livewire:init', () => {
 document.addEventListener('livewire:initialized', () => {
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
+    initCertificateShare();
     initPushManager();
 });
 
@@ -487,6 +490,7 @@ document.addEventListener('livewire:navigated', () => {
     stopStudentNavigationOverlay();
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
+    initCertificateShare();
     initPushManager();
 });
 
@@ -501,5 +505,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setupIntlPhoneInputs();
     }
     setupHomeCourseVacancies();
+    initCertificateShare();
     initPushManager();
 });

@@ -18,8 +18,25 @@
         </header>
 
         <div class="rounded-card bg-white p-6 shadow-card flex flex-wrap gap-3">
-            <a href="{{ route('learning.courses.certificate.download', [$course, $certificate]) }}" class="edux-btn">Baixar PDF</a>
-            <a href="{{ $publicUrl }}" target="_blank" rel="noopener" class="edux-btn bg-white text-edux-primary">Abrir link público</a>
+            <a
+                href="{{ route('learning.courses.certificate.download', [$course, $certificate]) }}"
+                data-certificate-share-trigger="1"
+                data-certificate-download-url="{{ route('learning.courses.certificate.download', [$course, $certificate]) }}"
+                data-certificate-public-url="{{ $publicUrl }}"
+                data-certificate-title="{{ $course->title }}"
+                data-certificate-filename="{{ 'certificado-'.$course->slug.'.pdf' }}"
+                data-certificate-sharing-label="Preparando PDF..."
+                class="edux-btn"
+            >
+                <span
+                    data-certificate-share-label
+                    data-web-label="Baixar PDF"
+                    data-native-label="Compartilhar PDF"
+                >
+                    Baixar PDF
+                </span>
+            </a>
+            <a href="{{ $publicUrl }}" class="edux-btn bg-white text-edux-primary">Abrir link público</a>
             <a href="{{ route('dashboard') }}" wire:navigate class="edux-btn bg-white text-edux-primary">Voltar para dashboard</a>
         </div>
 
