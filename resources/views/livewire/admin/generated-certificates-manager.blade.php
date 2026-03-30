@@ -74,7 +74,7 @@
                             <td class="py-3">{{ $certificate->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
                             <td class="py-3 text-right">
                                 <a href="{{ route('admin.certificates.generated.download', $certificate) }}" class="text-edux-primary text-sm underline-offset-2 hover:underline">
-                                    Baixar PDF
+                                    Baixar certificado
                                 </a>
                             </td>
                         </tr>

@@ -33,7 +33,7 @@
                     data-web-label="Baixar PDF"
                     data-native-label="Compartilhar PDF"
                 >
-                    Baixar PDF
+                    Baixar Certificado
                 </span>
             </a>
             <a href="{{ route('dashboard') }}" wire:navigate class="edux-btn bg-white text-edux-primary">Voltar para dashboard</a>
