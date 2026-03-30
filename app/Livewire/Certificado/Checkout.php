@@ -140,13 +140,8 @@ class Checkout extends Component
         $certificate->save();
 
         $pdf = $this->makePdf($certificate, $course);
-        $fileName = 'certificado-'.$course->slug.'.pdf';
 
-        return response()->streamDownload(function () use ($pdf): void {
-            echo $pdf->output();
-        }, $fileName, [
-            'Content-Type' => 'application/pdf',
-        ]);
+        return $this->downloadPdfResponse($pdf->output(), 'certificado-'.$course->slug.'.pdf');
     }
 
     public function render()
@@ -328,6 +323,22 @@ class Checkout extends Component
         $dompdf->render();
 
         return $dompdf;
+    }
+
+    private function downloadPdfResponse(string $pdfBinary, string $fileName)
+    {
+        return response()->streamDownload(function () use ($pdfBinary): void {
+            echo $pdfBinary;
+        }, $fileName, [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Length' => (string) strlen($pdfBinary),
+            'Content-Transfer-Encoding' => 'binary',
+            'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'public',
+            'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Download-Options' => 'noopen',
+        ]);
     }
 
 }
