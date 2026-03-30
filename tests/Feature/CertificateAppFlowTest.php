@@ -26,7 +26,7 @@ class CertificateAppFlowTest extends TestCase
         }
     }
 
-    public function test_generate_certificate_streams_pdf_download_for_app_compatible_flow(): void
+    public function test_generate_certificate_redirects_back_to_certificate_index_with_success_feedback(): void
     {
         Http::fake([
             'https://api.qrserver.com/*' => Http::response('fake-qr', 200, ['Content-Type' => 'image/png']),
@@ -54,7 +54,7 @@ class CertificateAppFlowTest extends TestCase
             ->set('completionDate', now()->format('Y-m-d'))
             ->set('completionConfirmed', 'yes')
             ->call('generateCertificate')
-            ->assertFileDownloaded('certificado-'.$course->slug.'.pdf');
+            ->assertRedirect(route('certificado.index'));
 
         $certificate = Certificate::query()
             ->where('course_id', $course->id)
@@ -67,6 +67,7 @@ class CertificateAppFlowTest extends TestCase
         $indexResponse = $this->actingAs($student)->get(route('certificado.index'));
 
         $indexResponse->assertOk();
+        $indexResponse->assertSee('Certificado emitido com sucesso!');
         $indexResponse->assertSee($course->title);
     }
 

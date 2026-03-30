@@ -102,7 +102,7 @@
                     @disabled($disableGenerate)
                 >
                     <span wire:loading.remove wire:target="generateCertificate">Gerar certificado</span>
-                    <span wire:loading wire:target="generateCertificate">Gerando PDF...</span>
+                    <span wire:loading wire:target="generateCertificate">Emitindo certificado...</span>
                 </button>
             @endif
         </div>
@@ -147,7 +147,7 @@
                 <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-edux-primary/40"></span>
                 <span class="relative inline-flex h-3.5 w-3.5 rounded-full bg-edux-primary"></span>
             </span>
-            <span class="text-sm font-semibold text-slate-700">Gerando PDF...</span>
+            <span class="text-sm font-semibold text-slate-700">Emitindo certificado...</span>
         </div>
     </div>
 </section>

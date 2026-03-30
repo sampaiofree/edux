@@ -8,8 +8,6 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -139,9 +137,9 @@ class Checkout extends Component
         $certificate->issued_at = $issuedAt;
         $certificate->save();
 
-        $pdf = $this->makePdf($certificate, $course);
+        session()->flash('status', 'Certificado emitido com sucesso!');
 
-        return $this->downloadPdfResponse($pdf->output(), 'certificado-'.$course->slug.'.pdf');
+        return $this->redirectRoute('certificado.index', navigate: true);
     }
 
     public function render()
@@ -285,60 +283,6 @@ class Checkout extends Component
         } catch (\Throwable $exception) {
             return null;
         }
-    }
-
-    private function makePdf(Certificate $certificate, Course $course): Dompdf
-    {
-        $certificate->loadMissing('user');
-
-        $options = new Options();
-        $options->set('defaultFont', 'Inter');
-        $options->setIsRemoteEnabled(true);
-
-        $dompdf = new Dompdf($options);
-        $branding = $this->resolveBranding($course);
-        $publicUrl = route('certificates.verify', $certificate->public_token);
-        $qrDataUri = $this->qrDataUri($publicUrl);
-
-        $frontContent = view('learning.certificates.templates.front', [
-            'course' => $course,
-            'branding' => $branding,
-            'displayName' => $certificate->user->preferredName(),
-            'issuedAt' => $certificate->issued_at ?? now(),
-            'publicUrl' => $publicUrl,
-            'qrDataUri' => $qrDataUri,
-            'mode' => 'pdf',
-        ])->render();
-
-        $backContent = view('learning.certificates.templates.back', [
-            'course' => $course,
-            'branding' => $branding,
-            'mode' => 'pdf',
-        ])->render();
-
-        $html = view('learning.certificates.pdf', compact('frontContent', 'backContent'))->render();
-
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('a4', 'landscape');
-        $dompdf->render();
-
-        return $dompdf;
-    }
-
-    private function downloadPdfResponse(string $pdfBinary, string $fileName)
-    {
-        return response()->streamDownload(function () use ($pdfBinary): void {
-            echo $pdfBinary;
-        }, $fileName, [
-            'Content-Type' => 'application/octet-stream',
-            'Content-Length' => (string) strlen($pdfBinary),
-            'Content-Transfer-Encoding' => 'binary',
-            'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'public',
-            'Expires' => '0',
-            'X-Content-Type-Options' => 'nosniff',
-            'X-Download-Options' => 'noopen',
-        ]);
     }
 
 }
