@@ -23,11 +23,15 @@
             class="rounded-card bg-white p-6 shadow-card space-y-5"
             x-data="{
                 ownersByTenant: @js($ownersByTenant),
+                originalTenantId: @js((string) $course->system_setting_id),
                 selectedTenantId: @js($initialTenantId),
                 selectedOwnerId: @js($initialOwnerId),
                 init() {
                     this.syncOwnerSelection(true);
                     this.$watch('selectedTenantId', () => this.syncOwnerSelection(false));
+                },
+                get isTransfer() {
+                    return String(this.selectedTenantId) !== String(this.originalTenantId);
                 },
                 get availableOwners() {
                     return this.ownersByTenant[String(this.selectedTenantId)] ?? [];
@@ -52,6 +56,7 @@
                 }
             }"
             x-init="init()"
+            @submit="if (isTransfer && ! window.confirm('Salvar essa mudança vai transferir o curso, as matrículas e o histórico educacional para a nova escola. Deseja continuar?')) { $event.preventDefault(); }"
         >
             @csrf
             @method('PUT')
@@ -97,6 +102,21 @@
                         Nenhum administrador disponível para a escola selecionada.
                     </p>
                 </label>
+            </div>
+
+            <div
+                x-cloak
+                x-show="isTransfer"
+                class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+            >
+                <p class="font-semibold">Transferência em cascata</p>
+                <p class="mt-2">
+                    Ao salvar com outra escola selecionada, o sistema vai transferir este curso, remapear as matrículas para a nova escola
+                    e mover o histórico educacional deste curso.
+                </p>
+                <p class="mt-2">
+                    Itens financeiros, pagamentos, tracking e analytics permanecem como estão.
+                </p>
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">

@@ -3,11 +3,28 @@
 namespace Tests\Feature;
 
 use App\Enums\EnrollmentAccessStatus;
+use App\Models\Certificate;
+use App\Models\CertificateBranding;
+use App\Models\CertificatePayment;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\FinalTest;
+use App\Models\FinalTestAnswer;
+use App\Models\FinalTestAttempt;
+use App\Models\FinalTestQuestion;
+use App\Models\FinalTestQuestionOption;
+use App\Models\Lesson;
+use App\Models\LessonCompletion;
+use App\Models\Module;
+use App\Models\PaymentEntitlement;
+use App\Models\PaymentWebhookLink;
+use App\Models\SupportWhatsappNumber;
 use App\Models\SystemSetting;
+use App\Models\TrackingAttribution;
+use App\Models\TrackingEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -313,35 +330,443 @@ class SuperAdminAreaTest extends TestCase
             });
     }
 
-    public function test_super_admin_cannot_move_course_to_incompatible_tenant(): void
+    public function test_super_admin_can_transfer_course_to_another_tenant_and_clear_incompatible_support_whatsapp(): void
     {
-        [$adminA, ] = $this->createTenant('cursos.sa-course-conflict-alpha.test', 'Course Conflict Alpha');
+        [$adminA, $tenantA] = $this->createTenant('cursos.sa-course-transfer-alpha.test', 'Course Transfer Alpha');
         [$adminB, $tenantB] = $this->createTenant('cursos.sa-course-conflict-beta.test', 'Course Conflict Beta');
         $superAdmin = $this->bootstrapSuperAdmin();
 
-        $course = $this->createCourseForTenant($adminA, 'curso-conflict-move', 'Curso Conflict Move');
-        $student = User::factory()->student()->create([
-            'system_setting_id' => $adminA->system_setting_id,
-            'email' => 'student-course-conflict@example.com',
+        $supportNumber = SupportWhatsappNumber::create([
+            'system_setting_id' => $tenantA->id,
+            'label' => 'Suporte Alpha',
+            'whatsapp' => '5511999990000',
+            'description' => 'Atendimento Alpha',
+            'is_active' => true,
+            'position' => 1,
         ]);
-        $this->createEnrollmentFor($course, $student);
+        $course = $this->createCourseForTenant($adminA, 'curso-transfer-move', 'Curso Transfer Move');
+        $course->forceFill([
+            'support_whatsapp_mode' => Course::SUPPORT_WHATSAPP_MODE_SPECIFIC,
+            'support_whatsapp_number_id' => $supportNumber->id,
+        ])->save();
+        CertificateBranding::create([
+            'system_setting_id' => $tenantA->id,
+            'course_id' => $course->id,
+        ]);
 
         $this->forceTestHost($tenantB->domain)
             ->actingAs($superAdmin)
-            ->from(route('sa.courses.edit', $course->id))
             ->put(route('sa.courses.update', $course->id), [
                 'system_setting_id' => $tenantB->id,
                 'owner_id' => $adminB->id,
-                'title' => 'Curso Conflict Move',
-                'summary' => '',
-                'description' => '',
+                'title' => 'Curso Transferido',
+                'summary' => 'Resumo após transferência',
+                'description' => 'Descrição após transferência',
+                'status' => 'archived',
+                'duration_minutes' => 120,
+                'published_at' => now()->format('Y-m-d H:i:s'),
+                'promo_video_url' => 'https://example.com/transfer',
+            ])
+            ->assertRedirect(route('sa.courses.edit', $course->id))
+            ->assertSessionHas('status', 'Curso transferido para a nova escola com matrículas e histórico educacional.');
+
+        $this->assertDatabaseHas('courses', [
+            'id' => $course->id,
+            'system_setting_id' => $tenantB->id,
+            'owner_id' => $adminB->id,
+            'title' => 'Curso Transferido',
+            'status' => 'archived',
+            'support_whatsapp_number_id' => null,
+        ]);
+        $this->assertDatabaseHas('certificate_brandings', [
+            'course_id' => $course->id,
+            'system_setting_id' => $tenantB->id,
+        ]);
+    }
+
+    public function test_super_admin_can_transfer_course_enrollments_and_merge_history_into_existing_target_student(): void
+    {
+        [$adminA, $tenantA] = $this->createTenant('cursos.sa-course-history-alpha.test', 'Course History Alpha');
+        [$adminB, $tenantB] = $this->createTenant('cursos.sa-course-history-beta.test', 'Course History Beta');
+        $superAdmin = $this->bootstrapSuperAdmin();
+
+        $course = $this->createCourseForTenant($adminA, 'curso-history-move', 'Curso History Move');
+        CertificateBranding::create([
+            'system_setting_id' => $tenantA->id,
+            'course_id' => $course->id,
+        ]);
+
+        $module = $this->createModuleForCourse($course, 'Módulo Transferido');
+        $lessonOne = $this->createLessonForModule($module, 'Aula 1', 1);
+        $lessonTwo = $this->createLessonForModule($module, 'Aula 2', 2);
+        $lessonOtherCourse = $this->createLessonForModule(
+            $this->createModuleForCourse($this->createCourseForTenant($adminA, 'curso-nao-transferido', 'Curso Não Transferido'), 'Outro módulo'),
+            'Aula Outro Curso',
+            1,
+        );
+
+        $finalTest = $this->createFinalTestForCourse($course);
+        $question = FinalTestQuestion::create([
+            'final_test_id' => $finalTest->id,
+            'title' => 'Pergunta',
+            'statement' => 'Qual a resposta?',
+            'position' => 1,
+            'weight' => 1,
+        ]);
+        $option = FinalTestQuestionOption::create([
+            'final_test_question_id' => $question->id,
+            'label' => 'Opção A',
+            'is_correct' => true,
+            'position' => 1,
+        ]);
+
+        $sourceStudent = User::factory()->student()->create([
+            'system_setting_id' => $tenantA->id,
+            'email' => 'student-transfer-existing@example.com',
+            'name' => 'Aluno Origem',
+        ]);
+        $targetStudent = User::factory()->student()->create([
+            'system_setting_id' => $tenantB->id,
+            'email' => 'student-transfer-existing@example.com',
+            'name' => 'Aluno Destino',
+        ]);
+
+        $sourceEnrollment = $this->createEnrollmentFor($course, $sourceStudent);
+        $sourceEnrollment->forceFill([
+            'progress_percent' => 90,
+            'completed_at' => Carbon::parse('2026-03-01 10:00:00'),
+            'access_status' => EnrollmentAccessStatus::BLOCKED->value,
+            'access_block_reason' => 'inadimplente',
+            'access_blocked_at' => Carbon::parse('2026-03-04 09:00:00'),
+            'manual_override' => true,
+            'manual_override_by' => $adminA->id,
+            'manual_override_at' => Carbon::parse('2026-03-05 10:00:00'),
+        ])->save();
+
+        $existingTargetEnrollment = $this->createEnrollmentFor($course, $targetStudent);
+        $existingTargetEnrollment->forceFill([
+            'system_setting_id' => $tenantB->id,
+            'progress_percent' => 45,
+            'completed_at' => Carbon::parse('2026-03-10 10:00:00'),
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'access_block_reason' => null,
+            'access_blocked_at' => null,
+            'manual_override' => false,
+            'manual_override_by' => null,
+            'manual_override_at' => null,
+        ])->save();
+
+        LessonCompletion::create([
+            'lesson_id' => $lessonOne->id,
+            'user_id' => $sourceStudent->id,
+            'completed_at' => Carbon::parse('2026-03-02 09:00:00'),
+        ]);
+        LessonCompletion::create([
+            'lesson_id' => $lessonTwo->id,
+            'user_id' => $sourceStudent->id,
+            'completed_at' => Carbon::parse('2026-03-03 09:00:00'),
+        ]);
+        LessonCompletion::create([
+            'lesson_id' => $lessonTwo->id,
+            'user_id' => $targetStudent->id,
+            'completed_at' => Carbon::parse('2026-03-04 09:00:00'),
+        ]);
+        LessonCompletion::create([
+            'lesson_id' => $lessonOtherCourse->id,
+            'user_id' => $sourceStudent->id,
+            'completed_at' => Carbon::parse('2026-03-06 09:00:00'),
+        ]);
+
+        $duplicateAttemptTime = Carbon::parse('2026-03-07 12:00:00');
+        $sourceDuplicateAttempt = FinalTestAttempt::create([
+            'final_test_id' => $finalTest->id,
+            'user_id' => $sourceStudent->id,
+            'score' => 80,
+            'passed' => true,
+            'started_at' => $duplicateAttemptTime->copy()->subMinutes(20),
+            'submitted_at' => $duplicateAttemptTime,
+            'attempted_at' => $duplicateAttemptTime,
+        ]);
+        FinalTestAnswer::create([
+            'final_test_attempt_id' => $sourceDuplicateAttempt->id,
+            'final_test_question_id' => $question->id,
+            'final_test_question_option_id' => $option->id,
+            'is_correct' => true,
+        ]);
+        $targetDuplicateAttempt = FinalTestAttempt::create([
+            'final_test_id' => $finalTest->id,
+            'user_id' => $targetStudent->id,
+            'score' => 80,
+            'passed' => true,
+            'started_at' => $duplicateAttemptTime->copy()->subMinutes(20),
+            'submitted_at' => $duplicateAttemptTime,
+            'attempted_at' => $duplicateAttemptTime,
+        ]);
+        FinalTestAnswer::create([
+            'final_test_attempt_id' => $targetDuplicateAttempt->id,
+            'final_test_question_id' => $question->id,
+            'final_test_question_option_id' => $option->id,
+            'is_correct' => true,
+        ]);
+        $sourceUniqueAttempt = FinalTestAttempt::create([
+            'final_test_id' => $finalTest->id,
+            'user_id' => $sourceStudent->id,
+            'score' => 95,
+            'passed' => true,
+            'started_at' => Carbon::parse('2026-03-08 08:00:00'),
+            'submitted_at' => Carbon::parse('2026-03-08 08:20:00'),
+            'attempted_at' => Carbon::parse('2026-03-08 08:20:00'),
+        ]);
+        FinalTestAnswer::create([
+            'final_test_attempt_id' => $sourceUniqueAttempt->id,
+            'final_test_question_id' => $question->id,
+            'final_test_question_option_id' => $option->id,
+            'is_correct' => true,
+        ]);
+
+        Certificate::create([
+            'course_id' => $course->id,
+            'user_id' => $sourceStudent->id,
+            'number' => 'CERT-SOURCE-TRANSFER',
+            'issued_at' => Carbon::parse('2026-03-09 09:00:00'),
+            'front_content' => 'Frente origem',
+            'back_content' => 'Verso origem',
+        ]);
+        Certificate::create([
+            'course_id' => $course->id,
+            'user_id' => $targetStudent->id,
+            'number' => 'CERT-TARGET-TRANSFER',
+            'issued_at' => Carbon::parse('2026-03-10 09:00:00'),
+            'front_content' => 'Frente destino',
+            'back_content' => 'Verso destino',
+        ]);
+
+        $webhookLink = PaymentWebhookLink::create([
+            'system_setting_id' => $tenantA->id,
+            'name' => 'Link Alpha',
+            'endpoint_uuid' => (string) Str::uuid(),
+            'is_active' => true,
+            'action_mode' => PaymentWebhookLink::ACTION_REGISTER,
+            'created_by' => $adminA->id,
+        ]);
+        $paymentEntitlement = PaymentEntitlement::create([
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+            'payment_webhook_link_id' => $webhookLink->id,
+            'external_tx_id' => 'TX-123',
+            'external_product_id' => 'PROD-123',
+            'state' => 'active',
+            'last_event_at' => now(),
+        ]);
+        $certificatePayment = CertificatePayment::create([
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+            'status' => 'paid',
+            'amount' => 199.90,
+            'currency' => 'BRL',
+            'transaction_reference' => 'CERT-123',
+            'paid_at' => now(),
+        ]);
+        $trackingEvent = TrackingEvent::create([
+            'event_uuid' => (string) Str::uuid(),
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+            'event_name' => 'course_viewed',
+            'occurred_at' => now(),
+        ]);
+        $trackingAttribution = TrackingAttribution::create([
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+            'attribution_model' => 'last_touch',
+        ]);
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin)
+            ->put(route('sa.courses.update', $course->id), [
+                'system_setting_id' => $tenantB->id,
+                'owner_id' => $adminB->id,
+                'title' => 'Curso History Move',
+                'summary' => 'Resumo history move',
+                'description' => 'Descrição history move',
                 'status' => 'published',
-                'duration_minutes' => 60,
+                'duration_minutes' => 90,
+                'published_at' => now()->format('Y-m-d H:i:s'),
+                'promo_video_url' => 'https://example.com/history',
+            ])
+            ->assertRedirect(route('sa.courses.edit', $course->id));
+
+        $this->assertDatabaseMissing('enrollments', ['id' => $sourceEnrollment->id]);
+        $this->assertDatabaseHas('enrollments', [
+            'id' => $existingTargetEnrollment->id,
+            'course_id' => $course->id,
+            'user_id' => $targetStudent->id,
+            'system_setting_id' => $tenantB->id,
+            'progress_percent' => 90,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'manual_override' => true,
+            'manual_override_by' => $adminA->id,
+        ]);
+        $this->assertDatabaseHas('enrollments', [
+            'id' => $existingTargetEnrollment->id,
+            'completed_at' => '2026-03-01 10:00:00',
+            'manual_override_at' => '2026-03-05 10:00:00',
+            'access_block_reason' => null,
+            'access_blocked_at' => null,
+        ]);
+
+        $this->assertDatabaseHas('lesson_completions', [
+            'lesson_id' => $lessonOne->id,
+            'user_id' => $targetStudent->id,
+        ]);
+        $this->assertDatabaseHas('lesson_completions', [
+            'lesson_id' => $lessonTwo->id,
+            'user_id' => $targetStudent->id,
+        ]);
+        $this->assertDatabaseMissing('lesson_completions', [
+            'lesson_id' => $lessonOne->id,
+            'user_id' => $sourceStudent->id,
+        ]);
+        $this->assertDatabaseHas('lesson_completions', [
+            'lesson_id' => $lessonOtherCourse->id,
+            'user_id' => $sourceStudent->id,
+        ]);
+
+        $this->assertDatabaseMissing('final_test_attempts', ['id' => $sourceDuplicateAttempt->id]);
+        $this->assertDatabaseHas('final_test_attempts', [
+            'id' => $sourceUniqueAttempt->id,
+            'user_id' => $targetStudent->id,
+        ]);
+        $this->assertSame(
+            2,
+            FinalTestAttempt::query()
+                ->where('final_test_id', $finalTest->id)
+                ->where('user_id', $targetStudent->id)
+                ->count()
+        );
+
+        $this->assertDatabaseMissing('certificates', ['number' => 'CERT-SOURCE-TRANSFER']);
+        $this->assertDatabaseHas('certificates', [
+            'number' => 'CERT-TARGET-TRANSFER',
+            'user_id' => $targetStudent->id,
+        ]);
+
+        $this->assertDatabaseHas('payment_entitlements', [
+            'id' => $paymentEntitlement->id,
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+        ]);
+        $this->assertDatabaseHas('certificate_payments', [
+            'id' => $certificatePayment->id,
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+        ]);
+        $this->assertDatabaseHas('tracking_events', [
+            'id' => $trackingEvent->id,
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+        ]);
+        $this->assertDatabaseHas('tracking_attributions', [
+            'id' => $trackingAttribution->id,
+            'user_id' => $sourceStudent->id,
+            'course_id' => $course->id,
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $sourceStudent->id,
+            'system_setting_id' => $tenantA->id,
+        ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $targetStudent->id,
+            'system_setting_id' => $tenantB->id,
+        ]);
+    }
+
+    public function test_super_admin_can_transfer_course_by_cloning_student_when_target_tenant_has_no_matching_email(): void
+    {
+        [$adminA, $tenantA] = $this->createTenant('cursos.sa-course-clone-alpha.test', 'Course Clone Alpha');
+        [$adminB, $tenantB] = $this->createTenant('cursos.sa-course-clone-beta.test', 'Course Clone Beta');
+        $superAdmin = $this->bootstrapSuperAdmin();
+
+        $course = $this->createCourseForTenant($adminA, 'curso-clone-transfer', 'Curso Clone Transfer');
+        $module = $this->createModuleForCourse($course, 'Módulo Clone');
+        $lesson = $this->createLessonForModule($module, 'Aula Clone', 1);
+
+        $sourceStudent = User::factory()->student()->create([
+            'system_setting_id' => $tenantA->id,
+            'email' => 'clone-transfer-student@example.com',
+            'name' => 'Aluno Clone',
+            'display_name' => 'Clone Display',
+            'whatsapp' => '5511988880000',
+            'qualification' => 'Qualificado',
+            'profile_photo_path' => 'profile-photos/aluno-clone.jpg',
+            'email_verified_at' => Carbon::parse('2026-03-01 09:00:00'),
+        ]);
+        $enrollment = $this->createEnrollmentFor($course, $sourceStudent);
+        LessonCompletion::create([
+            'lesson_id' => $lesson->id,
+            'user_id' => $sourceStudent->id,
+            'completed_at' => Carbon::parse('2026-03-02 10:00:00'),
+        ]);
+        Certificate::create([
+            'course_id' => $course->id,
+            'user_id' => $sourceStudent->id,
+            'number' => 'CERT-CLONE-TRANSFER',
+            'issued_at' => Carbon::parse('2026-03-03 10:00:00'),
+            'front_content' => 'Frente clone',
+            'back_content' => 'Verso clone',
+        ]);
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin)
+            ->put(route('sa.courses.update', $course->id), [
+                'system_setting_id' => $tenantB->id,
+                'owner_id' => $adminB->id,
+                'title' => 'Curso Clone Transfer',
+                'summary' => 'Resumo clone',
+                'description' => 'Descrição clone',
+                'status' => 'published',
+                'duration_minutes' => 75,
                 'published_at' => now()->format('Y-m-d H:i:s'),
                 'promo_video_url' => '',
             ])
-            ->assertRedirect(route('sa.courses.edit', $course->id))
-            ->assertSessionHasErrors('system_setting_id');
+            ->assertRedirect(route('sa.courses.edit', $course->id));
+
+        $clonedStudent = User::withoutGlobalScopes()
+            ->where('system_setting_id', $tenantB->id)
+            ->whereRaw('LOWER(email) = ?', ['clone-transfer-student@example.com'])
+            ->first();
+
+        $this->assertNotNull($clonedStudent);
+        $this->assertNotSame($sourceStudent->id, $clonedStudent->id);
+        $this->assertSame('Aluno Clone', $clonedStudent->name);
+        $this->assertSame('Clone Display', $clonedStudent->display_name);
+        $this->assertSame('5511988880000', $clonedStudent->whatsapp);
+        $this->assertSame('Qualificado', $clonedStudent->qualification);
+        $this->assertSame('profile-photos/aluno-clone.jpg', $clonedStudent->profile_photo_path);
+        $this->assertSame('student', $clonedStudent->role->value ?? $clonedStudent->role);
+        $this->assertSame($sourceStudent->getAuthPassword(), $clonedStudent->getAuthPassword());
+
+        $this->assertDatabaseHas('users', [
+            'id' => $sourceStudent->id,
+            'system_setting_id' => $tenantA->id,
+        ]);
+        $this->assertDatabaseHas('enrollments', [
+            'id' => $enrollment->id,
+            'user_id' => $clonedStudent->id,
+            'system_setting_id' => $tenantB->id,
+        ]);
+        $this->assertDatabaseHas('lesson_completions', [
+            'lesson_id' => $lesson->id,
+            'user_id' => $clonedStudent->id,
+        ]);
+        $this->assertDatabaseMissing('lesson_completions', [
+            'lesson_id' => $lesson->id,
+            'user_id' => $sourceStudent->id,
+        ]);
+        $this->assertDatabaseHas('certificates', [
+            'number' => 'CERT-CLONE-TRANSFER',
+            'user_id' => $clonedStudent->id,
+        ]);
     }
 
     public function test_super_admin_can_update_enrollment_when_tenant_user_and_course_are_consistent(): void
@@ -493,6 +918,40 @@ class SuperAdminAreaTest extends TestCase
             'user_id' => $user->id,
             'progress_percent' => 0,
             'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
+    }
+
+    private function createModuleForCourse(Course $course, string $title, int $position = 1): Module
+    {
+        return Module::create([
+            'course_id' => $course->id,
+            'title' => $title,
+            'description' => 'Descrição '.$title,
+            'position' => $position,
+        ]);
+    }
+
+    private function createLessonForModule(Module $module, string $title, int $position = 1): Lesson
+    {
+        return Lesson::create([
+            'module_id' => $module->id,
+            'title' => $title,
+            'content' => 'Conteúdo '.$title,
+            'video_url' => 'https://example.com/'.Str::slug($title),
+            'duration_minutes' => 10,
+            'position' => $position,
+        ]);
+    }
+
+    private function createFinalTestForCourse(Course $course): FinalTest
+    {
+        return FinalTest::create([
+            'course_id' => $course->id,
+            'title' => 'Teste final '.$course->title,
+            'instructions' => 'Responda tudo.',
+            'passing_score' => 70,
+            'max_attempts' => 3,
+            'duration_minutes' => 30,
         ]);
     }
 

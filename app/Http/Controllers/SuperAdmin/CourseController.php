@@ -4,12 +4,10 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
-use App\Models\CertificateBranding;
 use App\Models\Course;
-use App\Models\Enrollment;
-use App\Models\SupportWhatsappNumber;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\CourseTenantTransferService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -19,6 +17,10 @@ use Illuminate\View\View;
 
 class CourseController extends Controller
 {
+    public function __construct(
+        private readonly CourseTenantTransferService $courseTenantTransferService,
+    ) {}
+
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
@@ -95,9 +97,9 @@ class CourseController extends Controller
         $targetSystemSettingId = (int) $validated['system_setting_id'];
         $ownerId = (int) $validated['owner_id'];
 
-        $this->ensureCourseChangeIsAllowed($course, $targetSystemSettingId, $ownerId);
+        $this->ensureOwnerMatchesTenant($targetSystemSettingId, $ownerId);
 
-        $course->fill([
+        $payload = [
             'system_setting_id' => $targetSystemSettingId,
             'owner_id' => $ownerId,
             'title' => $validated['title'],
@@ -107,12 +109,21 @@ class CourseController extends Controller
             'duration_minutes' => $validated['duration_minutes'] ?? null,
             'published_at' => $validated['published_at'] ?? null,
             'promo_video_url' => $validated['promo_video_url'] ?? null,
-        ]);
+        ];
 
-        if ($course->isDirty('title')) {
-            $course->slug = $this->generateUniqueSlug($course->title, $course->id);
+        if ($validated['title'] !== $course->title) {
+            $payload['slug'] = $this->generateUniqueSlug($validated['title'], $course->id);
         }
 
+        if ($targetSystemSettingId !== (int) $course->system_setting_id) {
+            $course = $this->courseTenantTransferService->transfer($course, $payload);
+
+            return redirect()
+                ->route('sa.courses.edit', $course->id)
+                ->with('status', 'Curso transferido para a nova escola com matrículas e histórico educacional.');
+        }
+
+        $course->fill($payload);
         $course->save();
 
         return redirect()
@@ -140,69 +151,13 @@ class CourseController extends Controller
             ->findOrFail($id);
     }
 
-    private function ensureCourseChangeIsAllowed(Course $course, int $targetSystemSettingId, int $ownerId): void
+    private function ensureOwnerMatchesTenant(int $targetSystemSettingId, int $ownerId): void
     {
-        $messages = [];
-
         $owner = User::withoutGlobalScopes()->find($ownerId);
         if (! $owner || ($owner->role->value ?? $owner->role) !== UserRole::ADMIN->value || (int) $owner->system_setting_id !== $targetSystemSettingId) {
-            $messages['owner_id'] = 'Selecione um responsável administrador que pertença à escola escolhida.';
-        }
-
-        if ($targetSystemSettingId !== (int) $course->system_setting_id) {
-            $enrollmentTenantIds = Enrollment::withoutGlobalScopes()
-                ->where('course_id', $course->id)
-                ->whereNotNull('system_setting_id')
-                ->distinct()
-                ->pluck('system_setting_id')
-                ->map(fn (mixed $id): int => (int) $id)
-                ->filter(fn (int $id): bool => $id !== $targetSystemSettingId)
-                ->values();
-
-            if ($enrollmentTenantIds->isNotEmpty()) {
-                $messages['system_setting_id'] = 'Não é possível mover o curso enquanto existirem matrículas vinculadas a outra escola.';
-            }
-
-            $enrolledUserTenantIds = Enrollment::withoutGlobalScopes()
-                ->join('users', 'users.id', '=', 'enrollments.user_id')
-                ->where('enrollments.course_id', $course->id)
-                ->whereNotNull('users.system_setting_id')
-                ->distinct()
-                ->pluck('users.system_setting_id')
-                ->map(fn (mixed $id): int => (int) $id)
-                ->filter(fn (int $id): bool => $id !== $targetSystemSettingId)
-                ->values();
-
-            if ($enrolledUserTenantIds->isNotEmpty()) {
-                $messages['system_setting_id'] = 'Não é possível mover o curso enquanto existirem alunos de outra escola matriculados nele.';
-            }
-
-            $brandingTenantIds = CertificateBranding::withoutGlobalScopes()
-                ->where('course_id', $course->id)
-                ->whereNotNull('system_setting_id')
-                ->distinct()
-                ->pluck('system_setting_id')
-                ->map(fn (mixed $id): int => (int) $id)
-                ->filter(fn (int $id): bool => $id !== $targetSystemSettingId)
-                ->values();
-
-            if ($brandingTenantIds->isNotEmpty()) {
-                $messages['system_setting_id'] = 'Não é possível mover o curso enquanto o branding do certificado estiver ligado a outra escola.';
-            }
-
-            if ($course->support_whatsapp_number_id) {
-                $supportWhatsappTenantId = SupportWhatsappNumber::withoutGlobalScopes()
-                    ->whereKey($course->support_whatsapp_number_id)
-                    ->value('system_setting_id');
-
-                if ($supportWhatsappTenantId !== null && (int) $supportWhatsappTenantId !== $targetSystemSettingId) {
-                    $messages['system_setting_id'] = 'Não é possível mover o curso enquanto o WhatsApp de atendimento estiver ligado a outra escola.';
-                }
-            }
-        }
-
-        if ($messages !== []) {
-            throw ValidationException::withMessages($messages);
+            throw ValidationException::withMessages([
+                'owner_id' => 'Selecione um responsável administrador que pertença à escola escolhida.',
+            ]);
         }
     }
 
