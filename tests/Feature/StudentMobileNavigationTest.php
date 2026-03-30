@@ -1,0 +1,319 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\EnrollmentAccessStatus;
+use App\Livewire\Certificado\Checkout as CertificateCheckout;
+use App\Models\Certificate;
+use App\Models\Course;
+use App\Models\Enrollment;
+use App\Models\FinalTest;
+use App\Models\FinalTestQuestion;
+use App\Models\FinalTestQuestionOption;
+use App\Models\Lesson;
+use App\Models\LessonCompletion;
+use App\Models\Module;
+use App\Models\User;
+use App\Services\CertificateImageService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
+use Livewire\Livewire;
+use Mockery\MockInterface;
+use Tests\TestCase;
+
+class StudentMobileNavigationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (method_exists($this, 'withoutVite')) {
+            $this->withoutVite();
+        }
+    }
+
+    public function test_student_shell_renders_navigation_overlay_and_intercepted_dashboard_links(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-mobile@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-mobile-nav', 'Curso Mobile Nav');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'progress_percent' => 35,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
+
+        $response = $this->actingAs($student)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('data-student-shell="1"', false);
+        $response->assertSee('data-student-navigation-overlay="1"', false);
+        $html = $response->getContent();
+
+        $this->assertNavigableLink($html, route('dashboard'));
+        $this->assertNavigableLink($html, route('learning.notifications.index'));
+        $this->assertNavigableLink($html, route('account.edit'));
+        $this->assertNavigableLink($html, route('certificado.index'));
+        $this->assertNavigableLink($html, route('learning.courses.show', $course));
+
+        $panelResponse = $this->actingAs($student)->get(route('dashboard', ['tab' => 'painel']));
+        $panelResponse->assertOk();
+        $panelHtml = $panelResponse->getContent();
+
+        $this->assertNavigableLink($panelHtml, route('dashboard', ['tab' => 'cursos']));
+        $this->assertNavigableLink($panelHtml, route('dashboard', ['tab' => 'vitrine']));
+    }
+
+    public function test_lesson_screen_renders_player_placeholder_and_intercepted_navigation_links(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-aula-mobile@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-aula-mobile', 'Curso Aula Mobile');
+        $module = $this->createModuleForCourse($course, 'Modulo 1');
+        $firstLesson = $this->createLessonForModule($module, 'Aula 1', 1);
+        $secondLesson = $this->createLessonForModule($module, 'Aula 2', 2);
+        $this->createFinalTestForCourse($course);
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
+        LessonCompletion::create([
+            'lesson_id' => $firstLesson->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+        ]);
+        LessonCompletion::create([
+            'lesson_id' => $secondLesson->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+        ]);
+
+        $response = $this->actingAs($student)->get(route('learning.courses.lessons.show', [$course, $firstLesson]));
+
+        $response->assertOk();
+        $response->assertSee('data-lesson-player-shell="1"', false);
+        $response->assertSee('data-lesson-player-placeholder="1"', false);
+        $html = $response->getContent();
+
+        $this->assertNavigableLink($html, route('learning.courses.lessons.show', [$course, $secondLesson]));
+        $this->assertNavigableLink($html, route('learning.courses.final-test.intro', $course));
+    }
+
+    public function test_certificate_and_final_test_pages_keep_sync_flows_outside_wire_navigate(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-cert-mobile@example.com',
+            'name_change_available' => true,
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-cert-mobile', 'Curso Cert Mobile');
+        $this->createFinalTestForCourse($course);
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
+
+        $certificate = Certificate::create([
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'number' => 'CERT-MOBILE-001',
+            'issued_at' => now(),
+            'front_content' => '<p>Frente</p>',
+            'back_content' => '<p>Verso</p>',
+        ]);
+        $certificate->forceFill([
+            'public_token' => (string) Str::uuid(),
+        ])->save();
+
+        $certificateResponse = $this->actingAs($student)
+            ->get(route('learning.courses.certificate.show', [$course, $certificate]));
+
+        $certificateResponse->assertOk();
+        $certificateHtml = $certificateResponse->getContent();
+
+        $this->assertNavigableLink($certificateHtml, route('dashboard'));
+        $this->assertNavigableLink($certificateHtml, route('account.edit'));
+        $this->assertStringContainsString('href="'.route('learning.courses.certificate.image', [$course, $certificate]).'"', $certificateHtml);
+        $this->assertNotNavigableLink($certificateHtml, route('learning.courses.certificate.image', [$course, $certificate]));
+
+        $finalTestResponse = $this->actingAs($student)
+            ->get(route('learning.courses.final-test.intro', $course));
+
+        $finalTestResponse->assertOk();
+        $finalTestHtml = $finalTestResponse->getContent();
+
+        $this->assertNavigableLink($finalTestHtml, route('dashboard'));
+        $this->assertStringContainsString('action="'.route('learning.courses.final-test.start', $course).'"', $finalTestHtml);
+        $this->assertStringNotContainsString('action="'.route('learning.courses.final-test.start', $course).'" wire:navigate', $finalTestHtml);
+    }
+
+    public function test_student_can_open_certificate_image_route(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-cert-image@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-cert-image', 'Curso Cert Image');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
+
+        $certificate = Certificate::create([
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'number' => 'CERT-IMAGE-001',
+            'issued_at' => now(),
+            'front_content' => '<p>Frente</p>',
+            'back_content' => '<p>Verso</p>',
+        ]);
+        $certificate->forceFill([
+            'public_token' => (string) Str::uuid(),
+        ])->save();
+
+        $this->mock(CertificateImageService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('fromPdf')->once()->andReturn('fake-png-binary');
+        });
+
+        $response = $this->actingAs($student)
+            ->get(route('learning.courses.certificate.image', [$course, $certificate]));
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'image/png');
+        $response->assertHeader('Content-Disposition', 'inline; filename="certificado-'.$course->slug.'.png"');
+        $response->assertContent('fake-png-binary');
+    }
+
+    public function test_certificate_checkout_redirects_to_student_certificate_screen_after_generation(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-gera-cert@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-gera-cert', 'Curso Gera Cert');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'completed_at' => now(),
+        ]);
+
+        $this->actingAs($student);
+
+        $component = Livewire::test(CertificateCheckout::class)
+            ->set('courseId', $course->id)
+            ->set('completionConfirmed', 'yes')
+            ->call('generateCertificate');
+
+        $certificate = Certificate::query()->where('course_id', $course->id)->where('user_id', $student->id)->first();
+
+        $this->assertNotNull($certificate);
+        $this->assertNotNull($certificate->front_content);
+        $this->assertNotNull($certificate->back_content);
+        $component->assertRedirect(route('learning.courses.certificate.show', [$course, $certificate]));
+    }
+
+    private function createCourseForTenant(User $owner, string $slug, string $title): Course
+    {
+        return Course::create([
+            'system_setting_id' => $owner->system_setting_id,
+            'owner_id' => $owner->id,
+            'title' => $title,
+            'slug' => $slug,
+            'summary' => 'Resumo '.$title,
+            'description' => 'Descricao '.$title,
+            'status' => 'published',
+            'duration_minutes' => 60,
+            'published_at' => now(),
+        ]);
+    }
+
+    private function createModuleForCourse(Course $course, string $title, int $position = 1): Module
+    {
+        return Module::create([
+            'course_id' => $course->id,
+            'title' => $title,
+            'description' => 'Descricao '.$title,
+            'position' => $position,
+        ]);
+    }
+
+    private function createLessonForModule(Module $module, string $title, int $position = 1): Lesson
+    {
+        return Lesson::create([
+            'module_id' => $module->id,
+            'title' => $title,
+            'content' => 'Conteudo '.$title,
+            'video_url' => 'https://example.com/'.Str::slug($title),
+            'duration_minutes' => 10,
+            'position' => $position,
+        ]);
+    }
+
+    private function createFinalTestForCourse(Course $course): FinalTest
+    {
+        $finalTest = FinalTest::create([
+            'course_id' => $course->id,
+            'title' => 'Teste final '.$course->title,
+            'instructions' => 'Responda tudo.',
+            'passing_score' => 70,
+            'max_attempts' => 3,
+            'duration_minutes' => 30,
+        ]);
+
+        $question = FinalTestQuestion::create([
+            'final_test_id' => $finalTest->id,
+            'title' => 'Pergunta 1',
+            'statement' => 'Escolha a resposta correta.',
+            'position' => 1,
+            'weight' => 1,
+        ]);
+
+        FinalTestQuestionOption::create([
+            'final_test_question_id' => $question->id,
+            'label' => 'Opcao correta',
+            'is_correct' => true,
+            'position' => 1,
+        ]);
+
+        return $finalTest;
+    }
+
+    private function assertNavigableLink(string $html, string $url): void
+    {
+        $pattern = sprintf('/href="%s"[^>]*wire:navigate/s', preg_quote($url, '/'));
+
+        $this->assertSame(1, preg_match($pattern, $html), "Expected navigable link for [{$url}].");
+    }
+
+    private function assertNotNavigableLink(string $html, string $url): void
+    {
+        $pattern = sprintf('/href="%s"[^>]*wire:navigate/s', preg_quote($url, '/'));
+
+        $this->assertSame(0, preg_match($pattern, $html), "Did not expect navigable link for [{$url}].");
+    }
+}

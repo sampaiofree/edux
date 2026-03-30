@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Certificate;
 use App\Models\CertificateBranding;
 use App\Models\Course;
+use App\Services\CertificateImageService;
 use App\Support\EnsuresStudentEnrollment;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -18,10 +19,7 @@ class CourseCertificateController extends Controller
 
     public function show(Request $request, Course $course, Certificate $certificate): View
     {
-        $user = $request->user();
-        $this->ensureEnrollment($user, $course);
-
-        abort_if($certificate->course_id !== $course->id || $certificate->user_id !== $user->id, 403);
+        $user = $this->resolveAuthorizedStudent($request, $course, $certificate);
 
         $branding = $this->resolveBranding($course);
         $displayName = $user->preferredName();
@@ -45,17 +43,33 @@ class CourseCertificateController extends Controller
             'course' => $course,
             'certificate' => $certificate,
             'publicUrl' => $publicUrl,
+            'imageUrl' => route('learning.courses.certificate.image', [$course, $certificate]),
             'frontContent' => $frontContent,
             'backContent' => $backContent,
         ]);
     }
 
+    public function image(
+        Request $request,
+        Course $course,
+        Certificate $certificate,
+        CertificateImageService $certificateImageService
+    ) {
+        $this->resolveAuthorizedStudent($request, $course, $certificate);
+
+        $image = $certificateImageService->fromPdf($this->makePdf($certificate, $course));
+
+        return response($image, 200, [
+            'Content-Type' => 'image/png',
+            'Content-Disposition' => 'inline; filename="certificado-'.$course->slug.'.png"',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ]);
+    }
+
+    // Mantido para uma futura retomada do fluxo em PDF no app.
     public function download(Request $request, Course $course, Certificate $certificate)
     {
-        $user = $request->user();
-        $this->ensureEnrollment($user, $course);
-
-        abort_if($certificate->course_id !== $course->id || $certificate->user_id !== $user->id, 403);
+        $this->resolveAuthorizedStudent($request, $course, $certificate);
 
         $pdf = $this->makePdf($certificate, $course);
 
@@ -68,6 +82,16 @@ class CourseCertificateController extends Controller
     private function resolveBranding(Course $course): CertificateBranding
     {
         return CertificateBranding::resolveForCourse($course);
+    }
+
+    private function resolveAuthorizedStudent(Request $request, Course $course, Certificate $certificate)
+    {
+        $user = $request->user();
+        $this->ensureEnrollment($user, $course);
+
+        abort_if($certificate->course_id !== $course->id || $certificate->user_id !== $user->id, 403);
+
+        return $user;
     }
 
     private function makePdf(Certificate $certificate, Course $course): Dompdf

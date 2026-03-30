@@ -2,8 +2,9 @@
 <div x-data="{ 
     showLessons: false, 
     showPayment: @entangle('showPaymentModal'),
-    videoReady: false 
-}" class="min-h-screen bg-gray-50 pb-6">
+    hasVideo: @js((bool) ($this->youtubeId || $lesson->video_url)),
+    videoReady: @js(! ((bool) ($this->youtubeId || $lesson->video_url)))
+}" @edux-lesson-player-ready.window="videoReady = true" class="min-h-screen bg-gray-50 pb-6">
 
     {{-- Header compacto e informativo --}}
     <header class="sticky top-0 z-30 bg-white shadow-sm border-b">
@@ -34,9 +35,32 @@
     <main class="max-w-[420px] mx-auto w-full px-4 py-4 space-y-4">
         
         {{-- Player de vídeo otimizado (com Plyr) --}}
-        <div class="relative bg-black rounded-xl overflow-hidden shadow-lg">
+        <div class="relative rounded-xl overflow-hidden shadow-lg bg-slate-950" data-lesson-player-shell="1">
             @if ($this->youtubeId)
-                <div class="aspect-video">
+                <div class="aspect-video relative">
+                    <div
+                        x-show="hasVideo && !videoReady"
+                        x-transition.opacity.duration.200ms
+                        x-cloak
+                        data-lesson-player-placeholder="1"
+                        class="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-4"
+                    >
+                        <div class="flex items-center gap-2 text-white/80">
+                            <span class="relative flex h-3 w-3">
+                                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40"></span>
+                                <span class="relative inline-flex h-3 w-3 rounded-full bg-white"></span>
+                            </span>
+                            <span class="text-xs font-semibold uppercase tracking-[0.24em]">Carregando aula</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="h-3 w-24 rounded-full bg-white/15"></div>
+                            <div class="h-4 w-3/4 rounded-full bg-white/25"></div>
+                            <div class="h-4 w-1/2 rounded-full bg-white/15"></div>
+                        </div>
+                        <div class="h-2 w-full rounded-full bg-white/10">
+                            <div class="h-full w-2/5 animate-pulse rounded-full bg-blue-400/70"></div>
+                        </div>
+                    </div>
                     <div class="plyr__video-embed" id="lesson-player">
                         <iframe 
                             src="https://www.youtube.com/embed/{{ $this->youtubeId }}?modestbranding=1&rel=0&enablejsapi=1" 
@@ -46,14 +70,38 @@
                     </div>
                 </div>
             @elseif ($lesson->video_url)
-                <div class="aspect-video">
+                <div class="aspect-video relative">
+                    <div
+                        x-show="hasVideo && !videoReady"
+                        x-transition.opacity.duration.200ms
+                        x-cloak
+                        data-lesson-player-placeholder="1"
+                        class="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-4"
+                    >
+                        <div class="flex items-center gap-2 text-white/80">
+                            <span class="relative flex h-3 w-3">
+                                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40"></span>
+                                <span class="relative inline-flex h-3 w-3 rounded-full bg-white"></span>
+                            </span>
+                            <span class="text-xs font-semibold uppercase tracking-[0.24em]">Carregando aula</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="h-3 w-24 rounded-full bg-white/15"></div>
+                            <div class="h-4 w-3/4 rounded-full bg-white/25"></div>
+                            <div class="h-4 w-1/2 rounded-full bg-white/15"></div>
+                        </div>
+                        <div class="h-2 w-full rounded-full bg-white/10">
+                            <div class="h-full w-2/5 animate-pulse rounded-full bg-blue-400/70"></div>
+                        </div>
+                    </div>
                     {{-- Para vídeos que não são YouTube, podemos ter um iframe direto ou configurar o Plyr para aceitar outras URLs --}}
                     {{-- Por simplicidade, vou manter o iframe direto aqui, mas Plyr pode ser configurado para ele também --}}
                     <iframe 
                         class="w-full h-full" 
                         src="{{ $lesson->video_url }}" 
                         allowfullscreen 
-                        loading="lazy">
+                        loading="lazy"
+                        @load="videoReady = true">
                     </iframe>
                 </div>
             @elseif ($lesson->content)
@@ -168,7 +216,7 @@
         <div class="space-y-3">
             {{-- Teste final --}}
             @if ($course->finalTest && $progressPercent >= 80)
-                <a href="{{ route('learning.courses.final-test.intro', $course) }}" 
+                <a href="{{ route('learning.courses.final-test.intro', $course) }}" wire:navigate
                    class="flex items-center justify-between bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 text-purple-700 font-semibold py-4 px-5 rounded-xl transition-all">
                     <div class="flex items-center gap-3">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,7 +252,7 @@
                 @if ($canRename)
                     <p class="text-center text-sm text-gray-600">
                         Nome errado? 
-                        <a href="{{ route('account.edit') }}" class="font-semibold text-blue-600 underline">
+                        <a href="{{ route('account.edit') }}" wire:navigate class="font-semibold text-blue-600 underline">
                             Corrigir aqui
                         </a>
                     </p>
@@ -470,6 +518,10 @@
                             rel: 0,
                             modestbranding: 1,
                         },
+                    });
+
+                    target._plyrInstance.on('ready', () => {
+                        window.dispatchEvent(new CustomEvent('edux-lesson-player-ready'));
                     });
                 };
 

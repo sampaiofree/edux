@@ -406,6 +406,56 @@ const setupHomeCourseVacancies = () => {
     }, HOME_COURSE_VACANCY_TICK_MS);
 };
 
+const STUDENT_NAVIGATION_DELAY_MS = 180;
+
+let studentNavigationDelayId = null;
+let studentNavigationVisible = false;
+
+const hasStudentShell = () => document.body?.dataset.studentShell === '1';
+
+const showStudentNavigationOverlay = () => {
+    studentNavigationDelayId = null;
+
+    if (studentNavigationVisible) {
+        return;
+    }
+
+    studentNavigationVisible = true;
+    document.documentElement.dataset.studentNavigating = '1';
+};
+
+const stopStudentNavigationOverlay = () => {
+    if (studentNavigationDelayId !== null) {
+        window.clearTimeout(studentNavigationDelayId);
+        studentNavigationDelayId = null;
+    }
+
+    if (! studentNavigationVisible) {
+        delete document.documentElement.dataset.studentNavigating;
+
+        return;
+    }
+
+    studentNavigationVisible = false;
+    delete document.documentElement.dataset.studentNavigating;
+};
+
+const queueStudentNavigationOverlay = () => {
+    if (! hasStudentShell()) {
+        stopStudentNavigationOverlay();
+
+        return;
+    }
+
+    if (studentNavigationDelayId !== null || studentNavigationVisible) {
+        return;
+    }
+
+    studentNavigationDelayId = window.setTimeout(() => {
+        showStudentNavigationOverlay();
+    }, STUDENT_NAVIGATION_DELAY_MS);
+};
+
 let livewireHooksRegistered = false;
 
 const registerLivewireHooks = () => {
@@ -434,12 +484,19 @@ document.addEventListener('livewire:initialized', () => {
 });
 
 document.addEventListener('livewire:navigated', () => {
+    stopStudentNavigationOverlay();
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
     initPushManager();
 });
 
+document.addEventListener('livewire:navigate', () => {
+    queueStudentNavigationOverlay();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
+    stopStudentNavigationOverlay();
+
     if (!window.Livewire) {
         setupIntlPhoneInputs();
     }

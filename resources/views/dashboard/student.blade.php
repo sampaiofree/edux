@@ -45,7 +45,7 @@
                     <p class="text-base font-bold text-gray-900">{{ $user->preferredName() }}</p>
                     <p class="text-sm text-gray-600">{{ $user->email }}</p>
                 </div>
-                <a href="{{ route('account.edit') }}" class="rounded-xl bg-[#FBC02D] px-3 py-2 font-bold text-black shadow">
+                <a href="{{ route('account.edit') }}" wire:navigate class="rounded-xl bg-[#FBC02D] px-3 py-2 font-bold text-black shadow">
                     Editar
                 </a>
             </div>

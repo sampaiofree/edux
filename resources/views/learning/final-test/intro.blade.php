@@ -31,6 +31,6 @@
     @endif
 
     <div style="margin-top:1.5rem;">
-        <a href="{{ route('dashboard') }}" class="btn btn-secondary">Voltar</a>
+        <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-secondary">Voltar</a>
     </div>
 @endsection

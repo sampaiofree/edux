@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" x-data="studentLayout()" x-init="init()">
+<html lang="pt-BR">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,13 +26,44 @@
                 margin-left: -450% !important;
             }
             [x-cloak] { display: none !important; }
+            .student-shell-content {
+                animation: student-screen-enter 180ms ease-out;
+                will-change: opacity, transform;
+            }
+            [data-student-navigation-overlay] {
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 160ms ease, visibility 160ms ease;
+            }
+            html[data-student-navigating='1'] [data-student-navigation-overlay] {
+                opacity: 1;
+                visibility: visible;
+            }
+            @keyframes student-screen-enter {
+                from {
+                    opacity: 0;
+                    transform: translateY(6px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .student-shell-content {
+                    animation: none;
+                }
+                [data-student-navigation-overlay] {
+                    transition: none;
+                }
+            }
             /*.animate-spin-slow { animation: spin 2s linear infinite; }
             .shine-motion { animation: shine 1.8s linear infinite; }
             @keyframes spin { to { transform: rotate(360deg); } }
             @keyframes shine { from { transform: translateX(-100%); } to { transform: translateX(200%); } }*/
         </style>
     </head>
-    <body class="min-h-screen bg-gray-50 text-edux-text">
+    <body data-student-shell="1" class="min-h-screen bg-gray-50 text-edux-text">
         @php
             use Illuminate\Support\Facades\Schema;
 
@@ -74,7 +105,7 @@
             <div class="mx-auto max-w-7xl px-4 py-3">
                 <div class="flex items-center justify-between gap-4">
                     <!-- Logo -->
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 group">
+                    <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2 group">
                         @if ($logoUrl)
                             <img src="{{ $logoUrl }}" alt="EduX" class="h-9 w-auto">
                         @else
@@ -87,6 +118,7 @@
                         <!-- ├ìcone Notifica├º├Áes com Badge -->
                         <a
                             href="{{ route('learning.notifications.index') }}"
+                            wire:navigate
                             class="relative flex h-10 w-10 items-center justify-center rounded-md  bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-blue-600"
                             aria-label="Notifica├º├Áes"
                         >
@@ -102,10 +134,12 @@
         </header>
         @endunless
 
-        <main class="{{ $mainClasses }}">
-            <x-toast :status="session('status')" :errors="$errors->all()" :error="session('error')" />
-            @yield('content')
-        </main>
+        <div class="student-shell-content">
+            <main class="{{ $mainClasses }}">
+                <x-toast :status="session('status')" :errors="$errors->all()" :error="session('error')" />
+                @yield('content')
+            </main>
+        </div>
 
         @unless ($hideFooter)
         <footer class="hidden bg-gray-100 text-gray-600 md:block">
@@ -131,13 +165,19 @@
         @unless ($hideBottomNav)
             <x-student-bottom-nav :active="$navActive" />
         @endunless
-        <script>
-            function studentLayout() {
-                return {
-                    mobileMenu: false,
-                    init() {}
-                }
-            }
-        </script>
+
+        <div
+            data-student-navigation-overlay="1"
+            class="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/10 backdrop-blur-[1px]"
+            aria-hidden="true"
+        >
+            <div class="inline-flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-xl ring-1 ring-slate-200/80">
+                <span class="relative flex h-3.5 w-3.5">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-edux-primary/40"></span>
+                    <span class="relative inline-flex h-3.5 w-3.5 rounded-full bg-edux-primary"></span>
+                </span>
+                <span class="text-sm font-semibold text-slate-700">Carregando</span>
+            </div>
+        </div>
     </body>
 </html>

@@ -91,6 +91,7 @@
                     $isCompleted = $progress >= 100;
                 @endphp
                 <a href="{{ route('learning.courses.show', $course) }}"
+                    wire:navigate
                     class="group relative flex min-w-[230px] w-56 flex-col overflow-hidden rounded-card border border-edux-line/70 bg-white text-edux-text shadow-card ring-offset-2 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-edux-primary/50"
                     wire:key="enrollment-{{ $enrollment->id }}">
                     @if ($coverUrl)

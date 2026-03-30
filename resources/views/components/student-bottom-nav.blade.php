@@ -69,6 +69,7 @@
             @foreach ($primaryItems as $key => $item)
                 @php $isActive = $key === $active; @endphp
                 <a href="{{ $item['route'] }}"
+                   wire:navigate
                    @class([
                        'flex flex-col items-center justify-center text-center w-full py-2 transition-colors duration-200',
                        'text-blue-600' => $isActive,
@@ -115,6 +116,7 @@
             @foreach ($moreItems as $key => $item)
                 @php $isActive = $active === $key || (in_array($key, ['conta', 'notificacoes']) && request()->routeIs(str_replace('_', '.', $key).'*')); @endphp
                 <a href="{{ $item['route'] }}"
+                    wire:navigate
                     @class([
                         'flex w-full items-center gap-3 px-3 py-2 text-sm font-semibold transition-colors rounded-lg',
                         'text-blue-700 bg-blue-50' => $isActive,
