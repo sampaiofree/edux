@@ -70,7 +70,9 @@ class CourseController extends Controller
         return view('sa.courses.edit', [
             'course' => $course,
             'tenants' => $this->tenants(),
-            'owners' => $this->owners(),
+            'ownersByTenant' => $this->ownersByTenant(),
+            'initialTenantId' => (string) old('system_setting_id', $course->system_setting_id),
+            'initialOwnerId' => (string) old('owner_id', $course->owner_id),
         ]);
     }
 
@@ -235,12 +237,22 @@ class CourseController extends Controller
             ->get();
     }
 
-    private function owners()
+    private function ownersByTenant(): array
     {
         return User::withoutGlobalScopes()
             ->with('systemSetting')
             ->where('role', UserRole::ADMIN->value)
             ->orderBy('name')
-            ->get();
+            ->get(['id', 'name', 'email', 'system_setting_id'])
+            ->groupBy(fn (User $owner): string => (string) $owner->system_setting_id)
+            ->map(fn ($owners) => $owners
+                ->map(fn (User $owner): array => [
+                    'id' => (string) $owner->id,
+                    'label' => trim($owner->name.' - '.$owner->email),
+                ])
+                ->values()
+                ->all()
+            )
+            ->all();
     }
 }

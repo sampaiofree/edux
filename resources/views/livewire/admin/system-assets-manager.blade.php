@@ -1,9 +1,17 @@
 <section class="rounded-card bg-white p-6 shadow-card space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-            <p class="text-sm uppercase tracking-wide text-edux-primary">Identidade visual</p>
-            <h2 class="text-2xl font-display text-edux-primary">Padrões do sistema</h2>
-            <p class="text-sm text-slate-600">Envie arquivos base para manter todos os cursos com a mesma cara.</p>
+            <p class="text-sm uppercase tracking-wide text-edux-primary">
+                {{ $isSuperAdminContext ? 'Configuração global do tenant' : 'Identidade visual' }}
+            </p>
+            <h2 class="text-2xl font-display text-edux-primary">
+                {{ $isSuperAdminContext ? 'Editar escola e configurações' : 'Padrões do sistema' }}
+            </h2>
+            <p class="text-sm text-slate-600">
+                {{ $isSuperAdminContext
+                    ? 'Atualize os dados institucionais, responsável, e-mail e assets desta escola sem depender do domínio atual.'
+                    : 'Envie arquivos base para manter todos os cursos com a mesma cara.' }}
+            </p>
         </div>
     </div>
 
@@ -56,6 +64,27 @@
                 @enderror
                 <p class="text-xs text-slate-500">Opcional. Você pode salvar com ou sem máscara.</p>
             </label>
+
+            @if ($isSuperAdminContext)
+                <label class="space-y-1 text-sm font-semibold text-slate-600 md:col-span-2">
+                    <span>Responsável da escola</span>
+                    <select
+                        wire:model.defer="owner_user_id"
+                        class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                    >
+                        <option value="">Sem responsável</option>
+                        @foreach ($ownerOptions as $ownerOption)
+                            <option value="{{ $ownerOption->id }}">
+                                {{ $ownerOption->name }} ({{ $ownerOption->email }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('owner_user_id')
+                        <p class="text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                    <p class="text-xs text-slate-500">Apenas administradores já vinculados a esta escola podem ser definidos como responsáveis.</p>
+                </label>
+            @endif
 
             <div class="md:col-span-2 flex items-center gap-3">
                 <button

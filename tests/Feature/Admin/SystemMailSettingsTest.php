@@ -4,11 +4,14 @@ namespace Tests\Feature\Admin;
 
 use App\Livewire\Admin\SystemAssetsManager;
 use App\Mail\SystemMailTestMessage;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Support\Mail\TenantMailManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -218,6 +221,154 @@ class SystemMailSettingsTest extends TestCase
                 && $mail->systemSetting->mail_host === 'smtp.alpha.test'
                 && $mail->systemSetting->mail_from_name === 'Escola Alpha';
         });
+    }
+
+    public function test_super_admin_can_edit_selected_tenant_school_identity_and_owner(): void
+    {
+        $superAdmin = $this->bootstrapSuperAdmin();
+        $tenantAdmin = User::factory()->admin()->create([
+            'email' => 'tenant-admin-owner@example.com',
+        ]);
+        $tenantAdmin->refresh();
+        $tenant = $tenantAdmin->systemSetting()->withoutGlobalScopes()->firstOrFail();
+        $tenant->update([
+            'domain' => 'cursos.tenant-owner.test',
+            'escola_nome' => 'Tenant Owner',
+        ]);
+
+        $replacementOwner = User::factory()->admin()->create([
+            'system_setting_id' => $tenant->id,
+            'email' => 'replacement-owner@example.com',
+            'name' => 'Replacement Owner',
+        ]);
+
+        $this->actingAs($superAdmin);
+
+        Livewire::test(SystemAssetsManager::class, ['systemSettingId' => $tenant->id])
+            ->set('domain', 'cursos.tenant-owner-editado.test')
+            ->set('escola_nome', 'Tenant Owner Editado')
+            ->set('escola_cnpj', '12.345.678/0001-90')
+            ->set('owner_user_id', (string) $replacementOwner->id)
+            ->call('saveSchoolIdentity')
+            ->assertHasNoErrors();
+
+        $tenant->refresh();
+
+        $this->assertSame('cursos.tenant-owner-editado.test', $tenant->domain);
+        $this->assertSame('Tenant Owner Editado', $tenant->escola_nome);
+        $this->assertSame('12.345.678/0001-90', $tenant->escola_cnpj);
+        $this->assertSame($replacementOwner->id, $tenant->owner_user_id);
+    }
+
+    public function test_super_admin_cannot_assign_owner_from_another_tenant_or_student(): void
+    {
+        $superAdmin = $this->bootstrapSuperAdmin();
+        $tenantAdmin = User::factory()->admin()->create([
+            'email' => 'tenant-owner-invalid@example.com',
+        ]);
+        $tenantAdmin->refresh();
+        $tenant = $tenantAdmin->systemSetting()->withoutGlobalScopes()->firstOrFail();
+        $tenant->update([
+            'domain' => 'cursos.owner-invalid.test',
+            'escola_nome' => 'Owner Invalid',
+        ]);
+
+        $otherTenantAdmin = User::factory()->admin()->create([
+            'email' => 'other-tenant-admin@example.com',
+        ]);
+        $student = User::factory()->student()->create([
+            'system_setting_id' => $tenant->id,
+            'email' => 'tenant-student-owner@example.com',
+        ]);
+
+        $this->actingAs($superAdmin);
+
+        Livewire::test(SystemAssetsManager::class, ['systemSettingId' => $tenant->id])
+            ->set('domain', 'cursos.owner-invalid.test')
+            ->set('escola_nome', 'Owner Invalid')
+            ->set('owner_user_id', (string) $otherTenantAdmin->id)
+            ->call('saveSchoolIdentity')
+            ->assertHasErrors(['owner_user_id']);
+
+        Livewire::test(SystemAssetsManager::class, ['systemSettingId' => $tenant->id])
+            ->set('domain', 'cursos.owner-invalid.test')
+            ->set('escola_nome', 'Owner Invalid')
+            ->set('owner_user_id', (string) $student->id)
+            ->call('saveSchoolIdentity')
+            ->assertHasErrors(['owner_user_id']);
+    }
+
+    public function test_super_admin_can_send_test_email_for_explicit_tenant_context(): void
+    {
+        Mail::fake();
+
+        $superAdmin = $this->bootstrapSuperAdmin();
+        $tenantAdmin = User::factory()->admin()->create([
+            'email' => 'tenant-mail-owner@example.com',
+        ]);
+        $tenantAdmin->refresh();
+        $tenant = $tenantAdmin->systemSetting()->withoutGlobalScopes()->firstOrFail();
+        $tenant->update([
+            'domain' => 'cursos.explicit-mail.test',
+            'escola_nome' => 'Tenant Mail',
+        ]);
+
+        $this->actingAs($superAdmin);
+
+        Livewire::test(SystemAssetsManager::class, ['systemSettingId' => $tenant->id])
+            ->set('mail_mailer', 'smtp')
+            ->set('mail_scheme', 'tls')
+            ->set('mail_host', 'smtp.explicit-tenant.test')
+            ->set('mail_port', '587')
+            ->set('mail_username', 'mailer@explicit-tenant.test')
+            ->set('mail_password', 'segredo-explicito')
+            ->set('mail_from_address', 'contato@explicit-tenant.test')
+            ->set('mail_from_name', 'Tenant Mailer')
+            ->set('test_email', 'teste@explicit-tenant.test')
+            ->call('sendTestEmail')
+            ->assertHasNoErrors();
+
+        Mail::assertSent(SystemMailTestMessage::class, function (SystemMailTestMessage $mail) use ($tenant): bool {
+            return $mail->hasTo('teste@explicit-tenant.test')
+                && $mail->systemSetting->mail_host === 'smtp.explicit-tenant.test'
+                && $mail->systemSetting->escola_nome === $tenant->escola_nome
+                && $mail->systemSetting->domain === $tenant->domain;
+        });
+    }
+
+    public function test_super_admin_can_upload_asset_for_selected_tenant(): void
+    {
+        Storage::fake('public');
+
+        $superAdmin = $this->bootstrapSuperAdmin();
+        $tenantAdmin = User::factory()->admin()->create([
+            'email' => 'tenant-upload-owner@example.com',
+        ]);
+        $tenantAdmin->refresh();
+        $tenant = $tenantAdmin->systemSetting()->withoutGlobalScopes()->firstOrFail();
+        $tenant->update([
+            'domain' => 'cursos.explicit-upload.test',
+            'escola_nome' => 'Tenant Upload',
+        ]);
+
+        $this->actingAs($superAdmin);
+
+        Livewire::test(SystemAssetsManager::class, ['systemSettingId' => $tenant->id])
+            ->set('uploads.logo', UploadedFile::fake()->image('logo-tenant.png'))
+            ->call('save', 'logo')
+            ->assertHasNoErrors();
+
+        $tenant->refresh();
+
+        $this->assertNotNull($tenant->default_logo_path);
+        Storage::disk('public')->assertExists($tenant->default_logo_path);
+    }
+
+    private function bootstrapSuperAdmin(): User
+    {
+        return User::withoutGlobalScopes()
+            ->whereRaw('LOWER(email) = ?', ['sampaio.free@gmail.com'])
+            ->firstOrFail();
     }
 
     /**

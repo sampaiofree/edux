@@ -42,6 +42,7 @@
                             <th class="pb-2 text-center">Alunos</th>
                             <th class="pb-2 text-center">Cursos</th>
                             <th class="pb-2 text-center">Matrículas</th>
+                            <th class="pb-2 text-right">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -62,10 +63,15 @@
                                 <td class="py-3 text-center">{{ $tenant->students_count }}</td>
                                 <td class="py-3 text-center">{{ $tenant->courses_count }}</td>
                                 <td class="py-3 text-center">{{ $tenant->enrollments_count }}</td>
+                                <td class="py-3 text-right">
+                                    <a href="{{ route('sa.tenants.edit', $tenant->id) }}" class="text-sm font-semibold text-edux-primary underline-offset-2 hover:underline">
+                                        Editar
+                                    </a>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-6 text-center text-sm text-slate-500">Nenhuma escola encontrada.</td>
+                                <td colspan="8" class="py-6 text-center text-sm text-slate-500">Nenhuma escola encontrada.</td>
                             </tr>
                         @endforelse
                     </tbody>

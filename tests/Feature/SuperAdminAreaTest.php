@@ -64,7 +64,16 @@ class SuperAdminAreaTest extends TestCase
             ->assertSee('aluno-alpha-sa@example.com', false)
             ->assertSee('aluno-beta-sa@example.com', false)
             ->assertDontSee($adminA->email, false)
-            ->assertDontSee($adminB->email, false);
+            ->assertDontSee($adminB->email, false)
+            ->assertSee('Novo usuário', false);
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin)
+            ->get(route('sa.users.create'))
+            ->assertOk()
+            ->assertSee('Cadastrar usuário', false)
+            ->assertSee('Alpha SA', false)
+            ->assertSee('Beta SA', false);
 
         $this->forceTestHost($tenantB->domain)
             ->actingAs($superAdmin)
@@ -86,6 +95,14 @@ class SuperAdminAreaTest extends TestCase
             ->assertSee($tenantB->domain, false)
             ->assertSee($adminA->email, false)
             ->assertSee($adminB->email, false);
+
+        $this->forceTestHost($tenantB->domain)
+            ->actingAs($superAdmin)
+            ->get(route('sa.tenants.edit', $tenantA->id))
+            ->assertOk()
+            ->assertSee('Editar escola', false)
+            ->assertSee('Alpha SA', false)
+            ->assertSee($tenantA->domain, false);
 
         $this->forceTestHost($tenantB->domain)
             ->actingAs($superAdmin)
@@ -117,7 +134,17 @@ class SuperAdminAreaTest extends TestCase
 
         $this->forceTestHost($tenant->domain)
             ->actingAs($admin)
+            ->get(route('sa.users.create'))
+            ->assertForbidden();
+
+        $this->forceTestHost($tenant->domain)
+            ->actingAs($admin)
             ->get('/sa/tenants')
+            ->assertForbidden();
+
+        $this->forceTestHost($tenant->domain)
+            ->actingAs($admin)
+            ->get(route('sa.tenants.edit', $tenant->id))
             ->assertForbidden();
     }
 
@@ -152,6 +179,35 @@ class SuperAdminAreaTest extends TestCase
             'system_setting_id' => $tenantB->id,
             'name' => 'Mover Usuário Atualizado',
             'whatsapp' => '5511999999999',
+        ]);
+    }
+
+    public function test_super_admin_can_create_user_for_any_tenant(): void
+    {
+        [, $tenantA] = $this->createTenant('cursos.sa-create-user-alpha.test', 'Create User Alpha');
+        [, $tenantB] = $this->createTenant('cursos.sa-create-user-beta.test', 'Create User Beta');
+        $superAdmin = $this->bootstrapSuperAdmin();
+
+        $this->forceTestHost($tenantA->domain)
+            ->actingAs($superAdmin)
+            ->post(route('sa.users.store'), [
+                'name' => 'Usuário Global Novo',
+                'email' => 'usuario.global.novo@example.com',
+                'role' => 'student',
+                'system_setting_id' => $tenantB->id,
+                'whatsapp' => '5511988887777',
+                'qualification' => 'Criado pelo super admin',
+                'password' => 'senha1234',
+                'password_confirmation' => 'senha1234',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'usuario.global.novo@example.com',
+            'system_setting_id' => $tenantB->id,
+            'role' => 'student',
+            'whatsapp' => '5511988887777',
+            'qualification' => 'Criado pelo super admin',
         ]);
     }
 
@@ -193,11 +249,22 @@ class SuperAdminAreaTest extends TestCase
         $superAdmin = $this->bootstrapSuperAdmin();
         $course = $this->createCourseForTenant($adminA, 'curso-edit-global', 'Curso Edit Global');
 
-        $this->forceTestHost($tenantB->domain)
+        $response = $this->forceTestHost($tenantB->domain)
             ->actingAs($superAdmin)
-            ->get(route('sa.courses.edit', $course->id))
+            ->get(route('sa.courses.edit', $course->id));
+
+        $response
             ->assertOk()
-            ->assertSee('Curso Edit Global', false);
+            ->assertSee('Curso Edit Global', false)
+            ->assertViewHas('initialTenantId', (string) $tenantA->id)
+            ->assertViewHas('initialOwnerId', (string) $adminA->id)
+            ->assertViewHas('ownersByTenant', function (array $ownersByTenant) use ($tenantA, $tenantB, $adminA): bool {
+                $tenantAOwnerIds = collect($ownersByTenant[(string) $tenantA->id] ?? [])->pluck('id');
+                $tenantBOwnerIds = collect($ownersByTenant[(string) $tenantB->id] ?? [])->pluck('id');
+
+                return $tenantAOwnerIds->contains((string) $adminA->id)
+                    && $tenantBOwnerIds->doesntContain((string) $adminA->id);
+            });
 
         $this->forceTestHost($tenantB->domain)
             ->actingAs($superAdmin)
@@ -224,6 +291,26 @@ class SuperAdminAreaTest extends TestCase
             'system_setting_id' => $tenantA->id,
             'owner_id' => $adminA->id,
         ]);
+    }
+
+    public function test_course_edit_view_provides_empty_owner_group_for_tenant_without_admins(): void
+    {
+        [$adminA, $tenantA] = $this->createTenant('cursos.sa-course-empty-alpha.test', 'Course Empty Alpha');
+        $tenantWithoutAdmins = SystemSetting::create([
+            'domain' => 'cursos.sa-course-sem-admin.test',
+            'escola_nome' => 'Sem Admin SA',
+        ]);
+        $superAdmin = $this->bootstrapSuperAdmin();
+        $course = $this->createCourseForTenant($adminA, 'curso-empty-owner-group', 'Curso Empty Owner Group');
+
+        $this->forceTestHost($tenantA->domain)
+            ->actingAs($superAdmin)
+            ->get(route('sa.courses.edit', $course->id))
+            ->assertOk()
+            ->assertSee('Nenhum administrador disponível para a escola selecionada.', false)
+            ->assertViewHas('ownersByTenant', function (array $ownersByTenant) use ($tenantWithoutAdmins): bool {
+                return ($ownersByTenant[(string) $tenantWithoutAdmins->id] ?? []) === [];
+            });
     }
 
     public function test_super_admin_cannot_move_course_to_incompatible_tenant(): void

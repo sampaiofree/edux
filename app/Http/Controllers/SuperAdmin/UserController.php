@@ -54,6 +54,14 @@ class UserController extends Controller
         ]);
     }
 
+    public function create(): View
+    {
+        return view('sa.users.create', [
+            'roles' => UserRole::cases(),
+            'tenants' => $this->tenants(),
+        ]);
+    }
+
     public function edit(int $id): View
     {
         $user = $this->findUser($id);
@@ -65,28 +73,37 @@ class UserController extends Controller
         ]);
     }
 
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate($this->rulesForStore($request));
+
+        $attributes = [
+            'name' => $validated['name'],
+            'display_name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+            'system_setting_id' => (int) $validated['system_setting_id'],
+            'password' => $validated['password'],
+            'whatsapp' => $validated['whatsapp'] ?? null,
+            'qualification' => $validated['qualification'] ?? null,
+        ];
+
+        if ($request->hasFile('profile_photo')) {
+            $attributes['profile_photo_path'] = $request->file('profile_photo')->store('profile-photos', 'public');
+        }
+
+        $user = User::create($attributes);
+
+        return redirect()
+            ->route('sa.users.edit', $user->id)
+            ->with('status', 'Usuário criado.');
+    }
+
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = $this->findUser($id);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')
-                    ->where('system_setting_id', (int) $request->input('system_setting_id'))
-                    ->ignore($user->id),
-            ],
-            'role' => ['required', Rule::in(collect(UserRole::cases())->pluck('value')->all())],
-            'system_setting_id' => ['required', 'integer', Rule::exists('system_settings', 'id')],
-            'whatsapp' => ['nullable', 'string', 'max:32'],
-            'qualification' => ['nullable', 'string'],
-            'profile_photo' => ['nullable', 'image', 'max:2048'],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'remove_photo' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validate($this->rulesForUpdate($request, $user));
 
         $this->ensureUserChangeIsAllowed($user, (int) $validated['system_setting_id'], (string) $validated['role']);
 
@@ -149,6 +166,53 @@ class UserController extends Controller
         return User::withoutGlobalScopes()
             ->with('systemSetting')
             ->findOrFail($id);
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private function rulesForStore(Request $request): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->where('system_setting_id', (int) $request->input('system_setting_id')),
+            ],
+            'role' => ['required', Rule::in(collect(UserRole::cases())->pluck('value')->all())],
+            'system_setting_id' => ['required', 'integer', Rule::exists('system_settings', 'id')],
+            'whatsapp' => ['nullable', 'string', 'max:32'],
+            'qualification' => ['nullable', 'string'],
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ];
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private function rulesForUpdate(Request $request, User $user): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')
+                    ->where('system_setting_id', (int) $request->input('system_setting_id'))
+                    ->ignore($user->id),
+            ],
+            'role' => ['required', Rule::in(collect(UserRole::cases())->pluck('value')->all())],
+            'system_setting_id' => ['required', 'integer', Rule::exists('system_settings', 'id')],
+            'whatsapp' => ['nullable', 'string', 'max:32'],
+            'qualification' => ['nullable', 'string'],
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'remove_photo' => ['nullable', 'boolean'],
+        ];
     }
 
     private function ensureUserChangeIsAllowed(User $user, int $targetSystemSettingId, string $targetRole): void

@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\UserRole;
 use App\Mail\SystemMailTestMessage;
 use App\Models\SystemSetting;
+use App\Models\User;
 use App\Support\Mail\TenantMailManager;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -16,11 +18,15 @@ class SystemAssetsManager extends Component
 
     public SystemSetting $settings;
 
+    public ?int $systemSettingId = null;
+
     public ?string $domain = null;
 
     public ?string $escola_nome = null;
 
     public ?string $escola_cnpj = null;
+
+    public ?string $owner_user_id = null;
 
     public ?string $meta_ads_pixel = null;
 
@@ -43,6 +49,8 @@ class SystemAssetsManager extends Component
     public bool $mail_password_configured = false;
 
     public ?string $test_email = null;
+
+    public bool $editingExplicitTenant = false;
 
     /** @var array<string, mixed> */
     public array $uploads = [
@@ -110,23 +118,13 @@ class SystemAssetsManager extends Component
         ];
     }
 
-    public function mount(): void
+    public function mount(?int $systemSettingId = null): void
     {
-        $this->settings = SystemSetting::current();
-        $this->domain = $this->settings->domain;
-        $this->escola_nome = $this->settings->escola_nome;
-        $this->escola_cnpj = $this->settings->escola_cnpj;
-        $this->meta_ads_pixel = $this->settings->meta_ads_pixel;
-        $this->mail_mailer = $this->settings->mail_mailer;
-        $this->mail_scheme = $this->settings->mail_scheme;
-        $this->mail_host = $this->settings->mail_host;
-        $this->mail_port = $this->settings->mail_port ? (string) $this->settings->mail_port : null;
-        $this->mail_username = $this->settings->mail_username;
-        $this->mail_from_address = $this->settings->mail_from_address;
-        $this->mail_from_name = $this->settings->mail_from_name;
-        $this->mail_password = null;
-        $this->mail_password_configured = filled($this->settings->getRawOriginal('mail_password'));
-        $this->test_email = (string) (auth()->user()?->email ?? '');
+        $this->systemSettingId = $systemSettingId;
+        $this->editingExplicitTenant = $systemSettingId !== null;
+        $this->settings = $this->resolveSettings($systemSettingId);
+
+        $this->syncStateFromSettings();
     }
 
     public function updatedUploads(): void
@@ -155,26 +153,36 @@ class SystemAssetsManager extends Component
 
     public function saveSchoolIdentity(): void
     {
-        $this->validate([
+        $rules = [
             'domain' => $this->domainRules(),
             'escola_nome' => ['nullable', 'string', 'max:255'],
             'escola_cnpj' => ['nullable', 'string', 'max:32'],
-        ]);
+        ];
+
+        if ($this->editingExplicitTenant) {
+            $rules['owner_user_id'] = $this->ownerRules();
+        }
+
+        $this->validate($rules);
 
         $domain = SystemSetting::normalizeDomain($this->domain);
         $escolaNome = trim((string) ($this->escola_nome ?? ''));
         $escolaCnpj = trim((string) ($this->escola_cnpj ?? ''));
 
-        $this->settings->update([
+        $attributes = [
             'domain' => $domain,
             'escola_nome' => $escolaNome !== '' ? $escolaNome : null,
             'escola_cnpj' => $escolaCnpj !== '' ? $escolaCnpj : null,
-        ]);
+        ];
+
+        if ($this->editingExplicitTenant) {
+            $attributes['owner_user_id'] = $this->normalizedOwnerUserId();
+        }
+
+        $this->settings->update($attributes);
 
         $this->settings->refresh();
-        $this->domain = $this->settings->domain;
-        $this->escola_nome = $this->settings->escola_nome;
-        $this->escola_cnpj = $this->settings->escola_cnpj;
+        $this->syncStateFromSettings();
 
         $message = 'Dados institucionais atualizados.';
         session()->flash('status_school_identity', $message);
@@ -210,16 +218,7 @@ class SystemAssetsManager extends Component
 
         $this->settings->update($attributes);
         $this->settings->refresh();
-
-        $this->mail_mailer = $this->settings->mail_mailer;
-        $this->mail_scheme = $this->settings->mail_scheme;
-        $this->mail_host = $this->settings->mail_host;
-        $this->mail_port = $this->settings->mail_port ? (string) $this->settings->mail_port : null;
-        $this->mail_username = $this->settings->mail_username;
-        $this->mail_from_address = $this->settings->mail_from_address;
-        $this->mail_from_name = $this->settings->mail_from_name;
-        $this->mail_password = null;
-        $this->mail_password_configured = filled($this->settings->getRawOriginal('mail_password'));
+        $this->syncStateFromSettings(resetTestEmail: false);
 
         $message = 'Configurações de e-mail atualizadas.';
         session()->flash('status_mail_settings', $message);
@@ -307,6 +306,8 @@ class SystemAssetsManager extends Component
         return view('livewire.admin.system-assets-manager', [
             'fields' => $this->fieldMap,
             'settings' => $this->settings,
+            'isSuperAdminContext' => $this->editingExplicitTenant,
+            'ownerOptions' => $this->ownerOptions(),
         ]);
     }
 
@@ -386,5 +387,86 @@ class SystemAssetsManager extends Component
         $normalized = $this->normalizeOptional($value);
 
         return $normalized !== null ? strtolower($normalized) : null;
+    }
+
+    private function resolveSettings(?int $systemSettingId): SystemSetting
+    {
+        if ($systemSettingId !== null) {
+            abort_unless(auth()->user()?->isSuperAdmin(), 403);
+
+            return SystemSetting::query()->findOrFail($systemSettingId);
+        }
+
+        return SystemSetting::current();
+    }
+
+    private function syncStateFromSettings(bool $resetTestEmail = true): void
+    {
+        $this->settings->refresh();
+        $this->domain = $this->settings->domain;
+        $this->escola_nome = $this->settings->escola_nome;
+        $this->escola_cnpj = $this->settings->escola_cnpj;
+        $this->owner_user_id = $this->settings->owner_user_id !== null ? (string) $this->settings->owner_user_id : null;
+        $this->meta_ads_pixel = $this->settings->meta_ads_pixel;
+        $this->mail_mailer = $this->settings->mail_mailer;
+        $this->mail_scheme = $this->settings->mail_scheme;
+        $this->mail_host = $this->settings->mail_host;
+        $this->mail_port = $this->settings->mail_port ? (string) $this->settings->mail_port : null;
+        $this->mail_username = $this->settings->mail_username;
+        $this->mail_from_address = $this->settings->mail_from_address;
+        $this->mail_from_name = $this->settings->mail_from_name;
+        $this->mail_password = null;
+        $this->mail_password_configured = filled($this->settings->getRawOriginal('mail_password'));
+
+        if ($resetTestEmail || blank($this->test_email)) {
+            $this->test_email = (string) (auth()->user()?->email ?? '');
+        }
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function ownerRules(): array
+    {
+        return [
+            'nullable',
+            'integer',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if ($value === null || $value === '') {
+                    return;
+                }
+
+                $ownerId = (int) $value;
+
+                if ($ownerId === (int) ($this->settings->owner_user_id ?? 0)) {
+                    return;
+                }
+
+                $owner = User::withoutGlobalScopes()->find($ownerId);
+
+                if (! $owner
+                    || (string) ($owner->role->value ?? $owner->role) !== UserRole::ADMIN->value
+                    || (int) ($owner->system_setting_id ?? 0) !== (int) $this->settings->id
+                ) {
+                    $fail('Selecione um administrador da mesma escola para ser o responsável.');
+                }
+            },
+        ];
+    }
+
+    private function normalizedOwnerUserId(): ?int
+    {
+        $ownerId = $this->normalizeOptional($this->owner_user_id);
+
+        return $ownerId !== null ? (int) $ownerId : null;
+    }
+
+    private function ownerOptions()
+    {
+        return User::withoutGlobalScopes()
+            ->where('role', UserRole::ADMIN->value)
+            ->where('system_setting_id', $this->settings->id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'system_setting_id']);
     }
 }

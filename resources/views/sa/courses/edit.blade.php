@@ -17,14 +17,54 @@
             <a href="{{ route('sa.courses.index') }}" class="edux-btn bg-white text-edux-primary">Voltar para a lista</a>
         </header>
 
-        <form method="POST" action="{{ route('sa.courses.update', $course->id) }}" class="rounded-card bg-white p-6 shadow-card space-y-5">
+        <form
+            method="POST"
+            action="{{ route('sa.courses.update', $course->id) }}"
+            class="rounded-card bg-white p-6 shadow-card space-y-5"
+            x-data="{
+                ownersByTenant: @js($ownersByTenant),
+                selectedTenantId: @js($initialTenantId),
+                selectedOwnerId: @js($initialOwnerId),
+                init() {
+                    this.syncOwnerSelection(true);
+                    this.$watch('selectedTenantId', () => this.syncOwnerSelection(false));
+                },
+                get availableOwners() {
+                    return this.ownersByTenant[String(this.selectedTenantId)] ?? [];
+                },
+                syncOwnerSelection(preserveCurrent) {
+                    const owners = this.availableOwners;
+
+                    if (owners.length === 0) {
+                        this.selectedOwnerId = '';
+                        return;
+                    }
+
+                    const hasCurrentOwner = owners.some((owner) => String(owner.id) === String(this.selectedOwnerId));
+
+                    if (preserveCurrent && hasCurrentOwner) {
+                        return;
+                    }
+
+                    if (! hasCurrentOwner) {
+                        this.selectedOwnerId = String(owners[0].id);
+                    }
+                }
+            }"
+            x-init="init()"
+        >
             @csrf
             @method('PUT')
 
             <div class="grid gap-4 md:grid-cols-2">
                 <label class="space-y-2 text-sm font-semibold text-slate-600">
                     <span>Escola / tenant</span>
-                    <select name="system_setting_id" required class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                    <select
+                        name="system_setting_id"
+                        x-model="selectedTenantId"
+                        required
+                        class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                    >
                         @foreach ($tenants as $tenant)
                             <option value="{{ $tenant->id }}" @selected((string) old('system_setting_id', $course->system_setting_id) === (string) $tenant->id)>
                                 {{ $tenantLabel($tenant) }} — ID #{{ $tenant->id }}
@@ -36,14 +76,26 @@
 
                 <label class="space-y-2 text-sm font-semibold text-slate-600">
                     <span>Responsável</span>
-                    <select name="owner_id" required class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
-                        @foreach ($owners as $owner)
-                            <option value="{{ $owner->id }}" @selected((string) old('owner_id', $course->owner_id) === (string) $owner->id)>
-                                {{ $owner->name }} — {{ $tenantLabel($owner->systemSetting) }}
-                            </option>
-                        @endforeach
+                    <select
+                        name="owner_id"
+                        x-model="selectedOwnerId"
+                        :disabled="availableOwners.length === 0"
+                        required
+                        class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                        :class="{ 'cursor-not-allowed bg-slate-100 text-slate-400': availableOwners.length === 0 }"
+                    >
+                        <template x-if="availableOwners.length === 0">
+                            <option value="">Nenhum administrador disponível</option>
+                        </template>
+
+                        <template x-for="owner in availableOwners" :key="owner.id">
+                            <option :value="owner.id" x-text="owner.label"></option>
+                        </template>
                     </select>
                     @error('owner_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                    <p x-cloak x-show="availableOwners.length === 0" class="text-xs text-amber-600">
+                        Nenhum administrador disponível para a escola selecionada.
+                    </p>
                 </label>
             </div>
 
@@ -103,7 +155,14 @@
             </div>
 
             <div class="flex flex-wrap gap-3">
-                <button type="submit" class="edux-btn">Salvar alterações</button>
+                <button
+                    type="submit"
+                    class="edux-btn"
+                    :disabled="availableOwners.length === 0"
+                    :class="{ 'cursor-not-allowed opacity-60': availableOwners.length === 0 }"
+                >
+                    Salvar alterações
+                </button>
                 <a href="{{ route('sa.courses.index') }}" class="edux-btn bg-white text-edux-primary">Cancelar</a>
             </div>
         </form>

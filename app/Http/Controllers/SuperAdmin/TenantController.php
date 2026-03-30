@@ -51,4 +51,17 @@ class TenantController extends Controller
             'search' => $search,
         ]);
     }
+
+    public function edit(int $id): View
+    {
+        $tenant = SystemSetting::query()
+            ->with([
+                'owner' => fn ($query) => $query->withoutGlobalScopes(),
+            ])
+            ->findOrFail($id);
+
+        return view('sa.tenants.edit', [
+            'tenant' => $tenant,
+        ]);
+    }
 }

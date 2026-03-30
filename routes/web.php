@@ -110,7 +110,10 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/', SuperAdminDashboardController::class)->name('dashboard');
 
             Route::get('tenants', [SuperAdminTenantController::class, 'index'])->name('tenants.index');
+            Route::get('tenants/{id}/edit', [SuperAdminTenantController::class, 'edit'])->name('tenants.edit');
             Route::get('users', [SuperAdminUserController::class, 'index'])->name('users.index');
+            Route::get('users/create', [SuperAdminUserController::class, 'create'])->name('users.create');
+            Route::post('users', [SuperAdminUserController::class, 'store'])->name('users.store');
             Route::get('users/{id}/edit', [SuperAdminUserController::class, 'edit'])->name('users.edit');
             Route::put('users/{id}', [SuperAdminUserController::class, 'update'])->name('users.update');
             Route::delete('users/{id}', [SuperAdminUserController::class, 'destroy'])->name('users.destroy');

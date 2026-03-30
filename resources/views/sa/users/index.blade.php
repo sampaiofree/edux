@@ -14,6 +14,9 @@
                 <h1 class="font-display text-3xl text-edux-primary">Usuários</h1>
                 <p class="text-sm text-slate-600">Pesquise e gerencie contas de todas as escolas.</p>
             </div>
+            <a href="{{ route('sa.users.create') }}" class="edux-btn">
+                Novo usuário
+            </a>
         </header>
 
         <div class="rounded-card bg-white p-6 shadow-card space-y-4">
