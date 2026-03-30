@@ -218,6 +218,7 @@ Route::middleware('auth')->group(function (): void {
             Route::delete('webhooks/{webhookLink}/product-mappings/{mapping}', [PaymentWebhookController::class, 'removeProductMapping'])->name('admin.webhooks.product-mappings.destroy');
             Route::get('webhooks/{webhookLink}/events', [PaymentWebhookController::class, 'events'])->name('admin.webhooks.events.index');
             Route::get('webhooks/{webhookLink}/events/{paymentEvent}', [PaymentWebhookController::class, 'showEvent'])->name('admin.webhooks.events.show');
+            Route::delete('webhooks/{webhookLink}/events/{paymentEvent}', [PaymentWebhookController::class, 'destroyEvent'])->name('admin.webhooks.events.destroy');
             Route::post('webhooks/{webhookLink}/events/{paymentEvent}/replay', [PaymentWebhookController::class, 'replay'])->name('admin.webhooks.events.replay');
             // Números de WhatsApp para atendimento
             Route::get('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'index'])->name('admin.support-whatsapp.index');

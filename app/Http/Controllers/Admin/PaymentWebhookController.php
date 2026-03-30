@@ -285,6 +285,17 @@ class PaymentWebhookController extends Controller
         ]);
     }
 
+    public function destroyEvent(PaymentWebhookLink $webhookLink, PaymentEvent $paymentEvent): RedirectResponse
+    {
+        abort_if($paymentEvent->payment_webhook_link_id !== $webhookLink->id, 404);
+
+        $paymentEvent->delete();
+
+        return redirect()
+            ->route('admin.webhooks.events.index', $webhookLink)
+            ->with('status', 'Evento removido.');
+    }
+
     public function replay(PaymentWebhookLink $webhookLink, PaymentEvent $paymentEvent): RedirectResponse
     {
         abort_if($paymentEvent->payment_webhook_link_id !== $webhookLink->id, 404);

@@ -38,7 +38,7 @@
                             <th class="pb-2">Produto</th>
                             <th class="pb-2">Status</th>
                             <th class="pb-2">Recebido</th>
-                            <th class="pb-2 text-right">Detalhes</th>
+                            <th class="pb-2 text-right">Acoes</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -51,8 +51,21 @@
                                 <td class="py-2">{{ $event->external_product_id ?? '-' }}</td>
                                 <td class="py-2">{{ $event->processing_status?->value ?? $event->processing_status }}</td>
                                 <td class="py-2">{{ $event->received_at?->format('d/m/Y H:i:s') ?? '-' }}</td>
-                                <td class="py-2 text-right">
-                                    <a href="{{ route('admin.webhooks.events.show', [$webhookLink, $event]) }}" class="text-edux-primary text-sm hover:underline">Abrir</a>
+                                <td class="py-2">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <a href="{{ route('admin.webhooks.events.show', [$webhookLink, $event]) }}" class="text-edux-primary text-sm hover:underline">Abrir</a>
+                                        <form method="POST" action="{{ route('admin.webhooks.events.destroy', [$webhookLink, $event]) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="text-sm text-red-600 hover:underline"
+                                                onclick="return confirm('Excluir este evento? Esta acao nao pode ser desfeita.')"
+                                            >
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

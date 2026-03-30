@@ -12,6 +12,17 @@
             </div>
             <div class="flex gap-2">
                 <a href="{{ route('admin.webhooks.events.index', $webhookLink) }}" class="edux-btn bg-white text-edux-primary">Voltar</a>
+                <form method="POST" action="{{ route('admin.webhooks.events.destroy', [$webhookLink, $event]) }}">
+                    @csrf
+                    @method('DELETE')
+                    <button
+                        type="submit"
+                        class="edux-btn bg-red-500 text-white"
+                        onclick="return confirm('Excluir este evento? Esta acao nao pode ser desfeita.')"
+                    >
+                        Excluir
+                    </button>
+                </form>
                 <form method="POST" action="{{ route('admin.webhooks.events.replay', [$webhookLink, $event]) }}">
                     @csrf
                     <button type="submit" class="edux-btn">Replay</button>
