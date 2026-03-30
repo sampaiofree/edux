@@ -150,8 +150,7 @@ class StudentMobileNavigationTest extends TestCase
 
         $this->assertNavigableLink($certificateHtml, route('dashboard'));
         $this->assertNavigableLink($certificateHtml, route('account.edit'));
-        $this->assertStringContainsString('href="'.route('learning.courses.certificate.image', [$course, $certificate]).'"', $certificateHtml);
-        $this->assertNotNavigableLink($certificateHtml, route('learning.courses.certificate.image', [$course, $certificate]));
+        $this->assertNavigableLink($certificateHtml, route('learning.courses.certificate.image', [$course, $certificate]));
 
         $finalTestResponse = $this->actingAs($student)
             ->get(route('learning.courses.final-test.intro', $course));
@@ -192,12 +191,18 @@ class StudentMobileNavigationTest extends TestCase
             'public_token' => (string) Str::uuid(),
         ])->save();
 
+        $pageResponse = $this->actingAs($student)
+            ->get(route('learning.courses.certificate.image', [$course, $certificate]));
+
+        $pageResponse->assertOk();
+        $pageResponse->assertSee(route('learning.courses.certificate.image.file', [$course, $certificate]), false);
+
         $this->mock(CertificateImageService::class, function (MockInterface $mock): void {
             $mock->shouldReceive('fromPdf')->once()->andReturn('fake-png-binary');
         });
 
         $response = $this->actingAs($student)
-            ->get(route('learning.courses.certificate.image', [$course, $certificate]));
+            ->get(route('learning.courses.certificate.image.file', [$course, $certificate]));
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'image/png');

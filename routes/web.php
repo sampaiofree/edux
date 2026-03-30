@@ -295,9 +295,12 @@ Route::middleware('auth')->group(function (): void {
             // Visualiza certificado emitido
             Route::get('courses/{course:slug}/certificate/{certificate}', [CourseCertificateController::class, 'show'])
                 ->name('courses.certificate.show');
-            // Imagem do certificado para visualizacao/compartilhamento no app
+            // Visualizacao HTML da imagem do certificado para o app
             Route::get('courses/{course:slug}/certificate/{certificate}/image', [CourseCertificateController::class, 'image'])
                 ->name('courses.certificate.image');
+            // Arquivo bruto da imagem do certificado
+            Route::get('courses/{course:slug}/certificate/{certificate}/image/file', [CourseCertificateController::class, 'imageFile'])
+                ->name('courses.certificate.image.file');
             // Download do certificado do curso
             Route::get('courses/{course:slug}/certificate/{certificate}/download', [CourseCertificateController::class, 'download'])
                 ->name('courses.certificate.download');

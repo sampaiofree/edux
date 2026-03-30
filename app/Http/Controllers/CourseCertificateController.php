@@ -49,7 +49,19 @@ class CourseCertificateController extends Controller
         ]);
     }
 
-    public function image(
+    public function image(Request $request, Course $course, Certificate $certificate): View
+    {
+        $this->resolveAuthorizedStudent($request, $course, $certificate);
+
+        return view('learning.certificates.image', [
+            'course' => $course,
+            'certificate' => $certificate,
+            'imageFileUrl' => route('learning.courses.certificate.image.file', [$course, $certificate]),
+            'publicUrl' => route('certificates.verify', $certificate->public_token),
+        ]);
+    }
+
+    public function imageFile(
         Request $request,
         Course $course,
         Certificate $certificate,
