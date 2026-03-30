@@ -26,7 +26,7 @@ class CertificateAppFlowTest extends TestCase
         }
     }
 
-    public function test_generate_certificate_redirects_to_certificate_detail_instead_of_streaming_download(): void
+    public function test_generate_certificate_streams_pdf_download_for_app_compatible_flow(): void
     {
         Http::fake([
             'https://api.qrserver.com/*' => Http::response('fake-qr', 200, ['Content-Type' => 'image/png']),
@@ -54,10 +54,7 @@ class CertificateAppFlowTest extends TestCase
             ->set('completionDate', now()->format('Y-m-d'))
             ->set('completionConfirmed', 'yes')
             ->call('generateCertificate')
-            ->assertRedirect(route('learning.courses.certificate.show', [
-                'course' => $course,
-                'certificate' => Certificate::query()->where('course_id', $course->id)->where('user_id', $student->id)->firstOrFail(),
-            ]));
+            ->assertFileDownloaded('certificado-'.$course->slug.'.pdf');
 
         $certificate = Certificate::query()
             ->where('course_id', $course->id)
@@ -66,6 +63,11 @@ class CertificateAppFlowTest extends TestCase
 
         $this->assertNotNull($certificate->public_token);
         $this->assertNotNull($certificate->issued_at);
+
+        $indexResponse = $this->actingAs($student)->get(route('certificado.index'));
+
+        $indexResponse->assertOk();
+        $indexResponse->assertSee($course->title);
     }
 
     private function createCourseForTenant(User $owner, string $slug, string $title): Course

@@ -164,7 +164,7 @@ class StudentMobileNavigationTest extends TestCase
         $this->assertStringNotContainsString('action="'.route('learning.courses.final-test.start', $course).'" wire:navigate', $finalTestHtml);
     }
 
-    public function test_certificate_modal_renders_as_fullscreen_above_bottom_navigation(): void
+    public function test_certificate_index_links_to_full_page_generation_flow_without_modal_markup(): void
     {
         $student = $this->defaultTenantStudent([
             'email' => 'aluno-modal-cert@example.com',
@@ -173,11 +173,37 @@ class StudentMobileNavigationTest extends TestCase
         $response = $this->actingAs($student)->get(route('certificado.index'));
 
         $response->assertOk();
-        $response->assertSee('data-certificate-modal-shell="1"', false);
-        $response->assertSee('class="fixed inset-0 z-[80] bg-white"', false);
-        $response->assertSee('data-certificate-modal-panel="1"', false);
-        $response->assertSee('class="flex h-[100dvh] w-full flex-col bg-white"', false);
-        $response->assertSee('data-certificate-modal-scroll="1"', false);
+        $response->assertSee('href="'.route('certificado.create').'"', false);
+        $response->assertSee('Gerar certificado');
+        $response->assertDontSee('data-certificate-modal-shell="1"', false);
+        $response->assertDontSee('modalOpen', false);
+    }
+
+    public function test_certificate_create_page_renders_full_page_form_without_modal_markup(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-create-cert@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-create-cert', 'Curso Create Cert');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
+
+        $response = $this->actingAs($student)->get(route('certificado.create'));
+
+        $response->assertOk();
+        $response->assertSee('Gerar certificado');
+        $response->assertSee('Selecione o curso, confirme os dados e gere seu certificado.');
+        $response->assertSee('href="'.route('certificado.index').'"', false);
+        $response->assertDontSee('data-certificate-modal-shell="1"', false);
+        $response->assertDontSee('modalOpen', false);
     }
 
     public function test_certificate_index_renders_share_metadata_for_existing_certificates(): void

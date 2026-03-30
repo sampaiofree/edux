@@ -10,4 +10,9 @@ class CertificadoController extends Controller
     {
         return view('certificado.index');
     }
+
+    public function create(): View
+    {
+        return view('certificado.create');
+    }
 }

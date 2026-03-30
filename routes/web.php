@@ -135,6 +135,7 @@ Route::middleware('auth')->group(function (): void {
     // Dashboard geral do usuário autenticado
     Route::get('/dashboard', DashboardController::class)->name('dashboard'); 
     Route::get('/certificado', [CertificadoController::class, 'index'])->name('certificado.index');
+    Route::get('/certificado/gerar', [CertificadoController::class, 'create'])->name('certificado.create');
     // Edição do perfil do aluno
     Route::get('/conta', AccountProfileController::class)->name('account.edit');
     Route::post('/conta/exclusao', [AccountDeletionRequestController::class, 'store'])

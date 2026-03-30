@@ -8,6 +8,8 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -137,9 +139,14 @@ class Checkout extends Component
         $certificate->issued_at = $issuedAt;
         $certificate->save();
 
-        session()->flash('status', 'Certificado emitido com sucesso!');
+        $pdf = $this->makePdf($certificate, $course);
+        $fileName = 'certificado-'.$course->slug.'.pdf';
 
-        return $this->redirectRoute('learning.courses.certificate.show', [$course, $certificate], navigate: true);
+        return response()->streamDownload(function () use ($pdf): void {
+            echo $pdf->output();
+        }, $fileName, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 
     public function render()
@@ -148,28 +155,14 @@ class Checkout extends Component
         $studentName = Auth::user()?->preferredName() ?? 'Aluno';
         $courseName = $this->course?->title;
         $formattedCompletionDate = $this->formattedCompletionDate();
-        $periodStart = $this->formatDate($this->course?->created_at?->format('Y-m-d'));
-        $periodEnd = $formattedCompletionDate;
-        $workload = $this->workloadHours($this->course);
         $formattedCpf = $this->formatCpf($this->cpf);
-        $frontBackgroundUrl = $this->backgroundUrl($this->branding?->front_background_path);
-        $backBackgroundUrl = $this->backgroundUrl($this->branding?->back_background_path);
-        $backPreviewParagraphs = $this->backPreviewParagraphs($this->course);
-        $certificates = $this->certificates();
 
         return view('livewire.certificado.checkout', [
             'enrollments' => $enrollments,
             'studentName' => $studentName,
             'courseName' => $courseName,
             'formattedCompletionDate' => $formattedCompletionDate,
-            'periodStart' => $periodStart,
-            'periodEnd' => $periodEnd,
-            'workload' => $workload,
             'formattedCpf' => $formattedCpf,
-            'frontBackgroundUrl' => $frontBackgroundUrl,
-            'backBackgroundUrl' => $backBackgroundUrl,
-            'backPreviewParagraphs' => $backPreviewParagraphs,
-            'certificates' => $certificates,
         ]);
     }
 
@@ -277,69 +270,6 @@ class Checkout extends Component
         );
     }
 
-    private function workloadHours(?Course $course): ?int
-    {
-        if (! $course || ! $course->duration_minutes) {
-            return null;
-        }
-
-        return (int) round($course->duration_minutes / 60);
-    }
-
-    private function backgroundUrl(?string $path): ?string
-    {
-        if (! $path) {
-            return null;
-        }
-
-        return asset('storage/' . ltrim($path, '/'));
-    }
-
-    private function backPreviewParagraphs(?Course $course): array
-    {
-        if (! $course) {
-            return [];
-        }
-
-        $course->loadMissing(['modules.lessons']);
-        $paragraphs = [];
-
-        foreach ($course->modules as $moduleIndex => $module) {
-            $moduleNumber = $module->position ?: ($moduleIndex + 1);
-            $line = "Modulo {$moduleNumber}: {$module->title}";
-
-            if ($module->lessons->isNotEmpty()) {
-                $lessonFragments = $module->lessons->values()->map(function ($lesson, $lessonIndex) {
-                    $lessonNumber = $lesson->position ?: ($lessonIndex + 1);
-                    return "Aula {$lessonNumber}: {$lesson->title}";
-                });
-
-                $line .= '. ' . $lessonFragments->implode('. ') . '.';
-            } else {
-                $line .= '.';
-            }
-
-            $paragraphs[] = $line;
-        }
-
-        return $paragraphs;
-    }
-
-    private function certificates()
-    {
-        $user = Auth::user();
-
-        if (! $user) {
-            return collect();
-        }
-
-        return Certificate::with('course')
-            ->where('user_id', $user->id)
-            ->get()
-            ->sortBy(fn (Certificate $certificate) => strtolower($certificate->course?->title ?? ''))
-            ->values();
-    }
-
     private function qrDataUri(?string $publicUrl): ?string
     {
         if (! $publicUrl) {
@@ -360,6 +290,44 @@ class Checkout extends Component
         } catch (\Throwable $exception) {
             return null;
         }
+    }
+
+    private function makePdf(Certificate $certificate, Course $course): Dompdf
+    {
+        $certificate->loadMissing('user');
+
+        $options = new Options();
+        $options->set('defaultFont', 'Inter');
+        $options->setIsRemoteEnabled(true);
+
+        $dompdf = new Dompdf($options);
+        $branding = $this->resolveBranding($course);
+        $publicUrl = route('certificates.verify', $certificate->public_token);
+        $qrDataUri = $this->qrDataUri($publicUrl);
+
+        $frontContent = view('learning.certificates.templates.front', [
+            'course' => $course,
+            'branding' => $branding,
+            'displayName' => $certificate->user->preferredName(),
+            'issuedAt' => $certificate->issued_at ?? now(),
+            'publicUrl' => $publicUrl,
+            'qrDataUri' => $qrDataUri,
+            'mode' => 'pdf',
+        ])->render();
+
+        $backContent = view('learning.certificates.templates.back', [
+            'course' => $course,
+            'branding' => $branding,
+            'mode' => 'pdf',
+        ])->render();
+
+        $html = view('learning.certificates.pdf', compact('frontContent', 'backContent'))->render();
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('a4', 'landscape');
+        $dompdf->render();
+
+        return $dompdf;
     }
 
 }

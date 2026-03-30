@@ -3,5 +3,5 @@
 @section('title', 'Gerar certificado')
 
 @section('content')
-    <livewire:certificado.index-page />
+    <livewire:certificado.checkout />
 @endsection
