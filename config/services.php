@@ -40,6 +40,4 @@ return [
         'whatsapp' => env('SUPPORT_WHATSAPP_URL', 'https://wa.me/5500000000000'),
     ],
 
-    'ghostscript_path' => env('GHOSTSCRIPT_PATH'),
-
 ];

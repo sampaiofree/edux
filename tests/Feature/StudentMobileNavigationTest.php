@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\EnrollmentAccessStatus;
-use App\Livewire\Certificado\Checkout as CertificateCheckout;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Enrollment;
@@ -14,11 +13,8 @@ use App\Models\Lesson;
 use App\Models\LessonCompletion;
 use App\Models\Module;
 use App\Models\User;
-use App\Services\CertificateImageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use Livewire\Livewire;
-use Mockery\MockInterface;
 use Tests\TestCase;
 
 class StudentMobileNavigationTest extends TestCase
@@ -150,7 +146,8 @@ class StudentMobileNavigationTest extends TestCase
 
         $this->assertNavigableLink($certificateHtml, route('dashboard'));
         $this->assertNavigableLink($certificateHtml, route('account.edit'));
-        $this->assertNavigableLink($certificateHtml, route('learning.courses.certificate.image', [$course, $certificate]));
+        $this->assertStringContainsString('href="'.route('learning.courses.certificate.download', [$course, $certificate]).'"', $certificateHtml);
+        $this->assertNotNavigableLink($certificateHtml, route('learning.courses.certificate.download', [$course, $certificate]));
 
         $finalTestResponse = $this->actingAs($student)
             ->get(route('learning.courses.final-test.intro', $course));
@@ -161,85 +158,6 @@ class StudentMobileNavigationTest extends TestCase
         $this->assertNavigableLink($finalTestHtml, route('dashboard'));
         $this->assertStringContainsString('action="'.route('learning.courses.final-test.start', $course).'"', $finalTestHtml);
         $this->assertStringNotContainsString('action="'.route('learning.courses.final-test.start', $course).'" wire:navigate', $finalTestHtml);
-    }
-
-    public function test_student_can_open_certificate_image_route(): void
-    {
-        $admin = $this->defaultTenantAdmin();
-        $student = $this->defaultTenantStudent([
-            'email' => 'aluno-cert-image@example.com',
-        ]);
-        $course = $this->createCourseForTenant($admin, 'curso-cert-image', 'Curso Cert Image');
-
-        Enrollment::create([
-            'system_setting_id' => $admin->system_setting_id,
-            'course_id' => $course->id,
-            'user_id' => $student->id,
-            'progress_percent' => 100,
-            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
-        ]);
-
-        $certificate = Certificate::create([
-            'course_id' => $course->id,
-            'user_id' => $student->id,
-            'number' => 'CERT-IMAGE-001',
-            'issued_at' => now(),
-            'front_content' => '<p>Frente</p>',
-            'back_content' => '<p>Verso</p>',
-        ]);
-        $certificate->forceFill([
-            'public_token' => (string) Str::uuid(),
-        ])->save();
-
-        $pageResponse = $this->actingAs($student)
-            ->get(route('learning.courses.certificate.image', [$course, $certificate]));
-
-        $pageResponse->assertOk();
-        $pageResponse->assertSee(route('learning.courses.certificate.image.file', [$course, $certificate]), false);
-
-        $this->mock(CertificateImageService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('fromPdf')->once()->andReturn('fake-png-binary');
-        });
-
-        $response = $this->actingAs($student)
-            ->get(route('learning.courses.certificate.image.file', [$course, $certificate]));
-
-        $response->assertOk();
-        $response->assertHeader('Content-Type', 'image/png');
-        $response->assertHeader('Content-Disposition', 'inline; filename="certificado-'.$course->slug.'.png"');
-        $response->assertContent('fake-png-binary');
-    }
-
-    public function test_certificate_checkout_redirects_to_student_certificate_screen_after_generation(): void
-    {
-        $admin = $this->defaultTenantAdmin();
-        $student = $this->defaultTenantStudent([
-            'email' => 'aluno-gera-cert@example.com',
-        ]);
-        $course = $this->createCourseForTenant($admin, 'curso-gera-cert', 'Curso Gera Cert');
-
-        Enrollment::create([
-            'system_setting_id' => $admin->system_setting_id,
-            'course_id' => $course->id,
-            'user_id' => $student->id,
-            'progress_percent' => 100,
-            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
-            'completed_at' => now(),
-        ]);
-
-        $this->actingAs($student);
-
-        $component = Livewire::test(CertificateCheckout::class)
-            ->set('courseId', $course->id)
-            ->set('completionConfirmed', 'yes')
-            ->call('generateCertificate');
-
-        $certificate = Certificate::query()->where('course_id', $course->id)->where('user_id', $student->id)->first();
-
-        $this->assertNotNull($certificate);
-        $this->assertNotNull($certificate->front_content);
-        $this->assertNotNull($certificate->back_content);
-        $component->assertRedirect(route('learning.courses.certificate.show', [$course, $certificate]));
     }
 
     private function createCourseForTenant(User $owner, string $slug, string $title): Course

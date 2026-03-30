@@ -2,7 +2,7 @@
     <header class="rounded-card bg-white p-6 shadow-card">
         <p class="text-sm uppercase tracking-wide text-edux-primary">Certificado</p>
         <h1 class="font-display text-3xl text-edux-primary">Meus certificados</h1>
-        <p class="text-slate-600 text-sm">Abra a imagem do seu certificado ou gere um novo quando precisar.</p>
+        <p class="text-slate-600 text-sm">Baixe seu certificado ou clique em Gerar certificado.</p>
     </header>
 
     @if ($errorMessage)
@@ -34,8 +34,8 @@
             <div class="space-y-4">
                 @foreach ($certificates as $certificate)
                     @php
-                        $imageRoute = $certificate->course
-                            ? route('learning.courses.certificate.image', [$certificate->course->slug, $certificate])
+                        $downloadRoute = $certificate->course
+                            ? route('learning.courses.certificate.download', [$certificate->course->slug, $certificate])
                             : null;
                         $publicUrl = $certificate->public_token
                             ? route('certificates.verify', $certificate->public_token)
@@ -67,13 +67,14 @@
                             </div>
                         </div>
                         <div class="mt-3 flex flex-wrap gap-2 md:mt-0 md:ml-8">
-                            @if ($imageRoute)
+                            @if ($downloadRoute)
                                 <a
-                                    href="{{ $imageRoute }}"
-                                    wire:navigate
+                                    href="{{ $downloadRoute }}"
+                                    target="_blank"
+                                    rel="noopener"
                                     class="edux-btn text-white px-4 py-2 text-sm font-semibold text-edux-primary shadow-sm"
                                 >
-                                    Abrir imagem
+                                    Baixar PDF
                                 </a>
                             @endif
                             @if ($publicUrl)
@@ -120,7 +121,7 @@
                 <div>
                     <p class="text-sm uppercase tracking-wide text-edux-primary">Certificado</p>
                     <h2 class="font-display text-2xl text-slate-900">Gerar certificado</h2>
-                    <p class="text-xs text-slate-500">Selecione o curso, confirme os dados e abra a imagem do certificado.</p>
+                    <p class="text-xs text-slate-500">Selecione o curso, confirme os dados e gere seu PDF.</p>
                 </div>
                 <button type="button" @click="modalOpen = false" class="text-slate-500 hover:text-slate-800">
                     <span class="sr-only">Fechar</span>

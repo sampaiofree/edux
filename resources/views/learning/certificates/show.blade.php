@@ -8,12 +8,6 @@
     @endphp
 
     <section class="space-y-6">
-        @if (session('status'))
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {{ session('status') }}
-            </div>
-        @endif
-
         <header class="rounded-card bg-white p-6 shadow-card">
             <p class="text-sm uppercase tracking-wide text-edux-primary">Certificado emitido</p>
             <h1 class="font-display text-3xl text-edux-primary">{{ $course->title }}</h1>
@@ -24,7 +18,7 @@
         </header>
 
         <div class="rounded-card bg-white p-6 shadow-card flex flex-wrap gap-3">
-            <a href="{{ $imageUrl }}" wire:navigate class="edux-btn">Abrir imagem</a>
+            <a href="{{ route('learning.courses.certificate.download', [$course, $certificate]) }}" class="edux-btn">Baixar PDF</a>
             <a href="{{ $publicUrl }}" target="_blank" rel="noopener" class="edux-btn bg-white text-edux-primary">Abrir link público</a>
             <a href="{{ route('dashboard') }}" wire:navigate class="edux-btn bg-white text-edux-primary">Voltar para dashboard</a>
         </div>
