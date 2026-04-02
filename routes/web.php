@@ -26,6 +26,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LegalPageController;
 use App\Http\Controllers\LessonProgressController;
+use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\PublicLessonController;
 use App\Http\Controllers\PublicCertificateController;
 use App\Http\Controllers\PublicCoursePageV2Controller;
@@ -98,6 +99,13 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     // Submissão do login
     Route::post('/login', [AuthController::class, 'store'])->name('login.store');
+    Route::get('/recuperar-senha', [PasswordRecoveryController::class, 'create'])->name('password.recovery.request');
+    Route::post('/recuperar-senha', [PasswordRecoveryController::class, 'store'])->name('password.recovery.store');
+    Route::get('/recuperar-senha/codigo', [PasswordRecoveryController::class, 'showCodeForm'])->name('password.recovery.code');
+    Route::post('/recuperar-senha/codigo', [PasswordRecoveryController::class, 'verifyCode'])->name('password.recovery.code.verify');
+    Route::post('/recuperar-senha/reenviar', [PasswordRecoveryController::class, 'resendCode'])->name('password.recovery.resend');
+    Route::get('/recuperar-senha/nova', [PasswordRecoveryController::class, 'showResetForm'])->name('password.recovery.reset');
+    Route::post('/recuperar-senha/nova', [PasswordRecoveryController::class, 'updatePassword'])->name('password.recovery.update');
 });
 
 // Encerramento seguro da sessão

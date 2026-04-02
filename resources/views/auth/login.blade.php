@@ -20,6 +20,12 @@
                     class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
             </label>
 
+            <div class="text-right">
+                <a href="{{ route('password.recovery.request') }}" class="text-sm font-semibold text-edux-primary hover:underline">
+                    Recuperar senha
+                </a>
+            </div>
+
             <label class="flex items-center gap-2 text-sm text-slate-600">
                 <input type="checkbox" name="remember" value="1" class="rounded border-edux-line text-edux-primary focus:ring-edux-primary/30">
                 <span>Lembrar sessão</span>
