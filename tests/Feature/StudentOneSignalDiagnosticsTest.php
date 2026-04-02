@@ -123,4 +123,32 @@ class StudentOneSignalDiagnosticsTest extends TestCase
                 && ! array_key_exists('sms_phone', $context);
         })->once();
     }
+
+    public function test_modal_shown_event_is_accepted_and_logged(): void
+    {
+        Log::spy();
+
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-modal@example.com',
+        ]);
+
+        $response = $this->actingAs($student)->postJson(route('learning.onesignal.diagnostics.store'), [
+            'event' => 'onesignal.web_modal_shown',
+            'permission' => 'default',
+            'opted_in' => false,
+            'external_id_matches' => true,
+            'subscription_id_present' => false,
+            'token_present' => false,
+            'onesignal_id_present' => true,
+            'sdk_ready' => true,
+        ]);
+
+        $response->assertAccepted();
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context) use ($student): bool {
+            return $message === 'onesignal.web_modal_shown'
+                && ($context['user_id'] ?? null) === $student->id
+                && ($context['sdk_ready'] ?? null) === true;
+        })->once();
+    }
 }

@@ -4,6 +4,7 @@
     $serviceWorkerPath = 'push/onesignal/OneSignalSDKWorker.js';
     $serviceWorkerScope = '/push/onesignal/';
     $onesignalDebugMode = ! app()->environment('production');
+    $autoShowModal = (bool) request()->attributes->get(\App\Http\Middleware\PrepareStudentOneSignalPrompt::AUTO_SHOW_ATTRIBUTE, false);
 @endphp
 <script>
     window.__eduxOneSignalConfig = {
@@ -11,6 +12,7 @@
         externalId: @json($user->oneSignalExternalId()),
         email: @json($user->oneSignalEmail()),
         smsPhone: @json($user->oneSignalSmsPhone()),
+        autoShowModal: @json($autoShowModal),
         serviceWorkerPath: @json($serviceWorkerPath),
         serviceWorkerScope: @json($serviceWorkerScope),
         diagnosticsUrl: @json(route('learning.onesignal.diagnostics.store')),

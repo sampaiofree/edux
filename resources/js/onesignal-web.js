@@ -1,12 +1,16 @@
 const promptRootSelector = '[data-onesignal-prompt-root]';
 const promptCardSelector = '[data-onesignal-prompt-card]';
 const promptTriggerSelector = '[data-onesignal-prompt-trigger]';
+const promptDismissSelector = '[data-onesignal-prompt-dismiss]';
 const promptStatusSelector = '[data-onesignal-status]';
+const promptManualTriggerSelector = '[data-onesignal-manual-trigger]';
 const logoutFormSelector = '[data-onesignal-logout-form]';
 
 const reportedDiagnostics = new Map();
 const syncedContactSignatures = new Set();
 let bindingsReady = false;
+let promptModalOpen = false;
+let currentPromptState = null;
 
 const getConfig = () => window.__eduxOneSignalConfig ?? null;
 
@@ -71,7 +75,7 @@ const normalizeScopeUrl = (scope) => {
 const toShortHash = async (value) => {
     const normalized = String(value ?? '').trim();
 
-    if (normalized === '' || ! window.crypto?.subtle || typeof TextEncoder === 'undefined') {
+    if (normalized === '' || !window.crypto?.subtle || typeof TextEncoder === 'undefined') {
         return null;
     }
 
@@ -88,24 +92,56 @@ const toShortHash = async (value) => {
     }
 };
 
-const updatePromptCard = (state) => {
+const hasConsumedAutoShow = () => window.__eduxOneSignalAutoPromptHandled === true;
+
+const consumeAutoShow = () => {
+    window.__eduxOneSignalAutoPromptHandled = true;
+};
+
+const shouldAttemptAutoShow = () => {
+    const config = getConfig();
+
+    return Boolean(config?.autoShowModal) && !hasConsumedAutoShow();
+};
+
+const setPromptModalOpen = (shouldOpen) => {
+    promptModalOpen = shouldOpen;
+
     document.querySelectorAll(promptRootSelector).forEach((root) => {
-        root.hidden = state.hidden === true;
+        root.hidden = !shouldOpen;
+        root.classList.toggle('hidden', !shouldOpen);
+        root.classList.toggle('flex', shouldOpen);
     });
+
+    document.documentElement.classList.toggle('overflow-hidden', shouldOpen);
+    document.body.classList.toggle('overflow-hidden', shouldOpen);
+};
+
+const updateManualTriggers = (state) => {
+    const config = getConfig();
+    const shouldShow = Boolean(config?.appId) && state?.name !== 'ativo';
+
+    document.querySelectorAll(promptManualTriggerSelector).forEach((trigger) => {
+        trigger.hidden = !shouldShow;
+        trigger.classList.toggle('hidden', !shouldShow);
+    });
+};
+
+const updatePromptUi = (state) => {
+    currentPromptState = state;
+    updateManualTriggers(state);
 
     document.querySelectorAll(promptCardSelector).forEach((card) => {
         const trigger = card.querySelector(promptTriggerSelector);
         const status = card.querySelector(promptStatusSelector);
 
-        card.hidden = state.hidden === true;
-
-        if (status && typeof state.message === 'string') {
+        if (status && typeof state?.message === 'string') {
             status.textContent = state.message;
         }
 
         if (trigger) {
-            trigger.disabled = state.busy === true || state.allowAction === false;
-            trigger.classList.toggle('hidden', state.showButton === false);
+            trigger.disabled = state?.busy === true || state?.allowAction === false;
+            trigger.classList.toggle('hidden', state?.showButton === false);
         }
     });
 };
@@ -116,7 +152,6 @@ const browserSupportState = () => {
     if (!config?.appId) {
         return {
             name: 'nao_configurado',
-            hidden: true,
             showButton: false,
             allowAction: false,
             message: '',
@@ -126,7 +161,6 @@ const browserSupportState = () => {
     if (!window.isSecureContext) {
         return {
             name: 'inseguro',
-            hidden: false,
             showButton: false,
             allowAction: false,
             message: 'Abra a plataforma em HTTPS para ativar as notificações.',
@@ -136,7 +170,6 @@ const browserSupportState = () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
         return {
             name: 'nao_suportado',
-            hidden: false,
             showButton: false,
             allowAction: false,
             message: 'Seu navegador não suporta notificações push.',
@@ -180,6 +213,60 @@ const contactSyncSignature = (config) => JSON.stringify({
     smsPhone: config?.smsPhone ?? null,
 });
 
+const reportDiagnostic = async (eventName, payload = {}) => {
+    const config = getConfig();
+
+    if (!config?.diagnosticsUrl) {
+        logConsole(eventName, payload, eventName.includes('mismatch') || eventName.includes('failed') ? 'warn' : 'info');
+
+        return;
+    }
+
+    const safePayload = {
+        event: eventName,
+        permission: payload.permission ?? null,
+        opted_in: typeof payload.optedIn === 'boolean' ? payload.optedIn : null,
+        external_id_matches: typeof payload.externalIdMatches === 'boolean' ? payload.externalIdMatches : null,
+        email_present: typeof payload.emailPresent === 'boolean' ? payload.emailPresent : null,
+        subscription_id_present: typeof payload.subscriptionIdPresent === 'boolean' ? payload.subscriptionIdPresent : null,
+        subscription_id_hash: payload.subscriptionIdHash ?? null,
+        sms_phone_present: typeof payload.smsPhonePresent === 'boolean' ? payload.smsPhonePresent : null,
+        sms_phone_hash: payload.smsPhoneHash ?? null,
+        token_present: typeof payload.tokenPresent === 'boolean' ? payload.tokenPresent : null,
+        onesignal_id_present: typeof payload.onesignalIdPresent === 'boolean' ? payload.onesignalIdPresent : null,
+        sdk_ready: typeof payload.sdkReady === 'boolean' ? payload.sdkReady : null,
+        service_worker_scope: payload.serviceWorkerScope ?? normalizeScopeUrl(config.serviceWorkerScope),
+        url: payload.url ?? rootUrl(),
+        user_agent: payload.userAgent ?? navigator.userAgent,
+    };
+    const signature = JSON.stringify(safePayload);
+
+    if (reportedDiagnostics.get(eventName) === signature) {
+        return;
+    }
+
+    reportedDiagnostics.set(eventName, signature);
+    logConsole(eventName, safePayload, eventName.includes('mismatch') || eventName.includes('failed') ? 'warn' : 'info');
+
+    try {
+        await window.fetch(config.diagnosticsUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': readCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            cache: 'no-store',
+            keepalive: true,
+            body: JSON.stringify(safePayload),
+        });
+    } catch (error) {
+        logConsole('onesignal.web_diagnostic_failed', { message: error?.message ?? String(error) }, 'warn');
+    }
+};
+
 const syncKnownContacts = async (OneSignal, config) => {
     const signature = contactSyncSignature(config);
     const shouldSyncEmail = typeof config?.email === 'string' && config.email.trim() !== '';
@@ -219,7 +306,6 @@ const determinePromptState = (snapshot) => {
     if (snapshot.permission === 'denied') {
         return {
             name: 'bloqueado',
-            hidden: false,
             showButton: false,
             allowAction: false,
             message: 'As notificações foram bloqueadas no Chrome. Libere nas configurações do site para voltar a receber avisos.',
@@ -235,7 +321,6 @@ const determinePromptState = (snapshot) => {
     if (active) {
         return {
             name: 'ativo',
-            hidden: true,
             showButton: false,
             allowAction: false,
             message: 'Notificações ativadas.',
@@ -245,7 +330,6 @@ const determinePromptState = (snapshot) => {
     if (snapshot.permission === 'granted') {
         return {
             name: 'permissao_ok_sem_inscricao',
-            hidden: false,
             showButton: true,
             allowAction: true,
             message: 'Seu navegador já permitiu notificações, mas este dispositivo ainda não terminou a ativação. Toque para concluir.',
@@ -254,65 +338,67 @@ const determinePromptState = (snapshot) => {
 
     return {
         name: 'pendente',
-        hidden: false,
         showButton: true,
         allowAction: true,
         message: 'Ative para receber avisos sobre aulas, recados e atualizações do seu curso.',
     };
 };
 
-const reportDiagnostic = async (eventName, payload = {}) => {
-    const config = getConfig();
+const canAutoOpenFromState = (state) => {
+    return !['nao_configurado', 'nao_suportado', 'inseguro', 'ativo'].includes(state?.name ?? '');
+};
 
-    if (!config?.diagnosticsUrl) {
-        logConsole(eventName, payload, eventName.includes('mismatch') ? 'warn' : 'info');
+const collectSnapshot = async () => {
+    return withOneSignal(async (OneSignal, config) => buildSnapshot(OneSignal, config));
+};
 
+const openPromptModal = async (reason = 'auto') => {
+    if (promptModalOpen || !currentPromptState || currentPromptState.name === 'ativo' || currentPromptState.name === 'nao_configurado') {
         return;
     }
 
-    const safePayload = {
-        event: eventName,
-        permission: payload.permission ?? null,
-        opted_in: typeof payload.optedIn === 'boolean' ? payload.optedIn : null,
-        external_id_matches: typeof payload.externalIdMatches === 'boolean' ? payload.externalIdMatches : null,
-        email_present: typeof payload.emailPresent === 'boolean' ? payload.emailPresent : null,
-        subscription_id_present: typeof payload.subscriptionIdPresent === 'boolean' ? payload.subscriptionIdPresent : null,
-        subscription_id_hash: payload.subscriptionIdHash ?? null,
-        sms_phone_present: typeof payload.smsPhonePresent === 'boolean' ? payload.smsPhonePresent : null,
-        sms_phone_hash: payload.smsPhoneHash ?? null,
-        token_present: typeof payload.tokenPresent === 'boolean' ? payload.tokenPresent : null,
-        onesignal_id_present: typeof payload.onesignalIdPresent === 'boolean' ? payload.onesignalIdPresent : null,
-        sdk_ready: typeof payload.sdkReady === 'boolean' ? payload.sdkReady : null,
-        service_worker_scope: payload.serviceWorkerScope ?? normalizeScopeUrl(config.serviceWorkerScope),
-        url: payload.url ?? rootUrl(),
-        user_agent: payload.userAgent ?? navigator.userAgent,
-    };
-    const signature = JSON.stringify(safePayload);
+    if (reason === 'auto') {
+        if (!shouldAttemptAutoShow() || !canAutoOpenFromState(currentPromptState)) {
+            consumeAutoShow();
 
-    if (reportedDiagnostics.get(eventName) === signature) {
+            return;
+        }
+
+        consumeAutoShow();
+    }
+
+    setPromptModalOpen(true);
+
+    const snapshot = await collectSnapshot();
+    if (!snapshot) {
         return;
     }
 
-    reportedDiagnostics.set(eventName, signature);
-    logConsole(eventName, safePayload, eventName.includes('mismatch') ? 'warn' : 'info');
-
-    try {
-        await window.fetch(config.diagnosticsUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': readCsrfToken(),
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'same-origin',
-            cache: 'no-store',
-            keepalive: true,
-            body: JSON.stringify(safePayload),
-        });
-    } catch (error) {
-        logConsole('onesignal.web_diagnostic_failed', { message: error?.message ?? String(error) }, 'warn');
+    if (reason === 'manual') {
+        await reportDiagnostic('onesignal.web_modal_manual_opened', snapshot);
     }
+
+    await reportDiagnostic('onesignal.web_modal_shown', snapshot);
+};
+
+const closePromptModal = async (reason = 'silent') => {
+    if (!promptModalOpen) {
+        return;
+    }
+
+    setPromptModalOpen(false);
+
+    if (reason !== 'dismissed') {
+        return;
+    }
+
+    const snapshot = await collectSnapshot();
+
+    if (!snapshot) {
+        return;
+    }
+
+    await reportDiagnostic('onesignal.web_modal_dismissed', snapshot);
 };
 
 const verifyServiceWorkerScope = async (snapshot) => {
@@ -338,11 +424,19 @@ const verifyServiceWorkerScope = async (snapshot) => {
     }
 };
 
-const refreshPromptState = async () => {
+const refreshPromptState = async ({ autoOpen = true } = {}) => {
     const supportState = browserSupportState();
 
     if (supportState) {
-        updatePromptCard(supportState);
+        updatePromptUi(supportState);
+
+        if (supportState.name === 'nao_configurado' || supportState.name === 'ativo') {
+            await closePromptModal();
+        }
+
+        if (autoOpen && shouldAttemptAutoShow()) {
+            consumeAutoShow();
+        }
 
         return;
     }
@@ -353,29 +447,47 @@ const refreshPromptState = async () => {
         snapshot = await withOneSignal(async (OneSignal, config) => buildSnapshot(OneSignal, config));
     } catch (error) {
         logConsole('onesignal.web_state_refresh_failed', { message: error?.message ?? String(error) }, 'warn');
-        updatePromptCard({
-            hidden: false,
+        updatePromptUi({
+            name: 'erro',
             showButton: true,
             allowAction: true,
             message: 'Nao foi possivel preparar as notificacoes agora. Tente novamente em alguns segundos.',
         });
 
+        if (autoOpen && shouldAttemptAutoShow()) {
+            consumeAutoShow();
+        }
+
         return;
     }
 
     if (!snapshot) {
-        updatePromptCard({
-            hidden: true,
+        updatePromptUi({
+            name: 'nao_configurado',
             showButton: false,
             allowAction: false,
             message: '',
         });
 
+        if (autoOpen && shouldAttemptAutoShow()) {
+            consumeAutoShow();
+        }
+
         return;
     }
 
     const state = determinePromptState(snapshot);
-    updatePromptCard(state);
+    updatePromptUi(state);
+
+    if (state.name === 'ativo') {
+        await closePromptModal();
+    } else if (autoOpen && shouldAttemptAutoShow()) {
+        if (canAutoOpenFromState(state)) {
+            await openPromptModal('auto');
+        } else {
+            consumeAutoShow();
+        }
+    }
 
     if (state.name === 'permissao_ok_sem_inscricao') {
         void reportDiagnostic('onesignal.web_subscription_missing_after_grant', snapshot);
@@ -385,8 +497,14 @@ const refreshPromptState = async () => {
 };
 
 const requestPermission = async () => {
-    updatePromptCard({
-        hidden: false,
+    updatePromptUi({
+        ...(currentPromptState ?? determinePromptState({
+            permission: 'default',
+            optedIn: false,
+            subscriptionIdPresent: false,
+            tokenPresent: false,
+            externalIdMatches: false,
+        })),
         busy: true,
         showButton: true,
         allowAction: false,
@@ -419,8 +537,8 @@ const requestPermission = async () => {
         });
     } catch (error) {
         logConsole('onesignal.web_prompt_failed', { message: error?.message ?? String(error) }, 'warn');
-        updatePromptCard({
-            hidden: false,
+        updatePromptUi({
+            ...(currentPromptState ?? {}),
             busy: false,
             showButton: true,
             allowAction: true,
@@ -430,9 +548,9 @@ const requestPermission = async () => {
         return;
     }
 
-    await refreshPromptState();
+    await refreshPromptState({ autoOpen: false });
     window.setTimeout(() => {
-        void refreshPromptState();
+        void refreshPromptState({ autoOpen: false });
     }, 1200);
 };
 
@@ -452,21 +570,21 @@ const bindOneSignalSdkEvents = () => {
             const snapshot = await buildSnapshot(OneSignal, config);
 
             await reportDiagnostic('onesignal.web_prompt_displayed', snapshot);
-            await refreshPromptState();
+            await refreshPromptState({ autoOpen: false });
         });
 
         OneSignal?.Notifications?.addEventListener?.('permissionChange', async () => {
             const snapshot = await buildSnapshot(OneSignal, config);
 
             await reportDiagnostic('onesignal.web_permission_changed', snapshot);
-            await refreshPromptState();
+            await refreshPromptState({ autoOpen: false });
         });
 
         OneSignal?.User?.PushSubscription?.addEventListener?.('change', async () => {
             const snapshot = await buildSnapshot(OneSignal, config);
 
             await reportDiagnostic('onesignal.web_subscription_changed', snapshot);
-            await refreshPromptState();
+            await refreshPromptState({ autoOpen: false });
         });
 
         OneSignal?.User?.addEventListener?.('change', async () => {
@@ -474,7 +592,7 @@ const bindOneSignalSdkEvents = () => {
             const snapshot = await buildSnapshot(OneSignal, config);
 
             await reportDiagnostic('onesignal.web_login_state_changed', snapshot);
-            await refreshPromptState();
+            await refreshPromptState({ autoOpen: false });
         });
     }).catch((error) => {
         logConsole('onesignal.web_bindings_failed', { message: error?.message ?? String(error) }, 'warn');
@@ -489,16 +607,54 @@ const bindDocumentEvents = () => {
     bindingsReady = true;
 
     document.addEventListener('click', (event) => {
-        const trigger = event.target instanceof Element
-            ? event.target.closest(promptTriggerSelector)
-            : null;
+        const target = event.target instanceof Element ? event.target : null;
 
-        if (!trigger) {
+        if (!target) {
+            return;
+        }
+
+        const promptTrigger = target.closest(promptTriggerSelector);
+        if (promptTrigger) {
+            event.preventDefault();
+            void requestPermission();
+
+            return;
+        }
+
+        const manualTrigger = target.closest(promptManualTriggerSelector);
+        if (manualTrigger) {
+            event.preventDefault();
+            void openPromptModal('manual');
+
+            return;
+        }
+
+        const dismissTrigger = target.closest(promptDismissSelector);
+        if (dismissTrigger) {
+            event.preventDefault();
+            void closePromptModal('dismissed');
+
+            return;
+        }
+
+        const promptRoot = target.closest(promptRootSelector);
+        if (promptRoot && target === promptRoot) {
+            event.preventDefault();
+            void closePromptModal('dismissed');
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        if (!promptModalOpen) {
             return;
         }
 
         event.preventDefault();
-        void requestPermission();
+        void closePromptModal('dismissed');
     });
 
     document.addEventListener('submit', (event) => {
@@ -534,10 +690,13 @@ export const initOneSignalWeb = () => {
         bindOneSignalSdkEvents();
         void refreshPromptState();
     });
+
     window.addEventListener('edux:onesignal-skipped', () => {
         void refreshPromptState();
     });
+
     document.addEventListener('livewire:navigated', () => {
+        void closePromptModal();
         void refreshPromptState();
     });
 };

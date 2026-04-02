@@ -12,13 +12,21 @@
 
         <section class="rounded-card bg-white p-6 shadow-card space-y-3">
             <p class="text-sm uppercase tracking-wide text-edux-primary">Notificacoes push</p>
-            <h2 class="text-xl font-display text-edux-primary">Receba avisos pelo app da sua escola</h2>
+            <h2 class="text-xl font-display text-edux-primary">Receba avisos no navegador</h2>
             <p class="text-sm text-slate-600">
-                As notificacoes em tempo real sao enviadas pelo app oficial da escola. Aqui voce continua encontrando todo o historico das mensagens publicadas.
+                Ative as notificacoes para receber avisos sobre aulas, recados e atualizacoes sem precisar ficar entrando na plataforma o tempo todo.
             </p>
             <p class="text-xs text-slate-500">
-                Se estiver usando o app iOS ou Android, confirme nas configuracoes do aparelho que as notificacoes estao permitidas para esta escola.
+                Se voce fechou o pedido antes, pode ativar novamente por aqui quando quiser.
             </p>
+            <button
+                type="button"
+                data-onesignal-manual-trigger="1"
+                class="edux-btn"
+                hidden
+            >
+                Ativar notificacoes
+            </button>
         </section>
 
         <livewire:student.notifications-feed />

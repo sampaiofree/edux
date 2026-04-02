@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Http\Middleware\PrepareStudentOneSignalPrompt;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -111,6 +112,7 @@ class AuthController extends Controller
             'user_id' => $request->user()?->id,
         ]);
 
+        $request->session()->forget(PrepareStudentOneSignalPrompt::SESSION_KEY);
         Auth::logout();
 
         $request->session()->invalidate();

@@ -114,7 +114,7 @@ Route::post('/logout', [AuthController::class, 'destroy'])
     ->name('logout');
 
 // --- Rotas protegidas (usuário autenticado) ---
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'student.onesignal_prompt'])->group(function (): void {
     Route::prefix('sa')
         ->name('sa.')
         ->middleware('super_admin')

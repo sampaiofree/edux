@@ -41,8 +41,10 @@ class StudentOneSignalWebSetupTest extends TestCase
         $response->assertSee($student->oneSignalExternalId(), false);
         $response->assertSee($student->oneSignalEmail(), false);
         $response->assertSee($student->oneSignalSmsPhone(), false);
+        $response->assertSee('autoShowModal: true', false);
         $response->assertSee('data-onesignal-prompt-trigger="1"', false);
         $response->assertSee('data-onesignal-prompt-root', false);
+        $response->assertSee('Quer receber avisos no navegador?', false);
 
         $workerPath = public_path('push/onesignal/OneSignalSDKWorker.js');
 
@@ -80,8 +82,9 @@ class StudentOneSignalWebSetupTest extends TestCase
         $response = $this->actingAs($student)->get(route('learning.notifications.index'));
 
         $response->assertOk();
-        $response->assertSee('data-onesignal-prompt-trigger="1"', false);
-        $response->assertSee('Receba avisos importantes', false);
+        $response->assertSee('data-onesignal-manual-trigger="1"', false);
+        $response->assertSee('Receba avisos no navegador', false);
+        $response->assertSee('data-onesignal-prompt-root', false);
     }
 
     public function test_student_dashboard_omits_sms_phone_when_whatsapp_is_not_valid_for_onesignal(): void
@@ -100,5 +103,28 @@ class StudentOneSignalWebSetupTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('smsPhone: null', false);
+    }
+
+    public function test_student_prompt_is_auto_shown_only_on_first_authenticated_page_of_session(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-onesignal-first-session@example.com',
+        ]);
+
+        $admin->systemSetting()->withoutGlobalScopes()->firstOrFail()->update([
+            'onesignal_app_id' => '7d9cb45e-fb6d-4c01-a962-e31ea5936eca',
+        ]);
+
+        $this->actingAs($student);
+
+        $firstResponse = $this->get(route('dashboard', ['tab' => 'cursos']));
+        $secondResponse = $this->get(route('learning.notifications.index'));
+
+        $firstResponse->assertOk();
+        $firstResponse->assertSee('autoShowModal: true', false);
+
+        $secondResponse->assertOk();
+        $secondResponse->assertSee('autoShowModal: false', false);
     }
 }
