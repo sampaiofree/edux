@@ -140,7 +140,7 @@
                         allowfullscreen 
                         loading="lazy"
                         @load="markPlayerReady()"
-                        @error="markPlayerError('Nao foi possivel carregar o video desta aula.')">
+                        x-on:error="markPlayerError('Nao foi possivel carregar o video desta aula.')">
                     </iframe>
                 </div>
             @elseif ($lesson->content)
