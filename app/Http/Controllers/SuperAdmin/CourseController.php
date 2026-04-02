@@ -92,6 +92,7 @@ class CourseController extends Controller
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'published_at' => ['nullable', 'date'],
             'promo_video_url' => ['nullable', 'url'],
+            'is_global' => ['nullable', 'boolean'],
         ]);
 
         $targetSystemSettingId = (int) $validated['system_setting_id'];
@@ -109,6 +110,9 @@ class CourseController extends Controller
             'duration_minutes' => $validated['duration_minutes'] ?? null,
             'published_at' => $validated['published_at'] ?? null,
             'promo_video_url' => $validated['promo_video_url'] ?? null,
+            'is_global' => array_key_exists('is_global', $validated)
+                ? (bool) $validated['is_global']
+                : (bool) $course->is_global,
         ];
 
         if ($validated['title'] !== $course->title) {

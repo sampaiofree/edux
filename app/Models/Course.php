@@ -44,6 +44,7 @@ class Course extends Model
         'kavoo_id',
         'support_whatsapp_mode',
         'support_whatsapp_number_id',
+        'is_global',
     ];
 
     protected function casts(): array
@@ -53,6 +54,7 @@ class Course extends Model
             'certificate_price' => 'decimal:2',
             'kavoo_id' => 'integer',
             'support_whatsapp_number_id' => 'integer',
+            'is_global' => 'boolean',
         ];
     }
 

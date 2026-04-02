@@ -482,7 +482,7 @@ class SystemAssetsManager extends Component
     {
         return [
             'onesignal_app_id' => ['nullable', 'uuid'],
-            'onesignal_rest_api_key' => ['nullable', 'string', 'max:1000'],
+            'onesignal_rest_api_key' => ['nullable', 'string'],
         ];
     }
 

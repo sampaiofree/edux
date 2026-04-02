@@ -167,15 +167,8 @@
                     class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/95 p-6 text-center"
                 >
                     <div class="max-w-sm space-y-3 text-white">
-                        <p class="text-sm font-semibold uppercase tracking-[0.24em] text-white/70">Falha ao carregar</p>
+                        <p class="text-sm font-semibold uppercase tracking-[0.24em] text-white/70">Atualize a página</p>
                         <p class="text-base font-semibold" x-text="playerErrorMessage"></p>
-                        <p class="text-sm text-white/70">Se o problema persistir, abra o video diretamente.</p>
-                        <a href="{{ $lesson->video_url }}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100">
-                            Abrir video em outra aba
-                        </a>
                     </div>
                 </div>
             @endif

@@ -273,6 +273,7 @@ class SuperAdminAreaTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Curso Edit Global', false)
+            ->assertSee('name="is_global"', false)
             ->assertViewHas('initialTenantId', (string) $tenantA->id)
             ->assertViewHas('initialOwnerId', (string) $adminA->id)
             ->assertViewHas('ownersByTenant', function (array $ownersByTenant) use ($tenantA, $tenantB, $adminA): bool {
@@ -295,6 +296,7 @@ class SuperAdminAreaTest extends TestCase
                 'duration_minutes' => 180,
                 'published_at' => now()->format('Y-m-d H:i:s'),
                 'promo_video_url' => 'https://example.com/video',
+                'is_global' => '1',
             ])
             ->assertRedirect(route('sa.courses.edit', $course->id));
 
@@ -307,6 +309,36 @@ class SuperAdminAreaTest extends TestCase
             'promo_video_url' => 'https://example.com/video',
             'system_setting_id' => $tenantA->id,
             'owner_id' => $adminA->id,
+            'is_global' => true,
+        ]);
+    }
+
+    public function test_super_admin_update_preserves_existing_global_flag_when_input_is_omitted(): void
+    {
+        [$adminA, $tenantA] = $this->createTenant('cursos.sa-course-global-preserve.test', 'Course Global Preserve');
+        $superAdmin = $this->bootstrapSuperAdmin();
+        $course = $this->createCourseForTenant($adminA, 'curso-global-preserve', 'Curso Global Preserve');
+        $course->forceFill(['is_global' => true])->save();
+
+        $this->forceTestHost($tenantA->domain)
+            ->actingAs($superAdmin)
+            ->put(route('sa.courses.update', $course->id), [
+                'system_setting_id' => $tenantA->id,
+                'owner_id' => $adminA->id,
+                'title' => 'Curso Global Preserve Atualizado',
+                'summary' => 'Resumo preservado',
+                'description' => 'Descrição preservada',
+                'status' => 'published',
+                'duration_minutes' => 200,
+                'published_at' => now()->format('Y-m-d H:i:s'),
+                'promo_video_url' => 'https://example.com/preserve',
+            ])
+            ->assertRedirect(route('sa.courses.edit', $course->id));
+
+        $this->assertDatabaseHas('courses', [
+            'id' => $course->id,
+            'title' => 'Curso Global Preserve Atualizado',
+            'is_global' => true,
         ]);
     }
 
@@ -348,6 +380,7 @@ class SuperAdminAreaTest extends TestCase
         $course->forceFill([
             'support_whatsapp_mode' => Course::SUPPORT_WHATSAPP_MODE_SPECIFIC,
             'support_whatsapp_number_id' => $supportNumber->id,
+            'is_global' => true,
         ])->save();
         CertificateBranding::create([
             'system_setting_id' => $tenantA->id,
@@ -366,6 +399,7 @@ class SuperAdminAreaTest extends TestCase
                 'duration_minutes' => 120,
                 'published_at' => now()->format('Y-m-d H:i:s'),
                 'promo_video_url' => 'https://example.com/transfer',
+                'is_global' => '1',
             ])
             ->assertRedirect(route('sa.courses.edit', $course->id))
             ->assertSessionHas('status', 'Curso transferido para a nova escola com matrículas e histórico educacional.');
@@ -377,6 +411,7 @@ class SuperAdminAreaTest extends TestCase
             'title' => 'Curso Transferido',
             'status' => 'archived',
             'support_whatsapp_number_id' => null,
+            'is_global' => true,
         ]);
         $this->assertDatabaseHas('certificate_brandings', [
             'course_id' => $course->id,

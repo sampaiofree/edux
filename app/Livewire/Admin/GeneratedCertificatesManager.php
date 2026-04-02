@@ -59,7 +59,7 @@ class GeneratedCertificatesManager extends Component
         $user = User::find($data['userId']);
 
         if (! $course || ! $user) {
-            $this->errorMessage = 'Aluno ou curso n\u00e3o encontrado.';
+            $this->errorMessage = 'Aluno ou curso Não encontrado.';
 
             return;
         }
@@ -70,7 +70,7 @@ class GeneratedCertificatesManager extends Component
             ->first();
 
         if (! $enrollment) {
-            $this->errorMessage = 'Este aluno n\u00e3o est\u00e1 matriculado no curso selecionado.';
+            $this->errorMessage = 'Este aluno Não est\u00e1 matriculado no curso selecionado.';
 
             return;
         }

@@ -19,7 +19,7 @@ class Checkout extends Component
     public ?int $courseId = null;
     public ?string $completionDate = null;
     public ?string $cpf = null;
-    public string $completionConfirmed = '';
+    public ?string $completionConfirmed = '';
 
     public ?Course $course = null;
     public ?Enrollment $enrollment = null;
@@ -27,7 +27,7 @@ class Checkout extends Component
     public ?string $statusMessage = null;
     public ?string $errorMessage = null;
 
-    public function mount(): void
+    public function mount(?int $courseId = null, ?string $completionDate = null, ?string $completionConfirmed = null): void
     {
         $user = Auth::user();
 
@@ -43,6 +43,22 @@ class Checkout extends Component
 
         if ($enrollment) {
             $this->setEnrollment($enrollment);
+        }
+
+        if ($courseId && $courseId > 0) {
+            $prefilledEnrollment = $this->findEnrollment($courseId);
+
+            if ($prefilledEnrollment) {
+                $this->setEnrollment($prefilledEnrollment, true);
+            }
+        }
+
+        if ($completionDate) {
+            $this->completionDate = $completionDate;
+        }
+
+        if (in_array($completionConfirmed, ['yes', 'no'], true)) {
+            $this->completionConfirmed = $completionConfirmed;
         }
     }
 

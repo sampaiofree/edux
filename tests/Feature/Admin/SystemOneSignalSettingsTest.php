@@ -66,6 +66,22 @@ class SystemOneSignalSettingsTest extends TestCase
         $this->assertSame('rest-secret-alpha', $setting->fresh()->onesignal_rest_api_key);
     }
 
+    public function test_admin_can_save_long_onesignal_rest_key(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $restApiKey = 'os_v2_app_'.str_repeat('segment', 250);
+
+        $this->actingAs($admin);
+
+        Livewire::test(SystemAssetsManager::class)
+            ->set('onesignal_app_id', '12345678-1234-1234-1234-123456789012')
+            ->set('onesignal_rest_api_key', $restApiKey)
+            ->call('saveOneSignalSettings')
+            ->assertHasNoErrors();
+
+        $this->assertSame($restApiKey, $admin->systemSetting->fresh()->onesignal_rest_api_key);
+    }
+
     public function test_super_admin_can_edit_selected_tenant_onesignal_settings(): void
     {
         $superAdmin = $this->bootstrapSuperAdmin();

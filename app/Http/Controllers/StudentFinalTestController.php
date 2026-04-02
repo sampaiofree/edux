@@ -37,14 +37,44 @@ class StudentFinalTestController extends Controller
             ->latest()
             ->first();
 
+        $latestSubmittedAttempt = $finalTest->attempts()
+            ->where('user_id', $user->id)
+            ->whereNotNull('submitted_at')
+            ->latest('submitted_at')
+            ->first();
+
         $isEligibleForCertificate = $enrollment->progress_percent === 100;
+        $canGenerateCertificate = $isEligibleForCertificate && (bool) ($latestSubmittedAttempt?->passed);
+        $attemptsRemaining = $finalTest->max_attempts
+            ? max($finalTest->max_attempts - $attemptsCount, 0)
+            : null;
+
+        $certificateCreateUrl = null;
+
+        if ($canGenerateCertificate) {
+            $certificateParams = [
+                'course_id' => $course->id,
+                'completion_confirmed' => 'yes',
+            ];
+
+            if ($enrollment->completed_at) {
+                $certificateParams['completion_date'] = $enrollment->completed_at->format('Y-m-d');
+            }
+
+            $certificateCreateUrl = route('certificado.create', $certificateParams);
+        }
 
         return view('learning.final-test.intro', compact(
             'course',
             'finalTest',
+            'enrollment',
             'attemptsCount',
+            'attemptsRemaining',
             'openAttempt',
-            'isEligibleForCertificate'
+            'latestSubmittedAttempt',
+            'isEligibleForCertificate',
+            'canGenerateCertificate',
+            'certificateCreateUrl',
         ));
     }
 

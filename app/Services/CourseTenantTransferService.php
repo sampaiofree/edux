@@ -82,6 +82,9 @@ class CourseTenantTransferService
                 'duration_minutes' => $attributes['duration_minutes'] ?? null,
                 'published_at' => $attributes['published_at'] ?? null,
                 'promo_video_url' => $attributes['promo_video_url'] ?? null,
+                'is_global' => array_key_exists('is_global', $attributes)
+                    ? (bool) $attributes['is_global']
+                    : (bool) $course->is_global,
                 'support_whatsapp_number_id' => array_key_exists('support_whatsapp_number_id', $attributes)
                     ? $attributes['support_whatsapp_number_id']
                     : $course->support_whatsapp_number_id,

@@ -136,6 +136,25 @@
                 </label>
             </div>
 
+            <div class="rounded-2xl border border-edux-line/60 bg-edux-background/70 p-4">
+                <input type="hidden" name="is_global" value="0">
+                <label class="flex items-start gap-3">
+                    <input
+                        type="checkbox"
+                        name="is_global"
+                        value="1"
+                        @checked(old('is_global', $course->is_global))
+                        class="mt-1 rounded border-edux-line text-edux-primary focus:ring-edux-primary/50"
+                    >
+                    <span class="space-y-1 text-sm text-slate-600">
+                        <span class="block font-semibold text-slate-800">Curso global</span>
+                        <span class="block">Marque este curso como global para prepará-lo para futuras cópias em outras contas.</span>
+                        <span class="block text-xs text-slate-500">Este campo é apenas metadado no momento e só pode ser alterado pelo Super Admin.</span>
+                    </span>
+                </label>
+                @error('is_global') <span class="mt-2 block text-xs text-red-500">{{ $message }}</span> @enderror
+            </div>
+
             <label class="block space-y-2 text-sm font-semibold text-slate-600">
                 <span>Resumo</span>
                 <input type="text" name="summary" value="{{ old('summary', $course->summary) }}" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">

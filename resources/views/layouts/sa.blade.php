@@ -72,27 +72,27 @@
     <main class="mx-auto max-w-7xl px-4 py-10 pb-28">
         <x-toast :status="session('status')" :errors="$errors->all()" />
 
-        <div class="flex gap-6">
-            <aside class="sticky top-20 hidden h-fit min-w-[240px] rounded-2xl bg-white p-4 shadow-card md:block">
-                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Super Admin</p>
-                <ul class="space-y-2 text-sm font-semibold text-slate-700">
-                    <li><a href="{{ route('sa.dashboard') }}" @class(['block rounded-lg px-3 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.dashboard')])>Dashboard</a></li>
-                    <li><a href="{{ route('sa.tenants.index') }}" @class(['block rounded-lg px-3 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.tenants.*')])>Escolas</a></li>
-                    <li><a href="{{ route('sa.users.index') }}" @class(['block rounded-lg px-3 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.users.*')])>Usuários</a></li>
-                    <li><a href="{{ route('sa.courses.index') }}" @class(['block rounded-lg px-3 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.courses.*')])>Cursos</a></li>
-                    <li><a href="{{ route('sa.enrollments.index') }}" @class(['block rounded-lg px-3 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.enrollments.*')])>Matrículas</a></li>
+        <div class="grid gap-5 md:grid-cols-5 md:items-start">
+            <aside class="sticky top-20 hidden h-fit rounded-2xl bg-white p-3 shadow-card md:col-span-1 md:block">
+                <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Menu Super Admin</p>
+                <ul class="space-y-1.5 text-xs font-semibold text-slate-700">
+                    <li><a href="{{ route('sa.dashboard') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.dashboard')])>Dashboard</a></li>
+                    <li><a href="{{ route('sa.tenants.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.tenants.*')])>Escolas</a></li>
+                    <li><a href="{{ route('sa.users.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.users.*')])>Usuários</a></li>
+                    <li><a href="{{ route('sa.courses.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.courses.*')])>Cursos</a></li>
+                    <li><a href="{{ route('sa.enrollments.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.enrollments.*')])>Matrículas</a></li>
                 </ul>
 
-                <div class="mt-6 rounded-2xl border border-edux-line/60 bg-edux-background/70 p-4 text-sm text-slate-600">
+                <div class="mt-4 rounded-xl border border-edux-line/60 bg-edux-background/70 p-3 text-xs leading-5 text-slate-600">
                     <p class="font-semibold text-edux-primary">Escopo global</p>
-                    <p class="mt-2">Esta área ignora o escopo de tenant e opera sobre todas as escolas.</p>
-                    <a href="{{ route('admin.dashboard') }}" class="mt-4 inline-flex text-sm font-semibold text-edux-primary underline-offset-2 hover:underline">
+                    <p class="mt-1.5">Esta área ignora o escopo de tenant e opera sobre todas as escolas.</p>
+                    <a href="{{ route('admin.dashboard') }}" class="mt-3 inline-flex text-xs font-semibold text-edux-primary underline-offset-2 hover:underline">
                         Abrir admin do tenant atual
                     </a>
                 </div>
             </aside>
 
-            <div class="min-w-0 flex-1 space-y-6">
+            <div class="min-w-0 space-y-6 md:col-span-4">
                 @yield('content')
             </div>
         </div>

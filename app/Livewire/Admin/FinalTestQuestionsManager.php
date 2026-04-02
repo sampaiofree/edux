@@ -158,7 +158,7 @@ class FinalTestQuestionsManager extends Component
         $this->reloadFinalTest();
     }
 
-    private function reloadFinalTest(): void
+    public function reloadFinalTest(): void
     {
         $this->finalTest->refresh();
         $this->finalTest->load('course', 'questions.options');

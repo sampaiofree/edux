@@ -6,6 +6,8 @@ use App\Models\Course;
 use App\Models\FinalTest;
 use App\Models\Lesson;
 use App\Models\Module;
+use App\Models\User;
+use App\Services\GlobalCourseImportService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -15,7 +17,9 @@ class Dashboard extends Component
 
     public string $search = '';
     public string $status = 'all';
+    public string $importSearch = '';
     public int $perPage = 5;
+    public bool $importModalOpen = false;
 
     protected $paginationTheme = 'tailwind';
 
@@ -34,6 +38,39 @@ class Dashboard extends Component
         $this->resetPage();
     }
 
+    public function openImportModal(): void
+    {
+        $this->importModalOpen = true;
+        $this->importSearch = '';
+    }
+
+    public function closeImportModal(): void
+    {
+        $this->importModalOpen = false;
+        $this->importSearch = '';
+    }
+
+    public function importCourse(int $courseId): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        $sourceCourse = Course::withoutGlobalScopes()
+            ->whereKey($courseId)
+            ->where('is_global', true)
+            ->firstOrFail();
+
+        app(GlobalCourseImportService::class)->import($sourceCourse, $user);
+
+        $this->closeImportModal();
+        $this->resetPage();
+
+        session()->flash('status', 'Curso importado com sucesso.');
+    }
+
     public function render()
     {
         $stats = [
@@ -49,9 +86,25 @@ class Dashboard extends Component
             ->orderByDesc('created_at')
             ->paginate($this->perPage);
 
+        $globalCourses = $this->importModalOpen
+            ? Course::withoutGlobalScopes()
+                ->with(['systemSetting', 'owner'])
+                ->where('is_global', true)
+                ->when($this->importSearch, function ($query): void {
+                    $query->where(function ($nestedQuery): void {
+                        $nestedQuery
+                            ->where('title', 'like', '%'.$this->importSearch.'%')
+                            ->orWhere('slug', 'like', '%'.$this->importSearch.'%');
+                    });
+                })
+                ->orderBy('title')
+                ->get()
+            : collect();
+
         return view('livewire.admin.dashboard', [
             'stats' => $stats,
             'courses' => $courses,
+            'globalCourses' => $globalCourses,
         ]);
     }
 }

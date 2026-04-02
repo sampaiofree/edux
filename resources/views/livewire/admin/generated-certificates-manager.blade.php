@@ -30,7 +30,7 @@
                     type="search"
                     name="search"
                     wire:model.live.debounce.350ms="search"
-                    placeholder="N\u00famero, aluno, curso, e-mail ou ID"
+                    placeholder="Número, aluno, curso, e-mail ou ID"
                     class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
                 >
             </label>
@@ -41,12 +41,12 @@
             <table class="w-full text-left text-sm">
                 <thead>
                     <tr class="text-slate-500 text-xs uppercase tracking-wide">
-                        <th class="pb-2">N\u00famero</th>
+                        <th class="pb-2">Número</th>
                         <th class="pb-2">Curso</th>
                         <th class="pb-2">Aluno</th>
                         <th class="pb-2">Emitido em</th>
                         <th class="pb-2">Criado em</th>
-                        <th class="pb-2 text-right">A\u00e7\u00f5es</th>
+                        <th class="pb-2 text-right">Ações</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -156,7 +156,7 @@
                     </label>
 
                     <label class="space-y-2 text-sm font-semibold text-slate-600 block">
-                        <span>Data de conclus\u00e3o</span>
+                        <span>Data de Conclusão</span>
                         <input
                             type="date"
                             wire:model.live="completionDate"
@@ -164,7 +164,7 @@
                         >
                         @error('completionDate') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         <p class="text-xs text-slate-500">
-                            Se n\u00e3o informar, usaremos a data registrada na matr\u00edcula.
+                            Se Não informar, usaremos a data registrada na matr\u00edcula.
                         </p>
                     </label>
 
@@ -173,7 +173,7 @@
                         <input
                             type="text"
                             wire:model.live.debounce.300ms="cpf"
-                            placeholder="Somente n\u00fameros"
+                            placeholder="Somente Números"
                             class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
                         >
                         @error('cpf') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
@@ -205,12 +205,12 @@
                             <span class="font-semibold text-slate-800">{{ $selectedCourse?->title ?? 'Selecione um curso' }}</span>
                         </div>
                         <div class="flex items-center justify-between gap-3">
-                            <span>Conclus\u00e3o</span>
-                            <span class="font-semibold text-slate-800">{{ $formattedCompletionDate ?? 'N\u00e3o definida' }}</span>
+                            <span>Conclusão</span>
+                            <span class="font-semibold text-slate-800">{{ $formattedCompletionDate ?? 'Não definida' }}</span>
                         </div>
                         <div class="flex items-center justify-between gap-3">
                             <span>CPF</span>
-                            <span class="font-semibold text-slate-800">{{ $formattedCpf ?? 'N\u00e3o informado' }}</span>
+                            <span class="font-semibold text-slate-800">{{ $formattedCpf ?? 'Não informado' }}</span>
                         </div>
                     </div>
                 </div>
