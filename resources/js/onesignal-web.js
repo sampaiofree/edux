@@ -5,6 +5,7 @@ const promptStatusSelector = '[data-onesignal-status]';
 const logoutFormSelector = '[data-onesignal-logout-form]';
 
 const reportedDiagnostics = new Map();
+const syncedContactSignatures = new Set();
 let bindingsReady = false;
 
 const getConfig = () => window.__eduxOneSignalConfig ?? null;
@@ -163,11 +164,55 @@ const buildSnapshot = async (OneSignal, config) => {
         tokenPresent: Boolean(subscriptionToken),
         onesignalIdPresent: Boolean(onesignalId),
         externalIdMatches: config.externalId ? externalId === config.externalId : false,
+        emailPresent: Boolean(config.email),
+        smsPhonePresent: Boolean(config.smsPhone),
+        smsPhoneHash: await toShortHash(config.smsPhone),
         pushPermission,
         serviceWorkerScope: normalizeScopeUrl(config.serviceWorkerScope),
         url: rootUrl(),
         userAgent: navigator.userAgent,
     };
+};
+
+const contactSyncSignature = (config) => JSON.stringify({
+    externalId: config?.externalId ?? null,
+    email: config?.email ?? null,
+    smsPhone: config?.smsPhone ?? null,
+});
+
+const syncKnownContacts = async (OneSignal, config) => {
+    const signature = contactSyncSignature(config);
+    const shouldSyncEmail = typeof config?.email === 'string' && config.email.trim() !== '';
+    const shouldSyncSms = typeof config?.smsPhone === 'string' && config.smsPhone.trim() !== '';
+
+    if (!config?.externalId || syncedContactSignatures.has(signature) || (!shouldSyncEmail && !shouldSyncSms)) {
+        return;
+    }
+
+    try {
+        if (OneSignal?.User?.externalId !== config.externalId && typeof OneSignal?.login === 'function') {
+            await OneSignal.login(config.externalId);
+        }
+
+        if (shouldSyncEmail && typeof OneSignal?.User?.addEmail === 'function') {
+            await OneSignal.User.addEmail(config.email);
+        }
+
+        if (shouldSyncSms && typeof OneSignal?.User?.addSms === 'function') {
+            await OneSignal.User.addSms(config.smsPhone);
+        }
+
+        syncedContactSignatures.add(signature);
+        await reportDiagnostic('onesignal.web_contacts_synced', await buildSnapshot(OneSignal, config));
+    } catch (error) {
+        logConsole('onesignal.web_contact_sync_failed', {
+            message: error?.message ?? String(error),
+            emailPresent: shouldSyncEmail,
+            smsPhonePresent: shouldSyncSms,
+        }, 'warn');
+
+        await reportDiagnostic('onesignal.web_contact_sync_failed', await buildSnapshot(OneSignal, config));
+    }
 };
 
 const determinePromptState = (snapshot) => {
@@ -230,8 +275,11 @@ const reportDiagnostic = async (eventName, payload = {}) => {
         permission: payload.permission ?? null,
         opted_in: typeof payload.optedIn === 'boolean' ? payload.optedIn : null,
         external_id_matches: typeof payload.externalIdMatches === 'boolean' ? payload.externalIdMatches : null,
+        email_present: typeof payload.emailPresent === 'boolean' ? payload.emailPresent : null,
         subscription_id_present: typeof payload.subscriptionIdPresent === 'boolean' ? payload.subscriptionIdPresent : null,
         subscription_id_hash: payload.subscriptionIdHash ?? null,
+        sms_phone_present: typeof payload.smsPhonePresent === 'boolean' ? payload.smsPhonePresent : null,
+        sms_phone_hash: payload.smsPhoneHash ?? null,
         token_present: typeof payload.tokenPresent === 'boolean' ? payload.tokenPresent : null,
         onesignal_id_present: typeof payload.onesignalIdPresent === 'boolean' ? payload.onesignalIdPresent : null,
         sdk_ready: typeof payload.sdkReady === 'boolean' ? payload.sdkReady : null,
@@ -366,6 +414,8 @@ const requestPermission = async () => {
                     logConsole('onesignal.web_login_failed', { message: error?.message ?? String(error) }, 'warn');
                 }
             }
+
+            await syncKnownContacts(OneSignal, config);
         });
     } catch (error) {
         logConsole('onesignal.web_prompt_failed', { message: error?.message ?? String(error) }, 'warn');
@@ -396,6 +446,7 @@ const bindOneSignalSdkEvents = () => {
 
         const readySnapshot = await buildSnapshot(OneSignal, config);
         await reportDiagnostic('onesignal.web_sdk_ready', readySnapshot);
+        await syncKnownContacts(OneSignal, config);
 
         OneSignal?.Notifications?.addEventListener?.('permissionPromptDisplay', async () => {
             const snapshot = await buildSnapshot(OneSignal, config);
@@ -419,6 +470,7 @@ const bindOneSignalSdkEvents = () => {
         });
 
         OneSignal?.User?.addEventListener?.('change', async () => {
+            await syncKnownContacts(OneSignal, config);
             const snapshot = await buildSnapshot(OneSignal, config);
 
             await reportDiagnostic('onesignal.web_login_state_changed', snapshot);

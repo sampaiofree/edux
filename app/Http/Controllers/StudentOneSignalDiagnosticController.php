@@ -15,6 +15,8 @@ class StudentOneSignalDiagnosticController extends Controller
      */
     private const ALLOWED_EVENTS = [
         'onesignal.web_sdk_ready',
+        'onesignal.web_contacts_synced',
+        'onesignal.web_contact_sync_failed',
         'onesignal.web_prompt_displayed',
         'onesignal.web_permission_changed',
         'onesignal.web_subscription_changed',
@@ -27,6 +29,7 @@ class StudentOneSignalDiagnosticController extends Controller
      * @var list<string>
      */
     private const WARNING_EVENTS = [
+        'onesignal.web_contact_sync_failed',
         'onesignal.web_subscription_missing_after_grant',
         'onesignal.web_service_worker_mismatch',
     ];
@@ -38,8 +41,11 @@ class StudentOneSignalDiagnosticController extends Controller
             'permission' => ['nullable', 'string', Rule::in(['default', 'granted', 'denied'])],
             'opted_in' => ['nullable', 'boolean'],
             'external_id_matches' => ['nullable', 'boolean'],
+            'email_present' => ['nullable', 'boolean'],
             'subscription_id_present' => ['nullable', 'boolean'],
             'subscription_id_hash' => ['nullable', 'string', 'max:64'],
+            'sms_phone_present' => ['nullable', 'boolean'],
+            'sms_phone_hash' => ['nullable', 'string', 'max:64'],
             'token_present' => ['nullable', 'boolean'],
             'onesignal_id_present' => ['nullable', 'boolean'],
             'sdk_ready' => ['nullable', 'boolean'],
@@ -57,8 +63,11 @@ class StudentOneSignalDiagnosticController extends Controller
             'permission' => $data['permission'] ?? null,
             'opted_in' => $data['opted_in'] ?? null,
             'external_id_matches' => $data['external_id_matches'] ?? null,
+            'email_present' => $data['email_present'] ?? null,
             'subscription_id_present' => $data['subscription_id_present'] ?? null,
             'subscription_id_hash' => $this->sanitizeHash($data['subscription_id_hash'] ?? null),
+            'sms_phone_present' => $data['sms_phone_present'] ?? null,
+            'sms_phone_hash' => $this->sanitizeHash($data['sms_phone_hash'] ?? null),
             'token_present' => $data['token_present'] ?? null,
             'onesignal_id_present' => $data['onesignal_id_present'] ?? null,
             'sdk_ready' => $data['sdk_ready'] ?? null,

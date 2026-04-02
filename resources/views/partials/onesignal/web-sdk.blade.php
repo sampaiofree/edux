@@ -9,6 +9,8 @@
     window.__eduxOneSignalConfig = {
         appId: @json($settings->onesignal_app_id),
         externalId: @json($user->oneSignalExternalId()),
+        email: @json($user->oneSignalEmail()),
+        smsPhone: @json($user->oneSignalSmsPhone()),
         serviceWorkerPath: @json($serviceWorkerPath),
         serviceWorkerScope: @json($serviceWorkerScope),
         diagnosticsUrl: @json(route('learning.onesignal.diagnostics.store')),

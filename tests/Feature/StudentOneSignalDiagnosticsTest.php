@@ -23,8 +23,11 @@ class StudentOneSignalDiagnosticsTest extends TestCase
             'permission' => 'granted',
             'opted_in' => true,
             'external_id_matches' => true,
+            'email_present' => true,
             'subscription_id_present' => true,
             'subscription_id_hash' => 'abcdef1234567890',
+            'sms_phone_present' => true,
+            'sms_phone_hash' => '1234abcd5678ef90',
             'token_present' => true,
             'onesignal_id_present' => true,
             'sdk_ready' => true,
@@ -40,9 +43,13 @@ class StudentOneSignalDiagnosticsTest extends TestCase
                 && ($context['user_id'] ?? null) === $student->id
                 && ($context['system_setting_id'] ?? null) === $student->system_setting_id
                 && ($context['permission'] ?? null) === 'granted'
+                && ($context['email_present'] ?? null) === true
                 && ($context['subscription_id_hash'] ?? null) === 'abcdef1234567890'
+                && ($context['sms_phone_present'] ?? null) === true
+                && ($context['sms_phone_hash'] ?? null) === '1234abcd5678ef90'
                 && ($context['token_present'] ?? null) === true
                 && ! array_key_exists('subscription_id', $context)
+                && ! array_key_exists('sms_phone', $context)
                 && ! array_key_exists('token', $context);
         })->once();
     }
@@ -82,5 +89,38 @@ class StudentOneSignalDiagnosticsTest extends TestCase
         ]);
 
         $response->assertUnauthorized();
+    }
+
+    public function test_contact_sync_failure_is_logged_as_warning_without_raw_phone_data(): void
+    {
+        Log::spy();
+
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-contact-sync@example.com',
+        ]);
+
+        $response = $this->actingAs($student)->postJson(route('learning.onesignal.diagnostics.store'), [
+            'event' => 'onesignal.web_contact_sync_failed',
+            'permission' => 'default',
+            'opted_in' => false,
+            'external_id_matches' => true,
+            'email_present' => true,
+            'subscription_id_present' => false,
+            'sms_phone_present' => true,
+            'sms_phone_hash' => '55aa77bb99cc11dd',
+            'token_present' => false,
+            'onesignal_id_present' => true,
+            'sdk_ready' => true,
+        ]);
+
+        $response->assertAccepted();
+
+        Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context): bool {
+            return $message === 'onesignal.web_contact_sync_failed'
+                && ($context['email_present'] ?? null) === true
+                && ($context['sms_phone_present'] ?? null) === true
+                && ($context['sms_phone_hash'] ?? null) === '55aa77bb99cc11dd'
+                && ! array_key_exists('sms_phone', $context);
+        })->once();
     }
 }

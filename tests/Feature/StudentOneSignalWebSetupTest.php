@@ -24,6 +24,7 @@ class StudentOneSignalWebSetupTest extends TestCase
         $admin = $this->defaultTenantAdmin();
         $student = $this->defaultTenantStudent([
             'email' => 'aluno-onesignal-web@example.com',
+            'whatsapp' => '(11) 95555-4444',
         ]);
 
         $admin->systemSetting()->withoutGlobalScopes()->firstOrFail()->update([
@@ -38,6 +39,8 @@ class StudentOneSignalWebSetupTest extends TestCase
         $response->assertSee('serviceWorkerScope', false);
         $response->assertSee('diagnosticsUrl', false);
         $response->assertSee($student->oneSignalExternalId(), false);
+        $response->assertSee($student->oneSignalEmail(), false);
+        $response->assertSee($student->oneSignalSmsPhone(), false);
         $response->assertSee('data-onesignal-prompt-trigger="1"', false);
         $response->assertSee('data-onesignal-prompt-root', false);
 
@@ -79,5 +82,23 @@ class StudentOneSignalWebSetupTest extends TestCase
         $response->assertOk();
         $response->assertSee('data-onesignal-prompt-trigger="1"', false);
         $response->assertSee('Receba avisos importantes', false);
+    }
+
+    public function test_student_dashboard_omits_sms_phone_when_whatsapp_is_not_valid_for_onesignal(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-onesignal-invalido@example.com',
+            'whatsapp' => '12345',
+        ]);
+
+        $admin->systemSetting()->withoutGlobalScopes()->firstOrFail()->update([
+            'onesignal_app_id' => '7d9cb45e-fb6d-4c01-a962-e31ea5936eca',
+        ]);
+
+        $response = $this->actingAs($student)->get(route('dashboard', ['tab' => 'cursos']));
+
+        $response->assertOk();
+        $response->assertSee('smsPhone: null', false);
     }
 }
