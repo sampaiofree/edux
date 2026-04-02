@@ -46,7 +46,6 @@ class OneSignalPushService
                 'url' => $this->notificationTargetUrl($settings, $notification),
             ],
             'app_url' => $this->notificationTargetUrl($settings, $notification),
-            'url' => $this->notificationTargetUrl($settings, $notification),
             'web_url' => $this->notificationTargetUrl($settings, $notification),
         ];
 
@@ -83,7 +82,6 @@ class OneSignalPushService
                 'url' => $targetUrl,
             ],
             'app_url' => $targetUrl,
-            'url' => $targetUrl,
             'web_url' => $targetUrl,
         ];
 

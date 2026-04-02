@@ -139,10 +139,14 @@ class SystemOneSignalSettingsTest extends TestCase
 
         Http::assertSent(function ($request) use ($tenantStudent): bool {
             $data = $request->data();
+            $targetUrl = $tenantStudent->systemSetting->appUrl(route('learning.notifications.index', absolute: false));
 
             return $request->url() === 'https://api.onesignal.com/notifications?c=push'
                 && $data['app_id'] === '33333333-3333-3333-3333-333333333333'
-                && $data['include_aliases']['external_id'] === [$tenantStudent->oneSignalExternalId()];
+                && $data['include_aliases']['external_id'] === [$tenantStudent->oneSignalExternalId()]
+                && ! array_key_exists('url', $data)
+                && $data['app_url'] === $targetUrl
+                && $data['web_url'] === $targetUrl;
         });
 
         Livewire::test(SystemAssetsManager::class)

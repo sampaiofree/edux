@@ -48,9 +48,10 @@ class NotificationPushDeliveryTest extends TestCase
 
         $this->assertNotNull($notification->pushed_at);
 
-        Http::assertSent(function ($request) use ($studentA, $studentB, $otherStudent, $notification): bool {
+        Http::assertSent(function ($request) use ($admin, $studentA, $studentB, $otherStudent, $notification): bool {
             $data = $request->data();
             $externalIds = $data['include_aliases']['external_id'] ?? [];
+            $targetUrl = route('learning.notifications.index', absolute: false);
             sort($externalIds);
 
             $expected = [
@@ -63,7 +64,10 @@ class NotificationPushDeliveryTest extends TestCase
                 && $data['app_id'] === '44444444-4444-4444-4444-444444444444'
                 && $externalIds === $expected
                 && ! in_array($otherStudent->oneSignalExternalId(), $externalIds, true)
-                && $data['data']['notification_id'] === $notification->id;
+                && $data['data']['notification_id'] === $notification->id
+                && ! array_key_exists('url', $data)
+                && $data['app_url'] === $admin->systemSetting->appUrl($targetUrl)
+                && $data['web_url'] === $admin->systemSetting->appUrl($targetUrl);
         });
     }
 
