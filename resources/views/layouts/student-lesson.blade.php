@@ -16,6 +16,14 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+        @auth
+            @if (auth()->user()?->isStudent() && filled($settings->onesignal_app_id))
+                @include('partials.onesignal.web-sdk', [
+                    'settings' => $settings,
+                    'user' => auth()->user(),
+                ])
+            @endif
+        @endauth
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
         @stack('styles')

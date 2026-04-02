@@ -17,7 +17,10 @@ class PanelSummary extends Component
 
     public function render()
     {
-        $user = User::with(['enrollments.course.certificates' => fn ($query) => $query->where('user_id', $this->userId)])
+        $user = User::with([
+            'systemSetting',
+            'enrollments.course.certificates' => fn ($query) => $query->where('user_id', $this->userId),
+        ])
             ->findOrFail($this->userId);
 
         $enrollments = Enrollment::with([
@@ -37,6 +40,7 @@ class PanelSummary extends Component
 
         return view('livewire.student.panel-summary', [
             'user' => $user,
+            'pushEnabled' => filled($user->systemSetting?->onesignal_app_id),
             'totalEnrollments' => $enrollments->count(),
             'completed' => $completed->count(),
             'running' => max($running, 0),

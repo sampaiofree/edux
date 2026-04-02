@@ -126,7 +126,7 @@
                     <span>{{ $item['label'] }}</span>
                 </a>
             @endforeach
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}" data-onesignal-logout-form>
                 @csrf
                 <button type="submit"
                     class="flex w-full items-center gap-3 px-3 py-2 text-sm font-semibold transition-colors rounded-lg text-red-600 hover:bg-red-50">

@@ -281,7 +281,7 @@
         <div>
             <h3 class="text-lg font-display text-edux-primary">Notificações Push</h3>
             <p class="text-xs text-slate-500">
-                Configure o OneSignal desta escola para enviar push no app iOS/Android. O app deve identificar cada aluno como
+                Configure o OneSignal desta escola para enviar push no navegador e no app. O identificador de cada aluno segue o formato
                 <code>tenant:{{ $settings->id }}:user:{id}</code>.
             </p>
         </div>
