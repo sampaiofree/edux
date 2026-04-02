@@ -9,30 +9,14 @@
 
             $settings = SystemSetting::current();
             $faviconUrl = $settings->assetUrl('favicon_path');
-            $appleTouchIconUrl = $faviconUrl ?: $settings->assetUrl('default_logo_dark_path') ?: asset('favicon.ico');
-            $webAppTitle = \Illuminate\Support\Str::limit(trim((string) ($settings->escola_nome ?? '')) ?: 'EduX', 24, '');
         @endphp
         <title>@yield('title', 'EduX')</title>
         @if ($faviconUrl)
             <link rel="icon" href="{{ $faviconUrl }}">
         @endif
-        <link rel="manifest" href="{{ route('web.manifest') }}">
-        <meta name="theme-color" content="#2563eb">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="default">
-        <meta name="apple-mobile-web-app-title" content="{{ $webAppTitle }}">
-        <link rel="apple-touch-icon" href="{{ $appleTouchIconUrl }}">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
-        @auth
-            @if (auth()->user()?->isStudent() && filled($settings->onesignal_app_id))
-                @include('partials.onesignal.web-sdk', [
-                    'settings' => $settings,
-                    'user' => auth()->user(),
-                ])
-            @endif
-        @endauth
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
         @stack('styles')
@@ -163,12 +147,6 @@
         @endunless
 
         <div class="student-shell-content">
-            @auth
-                @if (auth()->user()?->isStudent() && filled($settings->onesignal_app_id))
-                    @include('partials.onesignal.student-prompt')
-                @endif
-            @endauth
-
             <main class="{{ $mainClasses }}">
                 <x-toast :status="session('status')" :errors="$errors->all()" :error="session('error')" />
                 @yield('content')

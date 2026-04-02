@@ -39,9 +39,4 @@ return [
         'instagram' => env('SUPPORT_INSTAGRAM_URL', 'https://instagram.com/edux'),
         'whatsapp' => env('SUPPORT_WHATSAPP_URL', 'https://wa.me/5500000000000'),
     ],
-
-    'onesignal' => [
-        'api_url' => env('ONESIGNAL_API_URL', 'https://api.onesignal.com'),
-    ],
-
 ];

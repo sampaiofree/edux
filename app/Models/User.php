@@ -197,31 +197,6 @@ class User extends Authenticatable
         return $this->hasMany(FinalTestAttempt::class);
     }
 
-    public function oneSignalExternalId(): string
-    {
-        return sprintf(
-            'tenant:%d:user:%d',
-            (int) ($this->system_setting_id ?? 0),
-            (int) ($this->id ?? 0)
-        );
-    }
-
-    public function oneSignalEmail(): ?string
-    {
-        $email = static::normalizeEmailValue($this->email);
-
-        if ($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            return null;
-        }
-
-        return $email;
-    }
-
-    public function oneSignalSmsPhone(): ?string
-    {
-        return static::normalizePhoneForOneSignal($this->whatsapp);
-    }
-
     public function isAdmin(): bool
     {
         return $this->role === UserRole::ADMIN;
@@ -291,37 +266,5 @@ class User extends Authenticatable
         }
 
         return mb_strtolower($email, 'UTF-8');
-    }
-
-    private static function normalizePhoneForOneSignal(mixed $value): ?string
-    {
-        $raw = trim((string) $value);
-
-        if ($raw === '') {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', $raw) ?: '';
-        if ($digits === '') {
-            return null;
-        }
-
-        if (str_starts_with($digits, '00')) {
-            $digits = substr($digits, 2);
-        }
-
-        if ($digits === '') {
-            return null;
-        }
-
-        if (strlen($digits) >= 10 && strlen($digits) <= 11) {
-            $digits = '55'.$digits;
-        }
-
-        if (strlen($digits) < 10 || strlen($digits) > 15) {
-            return null;
-        }
-
-        return '+'.$digits;
     }
 }

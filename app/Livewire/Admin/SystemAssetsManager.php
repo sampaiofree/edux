@@ -7,11 +7,8 @@ use App\Mail\SystemMailTestMessage;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Support\Mail\TenantMailManager;
-use App\Support\OneSignal\OneSignalPushService;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -51,15 +48,7 @@ class SystemAssetsManager extends Component
 
     public bool $mail_password_configured = false;
 
-    public ?string $onesignal_app_id = null;
-
-    public ?string $onesignal_rest_api_key = null;
-
-    public bool $onesignal_rest_api_key_configured = false;
-
     public ?string $test_email = null;
-
-    public ?string $test_push_user_id = null;
 
     public bool $editingExplicitTenant = false;
 
@@ -264,79 +253,6 @@ class SystemAssetsManager extends Component
         $this->dispatch('notify', type: 'success', message: $message);
     }
 
-    public function saveOneSignalSettings(): void
-    {
-        [$appId, $restApiKey, $clearCredentials] = $this->validatedOneSignalSettingsForSave();
-
-        $attributes = [
-            'onesignal_app_id' => $appId,
-        ];
-
-        if ($clearCredentials) {
-            $attributes['onesignal_rest_api_key'] = null;
-        } elseif ($restApiKey !== null) {
-            $attributes['onesignal_rest_api_key'] = $restApiKey;
-        }
-
-        $this->settings->update($attributes);
-        $this->settings->refresh();
-
-        Log::info('onesignal.settings_saved', array_merge([
-            'actor_user_id' => auth()->id(),
-            'system_setting_id' => $this->settings->id,
-            'editing_explicit_tenant' => $this->editingExplicitTenant,
-            'clear_credentials' => $clearCredentials,
-            'rest_api_key_supplied' => $restApiKey !== null,
-        ], $this->oneSignalCredentialDiagnostics(
-            $this->settings->onesignal_app_id,
-            $this->settings->onesignal_rest_api_key,
-        )));
-
-        $this->syncStateFromSettings(resetTestEmail: false);
-
-        $message = 'Configurações de push atualizadas.';
-        session()->flash('status_onesignal_settings', $message);
-        $this->dispatch('notify', type: 'success', message: $message);
-    }
-
-    public function sendTestPush(): void
-    {
-        $previewSetting = $this->oneSignalPreviewSystemSetting();
-        $student = $this->selectedTestPushStudent();
-
-        if (! $student) {
-            throw ValidationException::withMessages([
-                'test_push_user_id' => 'Selecione um aluno da escola para enviar o push de teste.',
-            ]);
-        }
-
-        Log::info('onesignal.test_push_requested', array_merge([
-            'actor_user_id' => auth()->id(),
-            'student_user_id' => $student->id,
-            'system_setting_id' => $previewSetting->id,
-            'editing_explicit_tenant' => $this->editingExplicitTenant,
-            'app_id_source' => $this->normalizeOptional($this->onesignal_app_id) !== null ? 'typed' : 'saved',
-            'rest_api_key_source' => $this->normalizeOptional($this->onesignal_rest_api_key) !== null ? 'typed' : 'saved',
-        ], $this->oneSignalCredentialDiagnostics(
-            $previewSetting->onesignal_app_id,
-            $previewSetting->onesignal_rest_api_key,
-        )));
-
-        try {
-            app(OneSignalPushService::class)->sendTestPush($previewSetting, $student);
-        } catch (\Throwable $exception) {
-            $message = 'Falha ao enviar push de teste: '.$exception->getMessage();
-            session()->flash('status_onesignal_test', $message);
-            $this->dispatch('notify', type: 'error', message: $message);
-
-            return;
-        }
-
-        $message = 'Push de teste enviado para '.$student->name.'.';
-        session()->flash('status_onesignal_test', $message);
-        $this->dispatch('notify', type: 'success', message: $message);
-    }
-
     public function save(string $field): void
     {
         if (! array_key_exists($field, $this->fieldMap)) {
@@ -392,7 +308,6 @@ class SystemAssetsManager extends Component
             'settings' => $this->settings,
             'isSuperAdminContext' => $this->editingExplicitTenant,
             'ownerOptions' => $this->ownerOptions(),
-            'studentOptions' => $this->studentOptions(),
         ]);
     }
 
@@ -474,98 +389,6 @@ class SystemAssetsManager extends Component
         return $normalized !== null ? strtolower($normalized) : null;
     }
 
-    /**
-     * @return array{0:?string,1:?string,2:bool}
-     */
-    private function validatedOneSignalSettingsForSave(): array
-    {
-        $validated = $this->validate($this->oneSignalRules());
-
-        $appId = $this->normalizeOptional($validated['onesignal_app_id'] ?? null);
-        $restApiKey = $this->normalizeOptional($validated['onesignal_rest_api_key'] ?? null);
-        $clearCredentials = $appId === null && $restApiKey === null;
-
-        if ($appId === null && $restApiKey !== null) {
-            throw ValidationException::withMessages([
-                'onesignal_app_id' => 'Informe o App ID do OneSignal para salvar a chave REST.',
-            ]);
-        }
-
-        if ($appId !== null && $restApiKey === null && ! $this->onesignal_rest_api_key_configured) {
-            throw ValidationException::withMessages([
-                'onesignal_rest_api_key' => 'Informe a chave REST do OneSignal para concluir a configuração.',
-            ]);
-        }
-
-        return [$appId, $restApiKey, $clearCredentials];
-    }
-
-    /**
-     * @return array<string, array<int, mixed>>
-     */
-    private function oneSignalRules(): array
-    {
-        return [
-            'onesignal_app_id' => ['nullable', 'uuid'],
-            'onesignal_rest_api_key' => ['nullable', 'string'],
-        ];
-    }
-
-    /**
-     * @return array<string, bool|int|string|null>
-     */
-    private function oneSignalCredentialDiagnostics(?string $appId, ?string $restApiKey): array
-    {
-        $normalizedKey = $this->normalizeOptional($restApiKey);
-
-        return [
-            'onesignal_app_id' => $this->normalizeOptional($appId),
-            'onesignal_rest_api_key_present' => $normalizedKey !== null,
-            'onesignal_rest_api_key_length' => $normalizedKey !== null ? strlen($normalizedKey) : 0,
-            'onesignal_rest_api_key_sha256' => $normalizedKey !== null ? hash('sha256', $normalizedKey) : null,
-            'onesignal_rest_api_key_format' => $normalizedKey !== null ? $this->detectOneSignalRestKeyFormat($normalizedKey) : null,
-        ];
-    }
-
-    private function detectOneSignalRestKeyFormat(string $restApiKey): string
-    {
-        return match (true) {
-            str_starts_with($restApiKey, 'os_v2_app_') => 'os_v2_app',
-            str_starts_with($restApiKey, 'Key ') => 'prefixed_with_key',
-            default => 'custom',
-        };
-    }
-
-    private function oneSignalPreviewSystemSetting(): SystemSetting
-    {
-        $validated = $this->validate(array_merge($this->oneSignalRules(), [
-            'test_push_user_id' => ['required', 'integer'],
-        ]));
-
-        $appId = $this->normalizeOptional($validated['onesignal_app_id'] ?? null) ?? $this->settings->onesignal_app_id;
-        $restApiKey = $this->normalizeOptional($validated['onesignal_rest_api_key'] ?? null) ?? $this->settings->onesignal_rest_api_key;
-
-        if ($appId === null) {
-            throw ValidationException::withMessages([
-                'onesignal_app_id' => 'Informe o App ID do OneSignal antes de enviar um push de teste.',
-            ]);
-        }
-
-        if ($restApiKey === null) {
-            throw ValidationException::withMessages([
-                'onesignal_rest_api_key' => 'Informe a chave REST do OneSignal antes de enviar um push de teste.',
-            ]);
-        }
-
-        $systemSetting = clone $this->settings;
-        $systemSetting->forceFill([
-            'onesignal_app_id' => $appId,
-            'onesignal_rest_api_key' => $restApiKey,
-        ]);
-
-        return $systemSetting;
-    }
-
     private function resolveSettings(?int $systemSettingId): SystemSetting
     {
         if ($systemSettingId !== null) {
@@ -594,10 +417,6 @@ class SystemAssetsManager extends Component
         $this->mail_from_name = $this->settings->mail_from_name;
         $this->mail_password = null;
         $this->mail_password_configured = filled($this->settings->getRawOriginal('mail_password'));
-        $this->onesignal_app_id = $this->settings->onesignal_app_id;
-        $this->onesignal_rest_api_key = null;
-        $this->onesignal_rest_api_key_configured = filled($this->settings->getRawOriginal('onesignal_rest_api_key'));
-        $this->test_push_user_id = null;
 
         if ($resetTestEmail || blank($this->test_email)) {
             $this->test_email = (string) (auth()->user()?->email ?? '');
@@ -649,29 +468,5 @@ class SystemAssetsManager extends Component
             ->where('system_setting_id', $this->settings->id)
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'system_setting_id']);
-    }
-
-    private function studentOptions()
-    {
-        return User::withoutGlobalScopes()
-            ->where('role', UserRole::STUDENT->value)
-            ->where('system_setting_id', $this->settings->id)
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'system_setting_id']);
-    }
-
-    private function selectedTestPushStudent(): ?User
-    {
-        $studentId = $this->normalizeOptional($this->test_push_user_id);
-
-        if ($studentId === null) {
-            return null;
-        }
-
-        return User::withoutGlobalScopes()
-            ->whereKey((int) $studentId)
-            ->where('role', UserRole::STUDENT->value)
-            ->where('system_setting_id', $this->settings->id)
-            ->first();
     }
 }

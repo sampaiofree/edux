@@ -34,8 +34,6 @@ use App\Http\Controllers\PublicCoursePageV3Controller;
 use App\Http\Controllers\PublicCoursePageV4Controller;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
-use App\Http\Controllers\StudentOneSignalDiagnosticController;
-use App\Http\Controllers\WebManifestController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -61,7 +59,6 @@ Route::get('/test-gs', function () {
 // --- Rotas públicas ---
 // Home pública
 Route::get('/', HomeController::class)->name('home');
-Route::get('/manifest.webmanifest', WebManifestController::class)->name('web.manifest');
 
 // Download do certificado publico
 Route::get('/certificates/verify/{token}/download', [PublicCertificateController::class, 'download'])
@@ -116,7 +113,7 @@ Route::post('/logout', [AuthController::class, 'destroy'])
     ->name('logout');
 
 // --- Rotas protegidas (usuário autenticado) ---
-Route::middleware(['auth', 'student.onesignal_prompt'])->group(function (): void {
+Route::middleware(['auth'])->group(function (): void {
     Route::prefix('sa')
         ->name('sa.')
         ->middleware('super_admin')
@@ -303,8 +300,6 @@ Route::middleware(['auth', 'student.onesignal_prompt'])->group(function (): void
             // Lista de notificações do estudante
             Route::view('notifications', 'learning.notifications.index')
                 ->name('notifications.index');
-            Route::post('onesignal/diagnostics', StudentOneSignalDiagnosticController::class)
-                ->name('onesignal.diagnostics.store');
 
             // Visualiza certificado emitido
             Route::get('courses/{course:slug}/certificate/{certificate}', [CourseCertificateController::class, 'show'])

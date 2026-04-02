@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Middleware\PrepareStudentOneSignalPrompt;
 use App\Models\SystemSetting;
 use App\Services\PasswordRecoveryService;
 use Illuminate\Http\RedirectResponse;
@@ -169,15 +168,6 @@ class PasswordRecoveryController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
-
-        if ($user->isStudent()) {
-            $userSystemSetting = SystemSetting::forUser($user);
-
-            if (filled($userSystemSetting?->onesignal_app_id)) {
-                $request->session()->forget(PrepareStudentOneSignalPrompt::SESSION_KEY);
-                $request->session()->put(PrepareStudentOneSignalPrompt::POST_LOGIN_REDIRECT_SESSION_KEY, true);
-            }
-        }
 
         $defaultRoute = $user->hasAdminPrivileges()
             ? route('admin.dashboard')

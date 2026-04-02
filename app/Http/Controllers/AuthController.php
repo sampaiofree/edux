@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Middleware\PrepareStudentOneSignalPrompt;
 use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -84,15 +83,6 @@ class AuthController extends Controller
             ? route('admin.dashboard')
             : route('dashboard');
 
-        if ($user?->isStudent()) {
-            $userSystemSetting = SystemSetting::forUser($user);
-
-            if (filled($userSystemSetting?->onesignal_app_id)) {
-                $request->session()->forget(PrepareStudentOneSignalPrompt::SESSION_KEY);
-                $request->session()->put(PrepareStudentOneSignalPrompt::POST_LOGIN_REDIRECT_SESSION_KEY, true);
-            }
-        }
-
         Log::info('auth.login.success', array_merge(
             $this->requestLogContext($request, $credentials, $systemSetting),
             [
@@ -121,7 +111,6 @@ class AuthController extends Controller
             'user_id' => $request->user()?->id,
         ]);
 
-        $request->session()->forget(PrepareStudentOneSignalPrompt::SESSION_KEY);
         Auth::logout();
 
         $request->session()->invalidate();

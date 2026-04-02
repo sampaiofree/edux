@@ -4,13 +4,10 @@ import intlTelInput from 'intl-tel-input';
 import utilsScriptUrl from 'intl-tel-input/build/js/utils.js?url';
 import 'intl-tel-input/build/css/intlTelInput.css';
 import { initCertificateShare } from './certificate-share';
-import { initOneSignalWeb } from './onesignal-web';
 
 document.addEventListener('alpine:init', () => {
     window.Alpine.plugin(collapse);
 });
-
-initOneSignalWeb();
 
 const intlPhoneInstances = new Map();
 

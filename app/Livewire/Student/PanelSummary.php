@@ -40,7 +40,6 @@ class PanelSummary extends Component
 
         return view('livewire.student.panel-summary', [
             'user' => $user,
-            'pushEnabled' => filled($user->systemSetting?->onesignal_app_id),
             'totalEnrollments' => $enrollments->count(),
             'completed' => $completed->count(),
             'running' => max($running, 0),
