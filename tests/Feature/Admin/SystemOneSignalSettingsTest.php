@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -150,6 +151,55 @@ class SystemOneSignalSettingsTest extends TestCase
             ->set('test_push_user_id', (string) $otherStudent->id)
             ->call('sendTestPush')
             ->assertHasErrors(['test_push_user_id']);
+    }
+
+    public function test_test_push_logs_safe_diagnostics_without_exposing_full_rest_key(): void
+    {
+        Http::fake([
+            'https://api.onesignal.com/*' => Http::response(['id' => 'push-test-logged'], 200),
+        ]);
+
+        Log::spy();
+
+        $admin = $this->createAdminForTenant(
+            ['email' => 'tenant-admin-logged-push@example.com'],
+            ['domain' => 'cursos.tenant-logged-push.test', 'escola_nome' => 'Escola Logged Push']
+        );
+        $tenantStudent = $this->defaultTenantStudent([
+            'email' => 'tenant-student-logged-push@example.com',
+            'name' => 'Aluno Logado',
+        ]);
+        $restApiKey = 'os_v2_app_rest-secret-test';
+
+        $this->actingAs($admin);
+
+        Livewire::test(SystemAssetsManager::class)
+            ->set('onesignal_app_id', '44444444-4444-4444-4444-444444444444')
+            ->set('onesignal_rest_api_key', $restApiKey)
+            ->set('test_push_user_id', (string) $tenantStudent->id)
+            ->call('sendTestPush')
+            ->assertHasNoErrors();
+
+        $expectedHash = hash('sha256', $restApiKey);
+        $expectedLength = strlen($restApiKey);
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context) use ($admin, $tenantStudent, $expectedHash, $expectedLength): bool {
+            return $message === 'onesignal.test_push_requested'
+                && ($context['actor_user_id'] ?? null) === $admin->id
+                && ($context['student_user_id'] ?? null) === $tenantStudent->id
+                && ($context['rest_api_key_source'] ?? null) === 'typed'
+                && ($context['onesignal_rest_api_key_length'] ?? null) === $expectedLength
+                && ($context['onesignal_rest_api_key_sha256'] ?? null) === $expectedHash
+                && ! array_key_exists('onesignal_rest_api_key', $context);
+        })->once();
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context) use ($expectedHash, $expectedLength): bool {
+            return $message === 'onesignal.push_sent'
+                && ($context['response_status'] ?? null) === 200
+                && ($context['onesignal_rest_api_key_length'] ?? null) === $expectedLength
+                && ($context['onesignal_rest_api_key_sha256'] ?? null) === $expectedHash
+                && ! array_key_exists('onesignal_rest_api_key', $context);
+        })->once();
     }
 
     private function bootstrapSuperAdmin(): User

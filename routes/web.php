@@ -14,6 +14,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SuperAdmin\CourseController as SuperAdminCourseController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\EnrollmentController as SuperAdminEnrollmentController;
+use App\Http\Controllers\SuperAdmin\LogController as SuperAdminLogController;
 use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
 use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
 use App\Http\Controllers\CertificadoController;
@@ -129,6 +130,11 @@ Route::middleware('auth')->group(function (): void {
             Route::get('enrollments/{id}/edit', [SuperAdminEnrollmentController::class, 'edit'])->name('enrollments.edit');
             Route::put('enrollments/{id}', [SuperAdminEnrollmentController::class, 'update'])->name('enrollments.update');
             Route::delete('enrollments/{id}', [SuperAdminEnrollmentController::class, 'destroy'])->name('enrollments.destroy');
+
+            Route::get('logs', [SuperAdminLogController::class, 'index'])->name('logs.index');
+            Route::get('logs/{filename}/download', [SuperAdminLogController::class, 'download'])
+                ->where('filename', '[^/]+')
+                ->name('logs.download');
         });
 
     // Dashboard geral do usuário autenticado

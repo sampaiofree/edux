@@ -8,6 +8,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Support\Mail\TenantMailManager;
 use App\Support\OneSignal\OneSignalPushService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -279,6 +280,18 @@ class SystemAssetsManager extends Component
 
         $this->settings->update($attributes);
         $this->settings->refresh();
+
+        Log::info('onesignal.settings_saved', array_merge([
+            'actor_user_id' => auth()->id(),
+            'system_setting_id' => $this->settings->id,
+            'editing_explicit_tenant' => $this->editingExplicitTenant,
+            'clear_credentials' => $clearCredentials,
+            'rest_api_key_supplied' => $restApiKey !== null,
+        ], $this->oneSignalCredentialDiagnostics(
+            $this->settings->onesignal_app_id,
+            $this->settings->onesignal_rest_api_key,
+        )));
+
         $this->syncStateFromSettings(resetTestEmail: false);
 
         $message = 'Configurações de push atualizadas.';
@@ -296,6 +309,18 @@ class SystemAssetsManager extends Component
                 'test_push_user_id' => 'Selecione um aluno da escola para enviar o push de teste.',
             ]);
         }
+
+        Log::info('onesignal.test_push_requested', array_merge([
+            'actor_user_id' => auth()->id(),
+            'student_user_id' => $student->id,
+            'system_setting_id' => $previewSetting->id,
+            'editing_explicit_tenant' => $this->editingExplicitTenant,
+            'app_id_source' => $this->normalizeOptional($this->onesignal_app_id) !== null ? 'typed' : 'saved',
+            'rest_api_key_source' => $this->normalizeOptional($this->onesignal_rest_api_key) !== null ? 'typed' : 'saved',
+        ], $this->oneSignalCredentialDiagnostics(
+            $previewSetting->onesignal_app_id,
+            $previewSetting->onesignal_rest_api_key,
+        )));
 
         try {
             app(OneSignalPushService::class)->sendTestPush($previewSetting, $student);
@@ -484,6 +509,31 @@ class SystemAssetsManager extends Component
             'onesignal_app_id' => ['nullable', 'uuid'],
             'onesignal_rest_api_key' => ['nullable', 'string'],
         ];
+    }
+
+    /**
+     * @return array<string, bool|int|string|null>
+     */
+    private function oneSignalCredentialDiagnostics(?string $appId, ?string $restApiKey): array
+    {
+        $normalizedKey = $this->normalizeOptional($restApiKey);
+
+        return [
+            'onesignal_app_id' => $this->normalizeOptional($appId),
+            'onesignal_rest_api_key_present' => $normalizedKey !== null,
+            'onesignal_rest_api_key_length' => $normalizedKey !== null ? strlen($normalizedKey) : 0,
+            'onesignal_rest_api_key_sha256' => $normalizedKey !== null ? hash('sha256', $normalizedKey) : null,
+            'onesignal_rest_api_key_format' => $normalizedKey !== null ? $this->detectOneSignalRestKeyFormat($normalizedKey) : null,
+        ];
+    }
+
+    private function detectOneSignalRestKeyFormat(string $restApiKey): string
+    {
+        return match (true) {
+            str_starts_with($restApiKey, 'os_v2_app_') => 'os_v2_app',
+            str_starts_with($restApiKey, 'Key ') => 'prefixed_with_key',
+            default => 'custom',
+        };
     }
 
     private function oneSignalPreviewSystemSetting(): SystemSetting

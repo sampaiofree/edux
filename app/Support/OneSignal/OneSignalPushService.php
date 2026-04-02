@@ -156,18 +156,31 @@ class OneSignalPushService
     private function send(SystemSetting $settings, array $payload, array $context = []): void
     {
         $this->ensureConfigured($settings);
+        $diagnosticContext = $this->credentialDiagnostics($settings);
+        $apiUrl = rtrim((string) config('services.onesignal.api_url', 'https://api.onesignal.com'), '/');
 
         try {
-            $this->http
-                ->baseUrl(rtrim((string) config('services.onesignal.api_url', 'https://api.onesignal.com'), '/'))
+            Log::info('onesignal.push_request_started', array_merge($context, $diagnosticContext, [
+                'system_setting_id' => $settings->id,
+                'api_url' => $apiUrl,
+            ]));
+
+            $response = $this->http
+                ->baseUrl($apiUrl)
                 ->acceptJson()
                 ->withHeaders([
                     'Authorization' => 'Key '.$settings->onesignal_rest_api_key,
                 ])
                 ->post('/notifications?c=push', $payload)
                 ->throw();
+
+            Log::info('onesignal.push_sent', array_merge($context, $diagnosticContext, [
+                'system_setting_id' => $settings->id,
+                'response_status' => $response->status(),
+                'response_id' => $response->json('id'),
+            ]));
         } catch (RequestException $exception) {
-            Log::error('onesignal.push_failed', array_merge($context, [
+            Log::error('onesignal.push_failed', array_merge($context, $diagnosticContext, [
                 'system_setting_id' => $settings->id,
                 'response_status' => $exception->response?->status(),
                 'response_body' => $exception->response?->body(),
@@ -184,5 +197,34 @@ class OneSignalPushService
         }
 
         throw new \RuntimeException('O OneSignal não está configurado para esta escola.');
+    }
+
+    /**
+     * @return array<string, bool|int|string|null>
+     */
+    private function credentialDiagnostics(SystemSetting $settings): array
+    {
+        $restApiKey = trim((string) ($settings->onesignal_rest_api_key ?? ''));
+
+        return [
+            'onesignal_app_id' => $settings->onesignal_app_id,
+            'onesignal_rest_api_key_present' => $restApiKey !== '',
+            'onesignal_rest_api_key_length' => $restApiKey !== '' ? strlen($restApiKey) : 0,
+            'onesignal_rest_api_key_sha256' => $restApiKey !== '' ? hash('sha256', $restApiKey) : null,
+            'onesignal_rest_api_key_format' => $this->detectRestKeyFormat($restApiKey),
+        ];
+    }
+
+    private function detectRestKeyFormat(string $restApiKey): ?string
+    {
+        if ($restApiKey === '') {
+            return null;
+        }
+
+        return match (true) {
+            str_starts_with($restApiKey, 'os_v2_app_') => 'os_v2_app',
+            str_starts_with($restApiKey, 'Key ') => 'prefixed_with_key',
+            default => 'custom',
+        };
     }
 }

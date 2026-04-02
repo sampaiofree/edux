@@ -9,9 +9,16 @@
 
     <section class="space-y-6">
         <header class="rounded-card bg-white p-6 shadow-card">
-            <p class="text-sm uppercase tracking-wide text-edux-primary">Visão global</p>
-            <h1 class="font-display text-3xl text-edux-primary">Dashboard do super admin</h1>
-            <p class="mt-2 text-sm text-slate-600">Monitore usuários, alunos, cursos e matrículas de todas as escolas em uma única área.</p>
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm uppercase tracking-wide text-edux-primary">Visão global</p>
+                    <h1 class="font-display text-3xl text-edux-primary">Dashboard do super admin</h1>
+                    <p class="mt-2 text-sm text-slate-600">Monitore usuários, alunos, cursos e matrículas de todas as escolas em uma única área.</p>
+                </div>
+                <a href="{{ route('sa.logs.index') }}" class="edux-btn bg-white text-edux-primary">
+                    Baixar logs
+                </a>
+            </div>
         </header>
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">

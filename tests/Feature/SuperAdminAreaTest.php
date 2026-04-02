@@ -25,6 +25,7 @@ use App\Models\TrackingEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -163,6 +164,40 @@ class SuperAdminAreaTest extends TestCase
             ->actingAs($admin)
             ->get(route('sa.tenants.edit', $tenant->id))
             ->assertForbidden();
+
+        $this->forceTestHost($tenant->domain)
+            ->actingAs($admin)
+            ->get(route('sa.logs.index'))
+            ->assertForbidden();
+    }
+
+    public function test_super_admin_can_list_and_download_logs(): void
+    {
+        [, $tenant] = $this->createTenant('cursos.sa-logs.test', 'Logs SA');
+        $superAdmin = $this->bootstrapSuperAdmin();
+        $logsDirectory = storage_path('logs');
+        $filename = 'super-admin-log-test-'.Str::random(8).'.log';
+        $path = $logsDirectory.DIRECTORY_SEPARATOR.$filename;
+
+        File::ensureDirectoryExists($logsDirectory);
+        File::put($path, "linha 1\nlinha 2\n");
+
+        try {
+            $this->forceTestHost($tenant->domain)
+                ->actingAs($superAdmin)
+                ->get(route('sa.logs.index'))
+                ->assertOk()
+                ->assertSee('Logs do sistema', false)
+                ->assertSee($filename, false);
+
+            $this->forceTestHost($tenant->domain)
+                ->actingAs($superAdmin)
+                ->get(route('sa.logs.download', $filename))
+                ->assertOk()
+                ->assertDownload($filename);
+        } finally {
+            File::delete($path);
+        }
     }
 
     public function test_super_admin_can_update_user_and_change_tenant_when_no_conflict(): void

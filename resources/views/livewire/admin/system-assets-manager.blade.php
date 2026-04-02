@@ -293,6 +293,9 @@
                     type="text"
                     wire:model.defer="onesignal_app_id"
                     placeholder="UUID do app da escola no OneSignal"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
                     class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
                 >
                 @error('onesignal_app_id')
@@ -306,6 +309,9 @@
                     type="password"
                     wire:model.defer="onesignal_rest_api_key"
                     placeholder="{{ $onesignal_rest_api_key_configured ? 'Deixe em branco para manter a chave atual' : 'Cole a chave REST da escola' }}"
+                    autocomplete="new-password"
+                    autocapitalize="none"
+                    spellcheck="false"
                     class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
                 >
                 @error('onesignal_rest_api_key')

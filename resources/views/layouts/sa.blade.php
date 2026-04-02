@@ -64,6 +64,7 @@
                 <a href="{{ route('sa.users.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Usuários</a>
                 <a href="{{ route('sa.courses.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Cursos</a>
                 <a href="{{ route('sa.enrollments.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Matrículas</a>
+                <a href="{{ route('sa.logs.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Logs</a>
                 <a href="{{ route('admin.dashboard') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Área Admin Atual</a>
             </nav>
         </div>
@@ -81,6 +82,7 @@
                     <li><a href="{{ route('sa.users.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.users.*')])>Usuários</a></li>
                     <li><a href="{{ route('sa.courses.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.courses.*')])>Cursos</a></li>
                     <li><a href="{{ route('sa.enrollments.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.enrollments.*')])>Matrículas</a></li>
+                    <li><a href="{{ route('sa.logs.index') }}" @class(['block rounded-lg px-2.5 py-2 hover:bg-edux-background', 'bg-edux-background text-edux-primary' => request()->routeIs('sa.logs.*')])>Logs</a></li>
                 </ul>
 
                 <div class="mt-4 rounded-xl border border-edux-line/60 bg-edux-background/70 p-3 text-xs leading-5 text-slate-600">
