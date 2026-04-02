@@ -155,6 +155,12 @@
         @endunless
 
         <div class="student-shell-content">
+            @auth
+                @if (auth()->user()?->isStudent() && filled($settings->onesignal_app_id))
+                    @include('partials.onesignal.student-prompt')
+                @endif
+            @endauth
+
             <main class="{{ $mainClasses }}">
                 <x-toast :status="session('status')" :errors="$errors->all()" :error="session('error')" />
                 @yield('content')

@@ -3,6 +3,7 @@
     /** @var \App\Models\User $user */
     $serviceWorkerPath = 'push/onesignal/OneSignalSDKWorker.js';
     $serviceWorkerScope = '/push/onesignal/';
+    $onesignalDebugMode = ! app()->environment('production');
 @endphp
 <script>
     window.__eduxOneSignalConfig = {
@@ -10,6 +11,8 @@
         externalId: @json($user->oneSignalExternalId()),
         serviceWorkerPath: @json($serviceWorkerPath),
         serviceWorkerScope: @json($serviceWorkerScope),
+        diagnosticsUrl: @json(route('learning.onesignal.diagnostics.store')),
+        debugMode: @json($onesignalDebugMode),
     };
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function (OneSignal) {
@@ -22,6 +25,10 @@
         }
 
         if (window.__eduxOneSignalInitializedAppId !== config.appId) {
+            if (config.debugMode && OneSignal?.Debug?.setLogLevel) {
+                OneSignal.Debug.setLogLevel('trace');
+            }
+
             await OneSignal.init({
                 appId: config.appId,
                 serviceWorkerPath: config.serviceWorkerPath,
@@ -35,7 +42,11 @@
         }
 
         if (config.externalId) {
-            await OneSignal.login(config.externalId);
+            try {
+                await OneSignal.login(config.externalId);
+            } catch (error) {
+                console.warn('[onesignal.web] login_failed', error);
+            }
         }
 
         window.dispatchEvent(new CustomEvent('edux:onesignal-ready'));

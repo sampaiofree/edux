@@ -33,6 +33,7 @@ use App\Http\Controllers\PublicCoursePageV3Controller;
 use App\Http\Controllers\PublicCoursePageV4Controller;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
+use App\Http\Controllers\StudentOneSignalDiagnosticController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -292,6 +293,8 @@ Route::middleware('auth')->group(function (): void {
             // Lista de notificações do estudante
             Route::view('notifications', 'learning.notifications.index')
                 ->name('notifications.index');
+            Route::post('onesignal/diagnostics', StudentOneSignalDiagnosticController::class)
+                ->name('onesignal.diagnostics.store');
 
             // Visualiza certificado emitido
             Route::get('courses/{course:slug}/certificate/{certificate}', [CourseCertificateController::class, 'show'])

@@ -81,6 +81,12 @@
             $navActive = 'cursos';
         @endphp
         <div class="student-shell-content">
+            @auth
+                @if (auth()->user()->isStudent() && filled($settings->onesignal_app_id))
+                    @include('partials.onesignal.student-prompt')
+                @endif
+            @endauth
+
             <main class="mx-auto max-w-6xl space-y-6 px-4 py-10">
                 <x-toast :status="session('status')" :errors="$errors->all()" />
 
