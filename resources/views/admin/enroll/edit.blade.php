@@ -15,7 +15,7 @@
             </a>
         </header>
 
-        <form method="GET" action="{{ route('admin.enroll.edit', $enrollment) }}" class="rounded-card bg-white p-6 shadow-card space-y-4">
+        <!--<form method="GET" action="{{ route('admin.enroll.edit', $enrollment) }}" class="rounded-card bg-white p-6 shadow-card space-y-4">
             <div class="grid gap-4 md:grid-cols-2">
                 <label class="space-y-2 text-sm font-semibold text-slate-600">
                     <span>Buscar curso</span>
@@ -45,7 +45,7 @@
             <p class="text-xs text-slate-500">
                 Use os filtros para reduzir as listas de cursos e usuarios (ate 50 resultados).
             </p>
-        </form>
+        </form>-->
 
         <form method="POST" action="{{ route('admin.enroll.update', $enrollment) }}" class="rounded-card bg-white p-6 shadow-card space-y-5">
             @csrf

@@ -3,8 +3,45 @@
     showLessons: false, 
     showPayment: @entangle('showPaymentModal'),
     hasVideo: @js((bool) ($this->youtubeId || $lesson->video_url)),
-    videoReady: @js(! ((bool) ($this->youtubeId || $lesson->video_url)))
-}" @edux-lesson-player-ready.window="videoReady = true" class="min-h-screen bg-gray-50 pb-6">
+    videoReady: @js(! ((bool) ($this->youtubeId || $lesson->video_url))),
+    playerError: false,
+    playerErrorMessage: 'Nao foi possivel carregar o player desta aula.',
+    playerWatchdog: null,
+    init() {
+        if (!this.hasVideo || this.videoReady) {
+            return;
+        }
+
+        this.playerWatchdog = window.setTimeout(() => {
+            if (this.videoReady) {
+                return;
+            }
+
+            this.markPlayerError('O player demorou demais para responder. Tente recarregar a pagina ou abrir o video em outra aba.');
+        }, 8000);
+    },
+    clearPlayerWatchdog() {
+        if (!this.playerWatchdog) {
+            return;
+        }
+
+        window.clearTimeout(this.playerWatchdog);
+        this.playerWatchdog = null;
+    },
+    markPlayerReady() {
+        this.videoReady = true;
+        this.playerError = false;
+        this.clearPlayerWatchdog();
+    },
+    markPlayerError(message = null) {
+        this.videoReady = true;
+        this.playerError = true;
+        if (message) {
+            this.playerErrorMessage = message;
+        }
+        this.clearPlayerWatchdog();
+    }
+}" @edux-lesson-player-ready.window="markPlayerReady()" @edux-lesson-player-error.window="markPlayerError($event.detail && $event.detail.message ? $event.detail.message : null)" class="min-h-screen bg-gray-50 pb-6">
 
     {{-- Header compacto e informativo --}}
     <header class="sticky top-0 z-30 bg-white shadow-sm border-b">
@@ -64,6 +101,7 @@
                     <div class="plyr__video-embed" id="lesson-player">
                         <iframe 
                             src="https://www.youtube.com/embed/{{ $this->youtubeId }}?modestbranding=1&rel=0&enablejsapi=1" 
+                            @load="markPlayerReady()"
                             allowfullscreen 
                             allow="autoplay; encrypted-media">
                         </iframe>
@@ -101,7 +139,8 @@
                         src="{{ $lesson->video_url }}" 
                         allowfullscreen 
                         loading="lazy"
-                        @load="videoReady = true">
+                        @load="markPlayerReady()"
+                        @error="markPlayerError('Nao foi possivel carregar o video desta aula.')">
                     </iframe>
                 </div>
             @elseif ($lesson->content)
@@ -116,6 +155,27 @@
                         </svg>
                         <p class="font-medium">Aula em breve</p>
                         <p class="text-sm mt-1">O conteúdo será liberado em breve</p>
+                    </div>
+                </div>
+            @endif
+
+            @if ($lesson->video_url)
+                <div
+                    x-show="hasVideo && playerError"
+                    x-transition.opacity.duration.200ms
+                    x-cloak
+                    class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/95 p-6 text-center"
+                >
+                    <div class="max-w-sm space-y-3 text-white">
+                        <p class="text-sm font-semibold uppercase tracking-[0.24em] text-white/70">Falha ao carregar</p>
+                        <p class="text-base font-semibold" x-text="playerErrorMessage"></p>
+                        <p class="text-sm text-white/70">Se o problema persistir, abra o video diretamente.</p>
+                        <a href="{{ $lesson->video_url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100">
+                            Abrir video em outra aba
+                        </a>
                     </div>
                 </div>
             @endif
@@ -500,29 +560,69 @@
         <script>
             (() => {
                 const initPlayer = () => {
-                    if (!window.Plyr) {
-                        return;
-                    }
-
                     const target = document.getElementById('lesson-player');
                     if (!target) {
                         return;
                     }
 
+                    const dispatchPlayerError = (message) => {
+                        window.dispatchEvent(new CustomEvent('edux-lesson-player-error', {
+                            detail: { message },
+                        }));
+                    };
+
+                    const clearWatchdog = () => {
+                        if (!target._plyrWatchdog) {
+                            return;
+                        }
+
+                        window.clearTimeout(target._plyrWatchdog);
+                        target._plyrWatchdog = null;
+                    };
+
+                    const iframe = target.querySelector('iframe');
+                    if (iframe && !iframe.dataset.eduxLoadBound) {
+                        iframe.addEventListener('load', () => {
+                            window.dispatchEvent(new CustomEvent('edux-lesson-player-ready'));
+                        }, { once: true });
+                        iframe.dataset.eduxLoadBound = '1';
+                    }
+
+                    if (!window.Plyr) {
+                        dispatchPlayerError('O player avancado nao respondeu. Exibindo o carregamento de contingencia.');
+                        return;
+                    }
+
                     if (target._plyrInstance) {
+                        clearWatchdog();
                         target._plyrInstance.destroy();
                     }
 
-                    target._plyrInstance = new Plyr(target, {
-                        youtube: {
-                            rel: 0,
-                            modestbranding: 1,
-                        },
-                    });
+                    try {
+                        target._plyrInstance = new Plyr(target, {
+                            youtube: {
+                                rel: 0,
+                                modestbranding: 1,
+                            },
+                        });
 
-                    target._plyrInstance.on('ready', () => {
-                        window.dispatchEvent(new CustomEvent('edux-lesson-player-ready'));
-                    });
+                        target._plyrWatchdog = window.setTimeout(() => {
+                            dispatchPlayerError('O player de video nao finalizou a inicializacao.');
+                        }, 8000);
+
+                        target._plyrInstance.on('ready', () => {
+                            clearWatchdog();
+                            window.dispatchEvent(new CustomEvent('edux-lesson-player-ready'));
+                        });
+
+                        target._plyrInstance.on('error', () => {
+                            clearWatchdog();
+                            dispatchPlayerError('O player encontrou um erro ao carregar esta aula.');
+                        });
+                    } catch (_) {
+                        clearWatchdog();
+                        dispatchPlayerError('Nao foi possivel iniciar o player desta aula.');
+                    }
                 };
 
                 const queueInit = () => requestAnimationFrame(initPlayer);

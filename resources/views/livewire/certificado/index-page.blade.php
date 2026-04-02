@@ -74,10 +74,10 @@
                                 >
                                     <span
                                         data-certificate-share-label
-                                        data-web-label="Baixar PDF"
+                                        data-web-label="Baixar Certificado"
                                         data-native-label="Compartilhar PDF"
                                     >
-                                        Baixar PDF
+                                        Baixar Certificado
                                     </span>
                                 </a>
                             @endif
@@ -90,7 +90,7 @@
 
     <div class="flex justify-end">
         <a href="{{ route('certificado.create') }}" wire:navigate class="edux-btn">
-            Gerar certificado
+            Gerar novo certificado
         </a>
     </div>
 </section>
