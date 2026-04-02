@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\PrepareStudentOneSignalPrompt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -126,5 +127,66 @@ class StudentOneSignalWebSetupTest extends TestCase
 
         $secondResponse->assertOk();
         $secondResponse->assertSee('autoShowModal: false', false);
+    }
+
+    public function test_first_page_after_login_exposes_redirect_to_notifications_when_push_onboarding_is_pending(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-onesignal-after-login@example.com',
+        ]);
+
+        $admin->systemSetting()->withoutGlobalScopes()->firstOrFail()->update([
+            'onesignal_app_id' => '7d9cb45e-fb6d-4c01-a962-e31ea5936eca',
+        ]);
+
+        $response = $this
+            ->actingAs($student)
+            ->withSession([
+                PrepareStudentOneSignalPrompt::POST_LOGIN_REDIRECT_SESSION_KEY => true,
+            ])
+            ->get(route('dashboard', ['tab' => 'cursos']));
+
+        $response->assertOk();
+        $response->assertSee('postLoginRedirectUrl', false);
+        $response->assertSee('push_onboarding=1', false);
+        $response->assertSee('autoShowModal: false', false);
+    }
+
+    public function test_notifications_page_can_force_modal_after_login_redirect(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-onesignal-force-modal@example.com',
+        ]);
+
+        $admin->systemSetting()->withoutGlobalScopes()->firstOrFail()->update([
+            'onesignal_app_id' => '7d9cb45e-fb6d-4c01-a962-e31ea5936eca',
+        ]);
+
+        $response = $this
+            ->actingAs($student)
+            ->get(route('learning.notifications.index', ['push_onboarding' => 1]));
+
+        $response->assertOk();
+        $response->assertSee('forceModalOnPage: true', false);
+        $response->assertSee('data-onesignal-manual-trigger="1"', false);
+    }
+
+    public function test_manifest_route_returns_web_app_configuration_for_current_tenant(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+
+        $admin->systemSetting()->withoutGlobalScopes()->firstOrFail()->update([
+            'escola_nome' => 'Escola Push EduX',
+        ]);
+
+        $response = $this->get(route('web.manifest'));
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/manifest+json');
+        $response->assertJsonPath('name', 'Escola Push EduX');
+        $response->assertJsonPath('display', 'standalone');
+        $response->assertJsonPath('start_url', route('dashboard'));
     }
 }

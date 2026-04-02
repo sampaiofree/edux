@@ -72,6 +72,26 @@ const normalizeScopeUrl = (scope) => {
     }
 };
 
+const currentPathname = (url = window.location.href) => {
+    try {
+        return new URL(url, window.location.origin).pathname;
+    } catch (_) {
+        return window.location.pathname;
+    }
+};
+
+const isAppleMobileDevice = () => {
+    const userAgent = navigator.userAgent || '';
+
+    return /iPad|iPhone|iPod/i.test(userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+const isStandaloneDisplayMode = () => {
+    return window.navigator.standalone === true
+        || window.matchMedia?.('(display-mode: standalone)')?.matches === true;
+};
+
 const toShortHash = async (value) => {
     const normalized = String(value ?? '').trim();
 
@@ -164,6 +184,15 @@ const browserSupportState = () => {
             showButton: false,
             allowAction: false,
             message: 'Abra a plataforma em HTTPS para ativar as notificações.',
+        };
+    }
+
+    if (isAppleMobileDevice() && !isStandaloneDisplayMode()) {
+        return {
+            name: 'ios_home_screen_required',
+            showButton: false,
+            allowAction: false,
+            message: 'No iPhone, adicione este site à Tela de Início e abra pelo ícone instalado para ativar notificações.',
         };
     }
 
@@ -348,6 +377,20 @@ const canAutoOpenFromState = (state) => {
     return !['nao_configurado', 'nao_suportado', 'inseguro', 'ativo'].includes(state?.name ?? '');
 };
 
+const shouldRedirectAfterLogin = (state) => {
+    const config = getConfig();
+
+    if (!config?.postLoginRedirectUrl) {
+        return false;
+    }
+
+    if (state?.name === 'ativo' || state?.name === 'nao_configurado') {
+        return false;
+    }
+
+    return currentPathname(config.notificationsUrl) !== currentPathname();
+};
+
 const collectSnapshot = async () => {
     return withOneSignal(async (OneSignal, config) => buildSnapshot(OneSignal, config));
 };
@@ -358,7 +401,9 @@ const openPromptModal = async (reason = 'auto') => {
     }
 
     if (reason === 'auto') {
-        if (!shouldAttemptAutoShow() || !canAutoOpenFromState(currentPromptState)) {
+        const forced = getConfig()?.forceModalOnPage === true;
+
+        if ((!shouldAttemptAutoShow() && !forced) || (!canAutoOpenFromState(currentPromptState) && !forced)) {
             consumeAutoShow();
 
             return;
@@ -479,10 +524,17 @@ const refreshPromptState = async ({ autoOpen = true } = {}) => {
     const state = determinePromptState(snapshot);
     updatePromptUi(state);
 
+    if (shouldRedirectAfterLogin(state)) {
+        consumeAutoShow();
+        window.location.assign(getConfig().postLoginRedirectUrl);
+
+        return;
+    }
+
     if (state.name === 'ativo') {
         await closePromptModal();
-    } else if (autoOpen && shouldAttemptAutoShow()) {
-        if (canAutoOpenFromState(state)) {
+    } else if ((autoOpen && shouldAttemptAutoShow()) || getConfig()?.forceModalOnPage === true) {
+        if (canAutoOpenFromState(state) || getConfig()?.forceModalOnPage === true) {
             await openPromptModal('auto');
         } else {
             consumeAutoShow();

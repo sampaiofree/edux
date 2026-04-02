@@ -35,6 +35,7 @@ use App\Http\Controllers\PublicCoursePageV4Controller;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
 use App\Http\Controllers\StudentOneSignalDiagnosticController;
+use App\Http\Controllers\WebManifestController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -60,6 +61,7 @@ Route::get('/test-gs', function () {
 // --- Rotas públicas ---
 // Home pública
 Route::get('/', HomeController::class)->name('home');
+Route::get('/manifest.webmanifest', WebManifestController::class)->name('web.manifest');
 
 // Download do certificado publico
 Route::get('/certificates/verify/{token}/download', [PublicCertificateController::class, 'download'])

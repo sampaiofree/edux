@@ -5,6 +5,8 @@
     $serviceWorkerScope = '/push/onesignal/';
     $onesignalDebugMode = ! app()->environment('production');
     $autoShowModal = (bool) request()->attributes->get(\App\Http\Middleware\PrepareStudentOneSignalPrompt::AUTO_SHOW_ATTRIBUTE, false);
+    $postLoginRedirectUrl = request()->attributes->get(\App\Http\Middleware\PrepareStudentOneSignalPrompt::POST_LOGIN_REDIRECT_ATTRIBUTE);
+    $forceModalOnPage = request()->boolean('push_onboarding');
 @endphp
 <script>
     window.__eduxOneSignalConfig = {
@@ -13,6 +15,9 @@
         email: @json($user->oneSignalEmail()),
         smsPhone: @json($user->oneSignalSmsPhone()),
         autoShowModal: @json($autoShowModal),
+        forceModalOnPage: @json($forceModalOnPage),
+        notificationsUrl: @json(route('learning.notifications.index')),
+        postLoginRedirectUrl: @json($postLoginRedirectUrl),
         serviceWorkerPath: @json($serviceWorkerPath),
         serviceWorkerScope: @json($serviceWorkerScope),
         diagnosticsUrl: @json(route('learning.onesignal.diagnostics.store')),

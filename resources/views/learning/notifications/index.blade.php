@@ -19,6 +19,12 @@
             <p class="text-xs text-slate-500">
                 Se voce fechou o pedido antes, pode ativar novamente por aqui quando quiser.
             </p>
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p class="font-semibold">Se voce estiver no iPhone:</p>
+                <p class="mt-1">
+                    abra este site no Safari, toque em Compartilhar, escolha <span class="font-semibold">Adicionar a Tela de Inicio</span> e depois abra pelo icone instalado para ativar as notificacoes.
+                </p>
+            </div>
             <button
                 type="button"
                 data-onesignal-manual-trigger="1"
