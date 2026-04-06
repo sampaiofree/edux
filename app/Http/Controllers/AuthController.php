@@ -24,7 +24,9 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
-        $remember = $request->boolean('remember');
+        $remember = $request->has('remember')
+            ? $request->boolean('remember')
+            : (bool) config('auth.remember_by_default', true);
         $sessionIdBeforeLogin = $request->session()->getId();
 
         try {

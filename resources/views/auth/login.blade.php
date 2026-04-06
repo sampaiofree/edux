@@ -26,8 +26,15 @@
                 </a>
             </div>
 
+            <input type="hidden" name="remember" value="0">
             <label class="flex items-center gap-2 text-sm text-slate-600">
-                <input type="checkbox" name="remember" value="1" class="rounded border-edux-line text-edux-primary focus:ring-edux-primary/30">
+                <input
+                    type="checkbox"
+                    name="remember"
+                    value="1"
+                    @checked((string) old('remember', config('auth.remember_by_default', true) ? '1' : '0') === '1')
+                    class="rounded border-edux-line text-edux-primary focus:ring-edux-primary/30"
+                >
                 <span>Lembrar sessão</span>
             </label>
 
