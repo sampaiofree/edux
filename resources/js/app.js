@@ -502,13 +502,43 @@ const queueStudentNavigationOverlay = () => {
 };
 
 let livewireHooksRegistered = false;
+const LOGIN_FORCE_APP_POLL_INTERVAL_MS = 100;
+const LOGIN_FORCE_APP_TIMEOUT_MS = 1500;
+const loginForceAppTimers = new WeakMap();
 
-const isNativeCapacitorPlatform = () => {
+const readCapacitorPlatform = (candidate) => {
     try {
-        return Capacitor.isNativePlatform();
+        const platform = candidate?.getPlatform?.();
+
+        return typeof platform === 'string' ? platform : null;
+    } catch (_) {
+        return null;
+    }
+};
+
+const readNativePlatformFlag = (candidate) => {
+    try {
+        return candidate?.isNativePlatform?.() === true;
     } catch (_) {
         return false;
     }
+};
+
+const isNativeCapacitorPlatform = () => {
+    const platformSignals = [
+        readCapacitorPlatform(Capacitor),
+        readCapacitorPlatform(window.Capacitor),
+    ];
+
+    if (platformSignals.some((platform) => platform !== null && platform !== 'web')) {
+        return true;
+    }
+
+    if (readNativePlatformFlag(Capacitor) || readNativePlatformFlag(window.Capacitor)) {
+        return true;
+    }
+
+    return Boolean(window.androidBridge || window.webkit?.messageHandlers?.bridge);
 };
 
 const toggleVisibility = (element, visible) => {
@@ -520,20 +550,78 @@ const toggleVisibility = (element, visible) => {
     element.classList.toggle('hidden', ! visible);
 };
 
+const clearLoginForceAppTimers = (root) => {
+    const activeTimers = loginForceAppTimers.get(root);
+
+    if (! activeTimers) {
+        delete root.dataset.loginForceAppPending;
+
+        return;
+    }
+
+    window.clearInterval(activeTimers.intervalId);
+    window.clearTimeout(activeTimers.timeoutId);
+    loginForceAppTimers.delete(root);
+    delete root.dataset.loginForceAppPending;
+};
+
+const primeLoginForceAppGate = (root, loading, browserPanel, formPanel) => {
+    clearLoginForceAppTimers(root);
+
+    delete root.dataset.loginForceAppResolved;
+    root.dataset.loginForceAppPending = '1';
+    root.dataset.loginForceAppContext = 'pending';
+    delete document.documentElement.dataset.capacitorNative;
+
+    toggleVisibility(loading, true);
+    toggleVisibility(browserPanel, false);
+    toggleVisibility(formPanel, false);
+};
+
+const resolveLoginForceAppGate = (root, loading, browserPanel, formPanel, isNative) => {
+    clearLoginForceAppTimers(root);
+
+    document.documentElement.dataset.capacitorNative = isNative ? '1' : '0';
+    root.dataset.loginForceAppResolved = '1';
+    root.dataset.loginForceAppContext = isNative ? 'native' : 'browser';
+
+    toggleVisibility(loading, false);
+    toggleVisibility(browserPanel, ! isNative);
+    toggleVisibility(formPanel, isNative);
+};
+
 const initLoginForceAppGate = () => {
     document.querySelectorAll('[data-login-force-app-root="1"]').forEach((root) => {
         const loading = root.querySelector('[data-login-force-app-loading="1"]');
         const browserPanel = root.querySelector('[data-login-force-app-browser="1"]');
         const formPanel = root.querySelector('[data-login-force-app-form="1"]');
-        const isNative = isNativeCapacitorPlatform();
 
-        document.documentElement.dataset.capacitorNative = isNative ? '1' : '0';
-        root.dataset.loginForceAppResolved = '1';
-        root.dataset.loginForceAppContext = isNative ? 'native' : 'browser';
+        primeLoginForceAppGate(root, loading, browserPanel, formPanel);
 
-        toggleVisibility(loading, false);
-        toggleVisibility(browserPanel, ! isNative);
-        toggleVisibility(formPanel, isNative);
+        if (isNativeCapacitorPlatform()) {
+            resolveLoginForceAppGate(root, loading, browserPanel, formPanel, true);
+
+            return;
+        }
+
+        const resolveNativeIfDetected = () => {
+            if (! document.body.contains(root)) {
+                clearLoginForceAppTimers(root);
+
+                return;
+            }
+
+            if (isNativeCapacitorPlatform()) {
+                resolveLoginForceAppGate(root, loading, browserPanel, formPanel, true);
+            }
+        };
+
+        const intervalId = window.setInterval(resolveNativeIfDetected, LOGIN_FORCE_APP_POLL_INTERVAL_MS);
+        const timeoutId = window.setTimeout(() => {
+            resolveLoginForceAppGate(root, loading, browserPanel, formPanel, false);
+        }, LOGIN_FORCE_APP_TIMEOUT_MS);
+
+        loginForceAppTimers.set(root, { intervalId, timeoutId });
     });
 };
 

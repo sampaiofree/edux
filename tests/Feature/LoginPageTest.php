@@ -92,6 +92,9 @@ class LoginPageTest extends TestCase
         $response->assertOk();
         $response->assertSee('data-auth-login-shell="1"', false);
         $response->assertSee('data-login-force-app-root="1"', false);
+        $response->assertSee('data-login-force-app-loading="1"', false);
+        $response->assertSee('data-login-force-app-browser="1"', false);
+        $response->assertSee('data-login-force-app-form="1"', false);
         $response->assertSee('Identificando seu acesso');
         $response->assertSee('Baixe nosso aplicativo');
         $response->assertSee('Para entrar na sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e faça login por lá.');
