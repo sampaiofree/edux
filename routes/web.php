@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\AccountDeletionRequestController as AdminAccountDeletionRequestController;
 use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\Admin\EmailController;
 use App\Http\Controllers\Admin\GeneratedCertificateController;
 use App\Http\Controllers\Admin\PaymentWebhookController;
 use App\Http\Controllers\Admin\SupportWhatsappNumberController;
@@ -216,6 +217,9 @@ Route::middleware(['auth'])->group(function (): void {
             // Central de notificações administrativas
             Route::view('notifications', 'admin.notifications.index')
                 ->name('admin.notifications.index');
+            // Disparo manual de e-mails para alunos
+            Route::get('email', [EmailController::class, 'create'])->name('admin.email.create');
+            Route::post('email', [EmailController::class, 'store'])->name('admin.email.store');
             // Área administrativa Webhooks de pagamento
             Route::get('webhooks', [PaymentWebhookController::class, 'index'])->name('admin.webhooks.index');
             Route::get('webhooks/create', [PaymentWebhookController::class, 'create'])->name('admin.webhooks.create');

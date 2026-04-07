@@ -37,6 +37,9 @@ class SystemSetting extends Model
         'escola_nome',
         'escola_cnpj',
         'meta_ads_pixel',
+        'play_store_link',
+        'apple_store_link',
+        'force_app',
         'carta_estagio',
         'favicon_path',
         'default_logo_path',
@@ -57,6 +60,7 @@ class SystemSetting extends Model
         return [
             'mail_port' => 'integer',
             'mail_password' => 'encrypted',
+            'force_app' => 'boolean',
         ];
     }
 

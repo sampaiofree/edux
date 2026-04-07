@@ -30,6 +30,12 @@ class SystemAssetsManager extends Component
 
     public ?string $meta_ads_pixel = null;
 
+    public ?string $play_store_link = null;
+
+    public ?string $apple_store_link = null;
+
+    public bool $force_app = false;
+
     public ?string $mail_mailer = null;
 
     public ?string $mail_scheme = null;
@@ -108,6 +114,9 @@ class SystemAssetsManager extends Component
             'escola_nome' => ['nullable', 'string', 'max:255'],
             'escola_cnpj' => ['nullable', 'string', 'max:32'],
             'meta_ads_pixel' => ['nullable', 'string', 'max:64'],
+            'play_store_link' => ['nullable', 'string', 'url', 'max:2048'],
+            'apple_store_link' => ['nullable', 'string', 'url', 'max:2048'],
+            'force_app' => ['boolean'],
             'uploads.favicon' => ['nullable', 'image', 'max:256'],
             'uploads.logo' => ['nullable', 'image', 'max:512'],
             'uploads.logo_dark' => ['nullable', 'image', 'max:512'],
@@ -153,10 +162,16 @@ class SystemAssetsManager extends Component
 
     public function saveSchoolIdentity(): void
     {
+        $this->play_store_link = $this->normalizeOptional($this->play_store_link);
+        $this->apple_store_link = $this->normalizeOptional($this->apple_store_link);
+
         $rules = [
             'domain' => $this->domainRules(),
             'escola_nome' => ['nullable', 'string', 'max:255'],
             'escola_cnpj' => ['nullable', 'string', 'max:32'],
+            'play_store_link' => ['nullable', 'string', 'url', 'max:2048'],
+            'apple_store_link' => ['nullable', 'string', 'url', 'max:2048'],
+            'force_app' => ['boolean'],
         ];
 
         if ($this->editingExplicitTenant) {
@@ -168,11 +183,16 @@ class SystemAssetsManager extends Component
         $domain = SystemSetting::normalizeDomain($this->domain);
         $escolaNome = trim((string) ($this->escola_nome ?? ''));
         $escolaCnpj = trim((string) ($this->escola_cnpj ?? ''));
+        $playStoreLink = $this->normalizeOptional($this->play_store_link);
+        $appleStoreLink = $this->normalizeOptional($this->apple_store_link);
 
         $attributes = [
             'domain' => $domain,
             'escola_nome' => $escolaNome !== '' ? $escolaNome : null,
             'escola_cnpj' => $escolaCnpj !== '' ? $escolaCnpj : null,
+            'play_store_link' => $playStoreLink,
+            'apple_store_link' => $appleStoreLink,
+            'force_app' => $this->force_app,
         ];
 
         if ($this->editingExplicitTenant) {
@@ -408,6 +428,9 @@ class SystemAssetsManager extends Component
         $this->escola_cnpj = $this->settings->escola_cnpj;
         $this->owner_user_id = $this->settings->owner_user_id !== null ? (string) $this->settings->owner_user_id : null;
         $this->meta_ads_pixel = $this->settings->meta_ads_pixel;
+        $this->play_store_link = $this->settings->play_store_link;
+        $this->apple_store_link = $this->settings->apple_store_link;
+        $this->force_app = (bool) $this->settings->force_app;
         $this->mail_mailer = $this->settings->mail_mailer;
         $this->mail_scheme = $this->settings->mail_scheme;
         $this->mail_host = $this->settings->mail_host;

@@ -1,5 +1,6 @@
 import './bootstrap';
 import collapse from '@alpinejs/collapse';
+import { Capacitor } from '@capacitor/core';
 import intlTelInput from 'intl-tel-input';
 import utilsScriptUrl from 'intl-tel-input/build/js/utils.js?url';
 import 'intl-tel-input/build/css/intlTelInput.css';
@@ -502,6 +503,40 @@ const queueStudentNavigationOverlay = () => {
 
 let livewireHooksRegistered = false;
 
+const isNativeCapacitorPlatform = () => {
+    try {
+        return Capacitor.isNativePlatform();
+    } catch (_) {
+        return false;
+    }
+};
+
+const toggleVisibility = (element, visible) => {
+    if (! element) {
+        return;
+    }
+
+    element.hidden = ! visible;
+    element.classList.toggle('hidden', ! visible);
+};
+
+const initLoginForceAppGate = () => {
+    document.querySelectorAll('[data-login-force-app-root="1"]').forEach((root) => {
+        const loading = root.querySelector('[data-login-force-app-loading="1"]');
+        const browserPanel = root.querySelector('[data-login-force-app-browser="1"]');
+        const formPanel = root.querySelector('[data-login-force-app-form="1"]');
+        const isNative = isNativeCapacitorPlatform();
+
+        document.documentElement.dataset.capacitorNative = isNative ? '1' : '0';
+        root.dataset.loginForceAppResolved = '1';
+        root.dataset.loginForceAppContext = isNative ? 'native' : 'browser';
+
+        toggleVisibility(loading, false);
+        toggleVisibility(browserPanel, ! isNative);
+        toggleVisibility(formPanel, isNative);
+    });
+};
+
 const registerLivewireHooks = () => {
     if (livewireHooksRegistered || !window.Livewire?.hook) {
         return;
@@ -514,6 +549,7 @@ const registerLivewireHooks = () => {
             setupIntlPhoneInputs();
             setupHomeCourseVacancies();
             initCertificateShare();
+            initLoginForceAppGate();
         });
     });
 };
@@ -526,6 +562,7 @@ document.addEventListener('livewire:initialized', () => {
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
     initCertificateShare();
+    initLoginForceAppGate();
 });
 
 document.addEventListener('livewire:navigated', () => {
@@ -534,6 +571,7 @@ document.addEventListener('livewire:navigated', () => {
     setupIntlPhoneInputs();
     setupHomeCourseVacancies();
     initCertificateShare();
+    initLoginForceAppGate();
 });
 
 document.addEventListener('livewire:navigate', () => {
@@ -549,6 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setupHomeCourseVacancies();
     initCertificateShare();
+    initLoginForceAppGate();
 });
 
 document.addEventListener('edux:student-busy:start', (event) => {

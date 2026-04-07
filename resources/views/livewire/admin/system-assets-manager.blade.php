@@ -65,6 +65,52 @@
                 <p class="text-xs text-slate-500">Opcional. Você pode salvar com ou sem máscara.</p>
             </label>
 
+            <label class="space-y-1 text-sm font-semibold text-slate-600">
+                <span>Link Play Store</span>
+                <input
+                    type="url"
+                    wire:model.defer="play_store_link"
+                    placeholder="https://play.google.com/store/apps/details?id=..."
+                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                >
+                @error('play_store_link')
+                    <p class="text-xs text-red-500">{{ $message }}</p>
+                @enderror
+            </label>
+
+            <label class="space-y-1 text-sm font-semibold text-slate-600">
+                <span>Link Apple Store</span>
+                <input
+                    type="url"
+                    wire:model.defer="apple_store_link"
+                    placeholder="https://apps.apple.com/..."
+                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                >
+                @error('apple_store_link')
+                    <p class="text-xs text-red-500">{{ $message }}</p>
+                @enderror
+            </label>
+
+            <label class="space-y-2 text-sm font-semibold text-slate-600 md:col-span-2">
+                <span>Forçar app</span>
+                <span class="flex items-start gap-3 rounded-xl border border-edux-line bg-white px-4 py-3">
+                    <input
+                        type="checkbox"
+                        wire:model.defer="force_app"
+                        class="mt-1 h-4 w-4 rounded border-edux-line text-edux-primary focus:ring-edux-primary/30"
+                    >
+                    <span class="space-y-1">
+                        <span class="block text-sm font-semibold text-slate-700">Registrar preferência de uso do app</span>
+                        <span class="block text-xs font-normal text-slate-500">
+                            Nesta etapa, a flag apenas salva a configuração da escola. Nenhum fluxo da plataforma será alterado automaticamente.
+                        </span>
+                    </span>
+                </span>
+                @error('force_app')
+                    <p class="text-xs text-red-500">{{ $message }}</p>
+                @enderror
+            </label>
+
             @if ($isSuperAdminContext)
                 <label class="space-y-1 text-sm font-semibold text-slate-600 md:col-span-2">
                     <span>Responsável da escola</span>

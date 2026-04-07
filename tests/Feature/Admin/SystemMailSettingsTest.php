@@ -42,6 +42,9 @@ class SystemMailSettingsTest extends TestCase
         $response->assertSee('Salvar e-mail', false);
         $response->assertSee('E-mail para teste', false);
         $response->assertSee('Enviar e-mail de teste', false);
+        $response->assertSee('Link Play Store', false);
+        $response->assertSee('Link Apple Store', false);
+        $response->assertSee('Forçar app', false);
     }
 
     public function test_smtp_fields_are_rendered_when_mailer_is_switched_to_smtp(): void
@@ -123,6 +126,55 @@ class SystemMailSettingsTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame('cursos.dominio.com.br', $admin->systemSetting->fresh()->domain);
+    }
+
+    public function test_admin_can_save_app_store_links_and_force_app_flag(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(SystemAssetsManager::class)
+            ->set('domain', 'cursos.app-links.test')
+            ->set('escola_nome', 'Escola App Links')
+            ->set('play_store_link', ' https://play.google.com/store/apps/details?id=com.edux.app ')
+            ->set('apple_store_link', ' https://apps.apple.com/br/app/edux/id123456789 ')
+            ->set('force_app', true)
+            ->call('saveSchoolIdentity')
+            ->assertHasNoErrors();
+
+        $setting = $admin->systemSetting->fresh();
+
+        $this->assertSame('https://play.google.com/store/apps/details?id=com.edux.app', $setting->play_store_link);
+        $this->assertSame('https://apps.apple.com/br/app/edux/id123456789', $setting->apple_store_link);
+        $this->assertTrue($setting->force_app);
+    }
+
+    public function test_admin_normalizes_empty_app_store_links_and_keeps_force_app_false_when_unchecked(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->systemSetting->update([
+            'play_store_link' => 'https://play.google.com/store/apps/details?id=com.edux.app',
+            'apple_store_link' => 'https://apps.apple.com/br/app/edux/id123456789',
+            'force_app' => true,
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(SystemAssetsManager::class)
+            ->set('domain', 'cursos.app-links.test')
+            ->set('escola_nome', 'Escola App Links')
+            ->set('play_store_link', '   ')
+            ->set('apple_store_link', '')
+            ->set('force_app', false)
+            ->call('saveSchoolIdentity')
+            ->assertHasNoErrors();
+
+        $setting = $admin->systemSetting->fresh();
+
+        $this->assertNull($setting->play_store_link);
+        $this->assertNull($setting->apple_store_link);
+        $this->assertFalse($setting->force_app);
     }
 
     #[DataProvider('invalidDomainProvider')]
@@ -248,6 +300,9 @@ class SystemMailSettingsTest extends TestCase
             ->set('domain', 'cursos.tenant-owner-editado.test')
             ->set('escola_nome', 'Tenant Owner Editado')
             ->set('escola_cnpj', '12.345.678/0001-90')
+            ->set('play_store_link', 'https://play.google.com/store/apps/details?id=com.tenant.owner')
+            ->set('apple_store_link', 'https://apps.apple.com/br/app/tenant-owner/id987654321')
+            ->set('force_app', true)
             ->set('owner_user_id', (string) $replacementOwner->id)
             ->call('saveSchoolIdentity')
             ->assertHasNoErrors();
@@ -257,6 +312,9 @@ class SystemMailSettingsTest extends TestCase
         $this->assertSame('cursos.tenant-owner-editado.test', $tenant->domain);
         $this->assertSame('Tenant Owner Editado', $tenant->escola_nome);
         $this->assertSame('12.345.678/0001-90', $tenant->escola_cnpj);
+        $this->assertSame('https://play.google.com/store/apps/details?id=com.tenant.owner', $tenant->play_store_link);
+        $this->assertSame('https://apps.apple.com/br/app/tenant-owner/id987654321', $tenant->apple_store_link);
+        $this->assertTrue($tenant->force_app);
         $this->assertSame($replacementOwner->id, $tenant->owner_user_id);
     }
 
