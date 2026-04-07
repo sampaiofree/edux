@@ -524,6 +524,78 @@ const readNativePlatformFlag = (candidate) => {
     }
 };
 
+const readUserAgent = () => {
+    try {
+        return String(window.navigator?.userAgent || '');
+    } catch (_) {
+        return '';
+    }
+};
+
+const isLikelyStandaloneBrowser = (userAgent) => {
+    if (userAgent === '') {
+        return false;
+    }
+
+    return [
+        /CriOS\/[\d.]+/i,
+        /Chrome\/[\d.]+/i,
+        /Firefox\/[\d.]+/i,
+        /FxiOS\/[\d.]+/i,
+        /Edg(?:A|iOS|)\/[\d.]+/i,
+        /OPR\/[\d.]+/i,
+        /OPiOS\/[\d.]+/i,
+        /SamsungBrowser\/[\d.]+/i,
+        /DuckDuckGo\/[\d.]+/i,
+        /YaBrowser\/[\d.]+/i,
+        /UCBrowser\/[\d.]+/i,
+        /QQBrowser\/[\d.]+/i,
+        /Version\/[\d.]+.*Safari\/[\d.]+/i,
+    ].some((pattern) => pattern.test(userAgent));
+};
+
+const isLikelyAndroidWebView = (userAgent) => {
+    if (! /Android/i.test(userAgent)) {
+        return false;
+    }
+
+    if (/;\s*wv\)/i.test(userAgent) || /\bwv\b/i.test(userAgent)) {
+        return true;
+    }
+
+    return /Version\/[\d.]+/i.test(userAgent)
+        && /Chrome\/[\d.]+/i.test(userAgent)
+        && !/SamsungBrowser\/|OPR\/|EdgA\/|Firefox\/|DuckDuckGo\/|YaBrowser\/|UCBrowser\/|QQBrowser\//i.test(userAgent);
+};
+
+const isLikelyIOSDevice = (userAgent) => {
+    if (/(iPhone|iPad|iPod)/i.test(userAgent)) {
+        return true;
+    }
+
+    try {
+        return window.navigator?.platform === 'MacIntel' && window.navigator?.maxTouchPoints > 1;
+    } catch (_) {
+        return false;
+    }
+};
+
+const isLikelyIOSWebView = (userAgent) => {
+    if (! isLikelyIOSDevice(userAgent) || ! /AppleWebKit/i.test(userAgent)) {
+        return false;
+    }
+
+    if (isLikelyStandaloneBrowser(userAgent)) {
+        return false;
+    }
+
+    if (/Instagram|FBAN|FBAV|LinkedInApp|Line\/|TikTok|Snapchat|Pinterest|GSA\/|Telegram|WhatsApp/i.test(userAgent)) {
+        return false;
+    }
+
+    return !/Safari\/[\d.]+/i.test(userAgent) || typeof window.safari === 'undefined';
+};
+
 const isNativeCapacitorPlatform = () => {
     const platformSignals = [
         readCapacitorPlatform(Capacitor),
@@ -538,7 +610,21 @@ const isNativeCapacitorPlatform = () => {
         return true;
     }
 
-    return Boolean(window.androidBridge || window.webkit?.messageHandlers?.bridge);
+    if (window.androidBridge || window.webkit?.messageHandlers?.bridge) {
+        return true;
+    }
+
+    const userAgent = readUserAgent();
+
+    if (isLikelyAndroidWebView(userAgent)) {
+        return true;
+    }
+
+    if (isLikelyIOSWebView(userAgent)) {
+        return true;
+    }
+
+    return false;
 };
 
 const toggleVisibility = (element, visible) => {
