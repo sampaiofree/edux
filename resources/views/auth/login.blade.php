@@ -41,12 +41,12 @@
             </div>
         @else
             <div
-                class="mx-auto max-w-lg rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.08),_transparent_52%),linear-gradient(180deg,#ffffff,_#f8fafc)] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur sm:p-6"
+                class="mx-auto max-w-lg rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.08),_transparent_52%),linear-gradient(180deg,#ffffff,_#f8fafc)] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur sm:p-7"
                 data-auth-login-shell="1"
                 data-login-force-app-root="1"
             >
                 <section
-                    class="flex min-h-[280px] items-center justify-center rounded-[1.5rem] border border-edux-line/60 bg-white/80 p-8 text-center"
+                    class="flex min-h-[280px] items-center justify-center p-4 text-center sm:p-5"
                     data-login-force-app-loading="1"
                 >
                     <div class="max-w-sm space-y-5">
@@ -70,7 +70,7 @@
                 </section>
 
                 <section
-                    class="hidden rounded-[1.5rem] border border-edux-line/60 bg-white/92 p-6 text-center shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-8"
+                    class="hidden p-2 text-center sm:p-3"
                     data-login-force-app-browser="1"
                     hidden
                 >
@@ -142,7 +142,7 @@
                 </section>
 
                 <section
-                    class="hidden rounded-[1.5rem] border border-edux-line/60 bg-white p-8 shadow-sm"
+                    class="hidden p-2 sm:p-3"
                     data-login-force-app-form="1"
                     hidden
                 >
