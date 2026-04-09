@@ -28,6 +28,7 @@ class CourseController extends Controller
             'status' => 'draft',
             'owner_id' => $this->defaultOwnerId($user),
             'support_whatsapp_mode' => Course::SUPPORT_WHATSAPP_MODE_ALL,
+            'access_mode' => Course::ACCESS_MODE_PAID,
         ]);
         $supportWhatsappNumbers = $this->supportWhatsappNumbers();
 
@@ -48,6 +49,7 @@ class CourseController extends Controller
             'oquefaz' => ['nullable', 'string'],
             'promo_video_url' => ['nullable', 'url'],
             'status' => ['required', 'in:draft,published,archived'],
+            'access_mode' => ['nullable', Rule::in(Course::accessModeValues())],
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', Rule::exists('users', 'id')->where('system_setting_id', $systemSettingId)],
@@ -94,6 +96,7 @@ class CourseController extends Controller
                 'oquefaz' => $validated['oquefaz'] ?? null,
                 'promo_video_url' => $validated['promo_video_url'] ?? null,
                 'status' => $validated['status'],
+                'access_mode' => $validated['access_mode'] ?? Course::ACCESS_MODE_PAID,
                 'duration_minutes' => $validated['duration_minutes'] ?? null,
                 'published_at' => $validated['published_at'] ?? null,
                 'support_whatsapp_mode' => $hasAdminPrivileges
@@ -179,6 +182,7 @@ class CourseController extends Controller
             'oquefaz' => ['nullable', 'string'],
             'promo_video_url' => ['nullable', 'url'],
             'status' => ['required', 'in:draft,published,archived'],
+            'access_mode' => ['nullable', Rule::in(Course::accessModeValues())],
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'published_at' => ['nullable', 'date'],
             'owner_id' => ['nullable', Rule::exists('users', 'id')->where('system_setting_id', $systemSettingId)],
@@ -215,6 +219,7 @@ class CourseController extends Controller
                 'oquefaz' => $validated['oquefaz'] ?? null,
                 'promo_video_url' => $validated['promo_video_url'] ?? null,
                 'status' => $validated['status'],
+                'access_mode' => $validated['access_mode'] ?? $course->access_mode ?? Course::ACCESS_MODE_PAID,
                 'duration_minutes' => $validated['duration_minutes'] ?? null,
                 'published_at' => $validated['published_at'] ?? null,
                 'support_whatsapp_mode' => $hasAdminPrivileges

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Support\AuthPageDataBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,25 +14,9 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function create(Request $request): View
+    public function create(Request $request, AuthPageDataBuilder $builder): View
     {
-        $settings = SystemSetting::current();
-        $playStoreLink = trim((string) ($settings->play_store_link ?? ''));
-        $appleStoreLink = trim((string) ($settings->apple_store_link ?? ''));
-        $forceAppEnabled = (bool) $settings->force_app;
-        $hasStoreLinks = $playStoreLink !== '' || $appleStoreLink !== '';
-        $admBypass = $request->query('adm') === '1';
-        $loginForceAppActive = $forceAppEnabled && $hasStoreLinks && ! $admBypass;
-
-        return view('auth.login', [
-            'settings' => $settings,
-            'playStoreLink' => $playStoreLink !== '' ? $playStoreLink : null,
-            'appleStoreLink' => $appleStoreLink !== '' ? $appleStoreLink : null,
-            'forceAppEnabled' => $forceAppEnabled,
-            'hasStoreLinks' => $hasStoreLinks,
-            'admBypass' => $admBypass,
-            'loginForceAppActive' => $loginForceAppActive,
-        ]);
+        return view('auth.login', $builder->build($request));
     }
 
     public function store(Request $request): RedirectResponse

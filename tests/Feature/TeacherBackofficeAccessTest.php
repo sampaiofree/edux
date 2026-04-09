@@ -70,6 +70,7 @@ class TeacherBackofficeAccessTest extends TestCase
             'atuacao' => 'Escolas;Secretarias',
             'oquefaz' => 'Atende;Organiza',
             'status' => 'draft',
+            'access_mode' => Course::ACCESS_MODE_FREE,
             'duration_minutes' => 75,
             'published_at' => '2026-04-09 10:00:00',
             'promo_video_url' => 'https://example.com/video-professor',
@@ -90,6 +91,7 @@ class TeacherBackofficeAccessTest extends TestCase
 
         $this->assertSame($teacher->id, $course->owner_id);
         $this->assertSame($teacher->system_setting_id, $course->system_setting_id);
+        $this->assertSame(Course::ACCESS_MODE_FREE, $course->access_mode);
         $this->assertSame(Course::SUPPORT_WHATSAPP_MODE_ALL, $course->support_whatsapp_mode);
         $this->assertNull($course->support_whatsapp_number_id);
         $this->assertCount(0, $course->courseWebhookIds);
@@ -129,6 +131,7 @@ class TeacherBackofficeAccessTest extends TestCase
         $response = $this->actingAs($teacher)->get(route('courses.edit', $course));
 
         $response->assertOk();
+        $response->assertSee('name="access_mode"', false);
         $response->assertDontSee('Atendimento via WhatsApp', false);
         $response->assertDontSee('IDs de webhook', false);
         $response->assertDontSee('Fundos personalizados do certificado', false);
@@ -141,6 +144,7 @@ class TeacherBackofficeAccessTest extends TestCase
             'atuacao' => 'Empresas;Escolas',
             'oquefaz' => 'Organiza;Executa',
             'status' => 'published',
+            'access_mode' => Course::ACCESS_MODE_FREE,
             'duration_minutes' => 120,
             'published_at' => '2026-04-10 11:00:00',
             'promo_video_url' => 'https://example.com/video-novo',
@@ -167,6 +171,7 @@ class TeacherBackofficeAccessTest extends TestCase
         $this->assertSame('Resumo atualizado pelo professor', $course->summary);
         $this->assertSame('https://example.com/video-novo', $course->promo_video_url);
         $this->assertSame('published', $course->status);
+        $this->assertSame(Course::ACCESS_MODE_FREE, $course->access_mode);
         $this->assertSame($admin->id, $course->owner_id);
         $this->assertSame(Course::SUPPORT_WHATSAPP_MODE_SPECIFIC, $course->support_whatsapp_mode);
         $this->assertSame($supportWhatsappNumber->id, $course->support_whatsapp_number_id);
@@ -297,6 +302,7 @@ class TeacherBackofficeAccessTest extends TestCase
             'summary' => 'Resumo '.$suffix,
             'description' => 'Descrição '.$suffix,
             'status' => 'draft',
+            'access_mode' => Course::ACCESS_MODE_PAID,
             'duration_minutes' => 60,
             'support_whatsapp_mode' => Course::SUPPORT_WHATSAPP_MODE_ALL,
         ], $attributes));

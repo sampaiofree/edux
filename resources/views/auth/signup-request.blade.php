@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Entrar')
+@section('title', 'Criar conta')
 
 @section('content')
     @php
@@ -9,46 +9,36 @@
         $brandLogoUrl = $settings->assetUrl('default_logo_path') ?: $settings->assetUrl('default_logo_dark_path');
     @endphp
 
-    <div class="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6" data-auth-login-page="1">
-        <div class="flex flex-col items-center gap-3 text-center" data-auth-login-brand="1">
+    <div class="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6" data-auth-signup-page="1">
+        <div class="flex flex-col items-center gap-3 text-center" data-auth-signup-brand="1">
             @if ($brandLogoUrl)
                 <img
                     src="{{ $brandLogoUrl }}"
                     alt="{{ $brandName }}"
                     class="h-10 w-auto max-w-[180px] object-contain sm:h-12"
-                    data-auth-login-brand-logo="1"
                 >
             @else
-                <span
-                    class="rounded-full border border-edux-line/70 bg-white/70 px-4 py-2 font-display text-lg tracking-[0.18em] text-edux-primary shadow-sm"
-                    data-auth-login-brand-fallback="1"
-                >
+                <span class="rounded-full border border-edux-line/70 bg-white/70 px-4 py-2 font-display text-lg tracking-[0.18em] text-edux-primary shadow-sm">
                     {{ $brandName }}
                 </span>
             @endif
 
             <p class="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
-                Acesso seguro da plataforma
+                Cadastro público da plataforma
             </p>
         </div>
 
         @if (! $loginForceAppActive)
-            <div
-                class="mx-auto max-w-md rounded-[2rem] border border-white/70 bg-white/95 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur"
-                data-auth-login-shell="1"
-            >
-                @include('auth.partials.login-form')
+            <div class="mx-auto max-w-md rounded-[2rem] border border-white/70 bg-white/95 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur" data-auth-signup-shell="1">
+                @include('auth.partials.signup-request-form')
             </div>
         @else
             <div
                 class="mx-auto max-w-lg rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.08),_transparent_52%),linear-gradient(180deg,#ffffff,_#f8fafc)] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur sm:p-7"
-                data-auth-login-shell="1"
+                data-auth-signup-shell="1"
                 data-login-force-app-root="1"
             >
-                <section
-                    class="flex min-h-[280px] items-center justify-center p-4 text-center sm:p-5"
-                    data-login-force-app-loading="1"
-                >
+                <section class="flex min-h-[280px] items-center justify-center p-4 text-center sm:p-5" data-login-force-app-loading="1">
                     <div class="max-w-sm space-y-5">
                         <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-edux-primary/10 text-edux-primary">
                             <svg class="h-7 w-7 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -71,18 +61,14 @@
 
                 @include('auth.partials.force-app-browser-panel', [
                     'forceAppTitle' => 'Baixe nosso aplicativo',
-                    'forceAppDescription' => 'Para entrar na sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e faça login por lá.',
+                    'forceAppDescription' => 'Para criar sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e continue por lá.',
                     'forceAppLinks' => [
-                        ['href' => route('signup.create'), 'label' => 'Ainda não tem conta? Criar conta'],
+                        ['href' => route('login'), 'label' => 'Já tem conta? Entrar'],
                     ],
                 ])
 
-                <section
-                    class="hidden p-2 sm:p-3"
-                    data-login-force-app-form="1"
-                    hidden
-                >
-                    @include('auth.partials.login-form', ['class' => 'max-w-none'])
+                <section class="hidden p-2 sm:p-3" data-login-force-app-form="1" hidden>
+                    @include('auth.partials.signup-request-form', ['class' => 'max-w-none'])
                 </section>
 
                 <noscript>
@@ -100,7 +86,7 @@
             </div>
         @endif
 
-        <div class="text-center text-xs font-medium text-slate-500" data-auth-login-legal="1">
+        <div class="text-center text-xs font-medium text-slate-500" data-auth-signup-legal="1">
             <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
                 <a href="{{ route('legal.terms') }}" class="transition hover:text-edux-primary">Termos</a>
                 <span class="hidden h-1 w-1 rounded-full bg-slate-300 sm:block"></span>

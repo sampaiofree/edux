@@ -33,6 +33,7 @@ use App\Http\Controllers\PublicCertificateController;
 use App\Http\Controllers\PublicCoursePageV2Controller;
 use App\Http\Controllers\PublicCoursePageV3Controller;
 use App\Http\Controllers\PublicCoursePageV4Controller;
+use App\Http\Controllers\SignupController;
 use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\StudentFinalTestController;
 
@@ -99,6 +100,13 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     // Submissão do login
     Route::post('/login', [AuthController::class, 'store'])->name('login.store');
+    Route::get('/criar-conta', [SignupController::class, 'create'])->name('signup.create');
+    Route::post('/criar-conta', [SignupController::class, 'store'])->name('signup.store');
+    Route::get('/criar-conta/codigo', [SignupController::class, 'showCodeForm'])->name('signup.code');
+    Route::post('/criar-conta/codigo', [SignupController::class, 'verifyCode'])->name('signup.code.verify');
+    Route::post('/criar-conta/reenviar', [SignupController::class, 'resendCode'])->name('signup.resend');
+    Route::get('/criar-conta/senha', [SignupController::class, 'showPasswordForm'])->name('signup.password');
+    Route::post('/criar-conta/senha', [SignupController::class, 'activate'])->name('signup.activate');
     Route::get('/recuperar-senha', [PasswordRecoveryController::class, 'create'])->name('password.recovery.request');
     Route::post('/recuperar-senha', [PasswordRecoveryController::class, 'store'])->name('password.recovery.store');
     Route::get('/recuperar-senha/codigo', [PasswordRecoveryController::class, 'showCodeForm'])->name('password.recovery.code');

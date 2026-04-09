@@ -119,7 +119,7 @@
                 </p>
             </div>
 
-            <div class="grid gap-4 md:grid-cols-2">
+            <div class="grid gap-4 md:grid-cols-3">
                 <label class="space-y-2 text-sm font-semibold text-slate-600">
                     <span>Título</span>
                     <input type="text" name="title" value="{{ old('title', $course->title) }}" required class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
@@ -133,6 +133,16 @@
                         @endforeach
                     </select>
                     @error('status') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Modo de acesso</span>
+                    <select name="access_mode" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                        @foreach (\App\Models\Course::accessModeOptions() as $value => $label)
+                            <option value="{{ $value }}" @selected(old('access_mode', $course->access_mode ?? \App\Models\Course::ACCESS_MODE_PAID) === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('access_mode') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </label>
             </div>
 

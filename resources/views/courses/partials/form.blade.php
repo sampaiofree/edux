@@ -6,6 +6,7 @@
     $formClasses = $formClasses ?? 'rounded-card bg-white p-6 shadow-card space-y-5';
     $supportWhatsappNumbers = $supportWhatsappNumbers ?? collect();
     $supportWhatsappModeOld = old('support_whatsapp_mode', $course->support_whatsapp_mode ?? CourseModel::SUPPORT_WHATSAPP_MODE_ALL);
+    $accessModeOld = old('access_mode', $course->access_mode ?? CourseModel::ACCESS_MODE_PAID);
     $courseWebhookIdsOld = old('curso_webhook_ids');
     $courseWebhookIdsSource = is_array($courseWebhookIdsOld)
         ? $courseWebhookIdsOld
@@ -33,7 +34,7 @@
 <form method="POST" action="{{ $action }}" enctype="multipart/form-data" class="{{ $formClasses }}">
     @csrf
 
-    <div class="grid gap-4 md:grid-cols-2">
+    <div class="grid gap-4 md:grid-cols-3">
         <label class="space-y-1 text-sm font-semibold text-slate-600">
             <span>Título</span>
             <input type="text" name="title" value="{{ old('title', $course->title) }}" required class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
@@ -48,6 +49,16 @@
                 @endforeach
             </select>
             @error('status') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+        </label>
+
+        <label class="space-y-1 text-sm font-semibold text-slate-600">
+            <span>Modo de acesso</span>
+            <select name="access_mode" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                @foreach (CourseModel::accessModeOptions() as $value => $label)
+                    <option value="{{ $value }}" @selected($accessModeOld === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            @error('access_mode') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
         </label>
     </div>
 

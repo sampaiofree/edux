@@ -40,4 +40,11 @@
             👉 Entrar
         </button>
     </form>
+
+    <div class="mt-4 text-center text-sm text-slate-600">
+        Ainda não tem conta?
+        <a href="{{ route('signup.create') }}" class="font-semibold text-edux-primary hover:underline">
+            Criar conta
+        </a>
+    </div>
 </div>

@@ -308,6 +308,7 @@ class SuperAdminAreaTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Curso Edit Global', false)
+            ->assertSee('name="access_mode"', false)
             ->assertSee('name="is_global"', false)
             ->assertViewHas('initialTenantId', (string) $tenantA->id)
             ->assertViewHas('initialOwnerId', (string) $adminA->id)
@@ -328,6 +329,7 @@ class SuperAdminAreaTest extends TestCase
                 'summary' => 'Resumo global',
                 'description' => 'Descrição global',
                 'status' => 'archived',
+                'access_mode' => Course::ACCESS_MODE_FREE,
                 'duration_minutes' => 180,
                 'published_at' => now()->format('Y-m-d H:i:s'),
                 'promo_video_url' => 'https://example.com/video',
@@ -340,6 +342,7 @@ class SuperAdminAreaTest extends TestCase
             'title' => 'Curso Editado Globalmente',
             'summary' => 'Resumo global',
             'status' => 'archived',
+            'access_mode' => Course::ACCESS_MODE_FREE,
             'duration_minutes' => 180,
             'promo_video_url' => 'https://example.com/video',
             'system_setting_id' => $tenantA->id,

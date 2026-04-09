@@ -35,6 +35,8 @@ class CourseForm extends Component
 
     public string $status = 'draft';
 
+    public string $access_mode = Course::ACCESS_MODE_PAID;
+
     public ?int $duration_minutes = null;
 
     public ?string $published_at = null;
@@ -69,6 +71,7 @@ class CourseForm extends Component
                 'support_whatsapp_number_id' => $this->course->support_whatsapp_number_id,
                 'promo_video_url' => $this->course->promo_video_url,
                 'status' => $this->course->status,
+                'access_mode' => $this->course->access_mode ?? Course::ACCESS_MODE_PAID,
                 'duration_minutes' => $this->course->duration_minutes,
                 'published_at' => optional($this->course->published_at)->format('Y-m-d\TH:i'),
                 'owner_id' => $this->course->owner_id,
@@ -83,6 +86,7 @@ class CourseForm extends Component
         $user = Auth::user();
         $data = $this->validate($this->rules());
         unset($data['cover_image']);
+        $data['access_mode'] = $data['access_mode'] ?? $this->course?->access_mode ?? Course::ACCESS_MODE_PAID;
 
         if (! $user->hasAdminPrivileges()) {
             $data['owner_id'] = $user->id;
@@ -149,6 +153,7 @@ class CourseForm extends Component
             'description' => ['nullable', 'string'],
             'atuacao' => ['nullable', 'string'],
             'oquefaz' => ['nullable', 'string'],
+            'access_mode' => ['nullable', Rule::in(Course::accessModeValues())],
             'support_whatsapp_mode' => ['required', Rule::in([Course::SUPPORT_WHATSAPP_MODE_ALL, Course::SUPPORT_WHATSAPP_MODE_SPECIFIC])],
             'support_whatsapp_number_id' => [
                 Rule::requiredIf(fn () => $this->support_whatsapp_mode === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC),

@@ -15,6 +15,7 @@ use App\Models\Module;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class StudentMobileNavigationTest extends TestCase
@@ -51,6 +52,7 @@ class StudentMobileNavigationTest extends TestCase
         $response->assertOk();
         $response->assertSee('data-student-shell="1"', false);
         $response->assertSee('data-student-navigation-overlay="1"', false);
+        $response->assertDontSee('Escolha um curso gratuito para comecar.', false);
         $html = $response->getContent();
 
         $this->assertNavigableLink($html, route('dashboard'));
@@ -235,6 +237,56 @@ class StudentMobileNavigationTest extends TestCase
         $this->assertStringContainsString('data-certificate-download-url="'.route('learning.courses.certificate.download', [$course, $certificate]).'"', $html);
         $this->assertStringContainsString('data-certificate-public-url="'.route('certificates.verify', $certificate->public_token).'"', $html);
         $this->assertStringContainsString('data-native-label="Compartilhar PDF"', $html);
+    }
+
+    public function test_student_dashboard_lists_free_courses_when_student_has_no_enrollments(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-free-dashboard@example.com',
+        ]);
+        $freeCourse = $this->createCourseForTenant($admin, 'curso-gratis-dashboard', 'Curso Gratis Dashboard');
+        $freeCourse->forceFill([
+            'access_mode' => Course::ACCESS_MODE_FREE,
+        ])->save();
+
+        $paidCourse = $this->createCourseForTenant($admin, 'curso-pago-dashboard', 'Curso Pago Dashboard');
+        $paidCourse->forceFill([
+            'access_mode' => Course::ACCESS_MODE_PAID,
+        ])->save();
+
+        $response = $this->actingAs($student)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Escolha um curso gratuito para comecar.', false);
+        $response->assertSee('Curso Gratis Dashboard', false);
+        $response->assertSee('Matricular com 1 clique', false);
+        $response->assertDontSee('Curso Pago Dashboard', false);
+        $response->assertDontSee('Voce ainda nao possui matriculas ativas.', false);
+    }
+
+    public function test_student_can_enroll_in_free_course_from_dashboard_with_one_click(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-free-click@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-gratis-click', 'Curso Gratis Click');
+        $course->forceFill([
+            'access_mode' => Course::ACCESS_MODE_FREE,
+        ])->save();
+
+        Livewire::test(\App\Livewire\Student\Dashboard::class, ['userId' => $student->id])
+            ->call('enrollFreeCourse', $course->id)
+            ->assertRedirect(route('learning.courses.show', $course));
+
+        $this->assertDatabaseHas('enrollments', [
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'system_setting_id' => $admin->system_setting_id,
+            'progress_percent' => 0,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
     }
 
     private function createCourseForTenant(User $owner, string $slug, string $title): Course

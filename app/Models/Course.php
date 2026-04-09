@@ -21,6 +21,10 @@ class Course extends Model
 
     public const SUPPORT_WHATSAPP_MODE_SPECIFIC = 'specific';
 
+    public const ACCESS_MODE_PAID = 'paid';
+
+    public const ACCESS_MODE_FREE = 'free';
+
     protected static function booted(): void
     {
         static::saved(static fn () => CityCampaignCache::bumpCourses());
@@ -45,6 +49,7 @@ class Course extends Model
         'support_whatsapp_mode',
         'support_whatsapp_number_id',
         'is_global',
+        'access_mode',
     ];
 
     protected function casts(): array
@@ -61,6 +66,28 @@ class Course extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function accessModeValues(): array
+    {
+        return [
+            self::ACCESS_MODE_PAID,
+            self::ACCESS_MODE_FREE,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function accessModeOptions(): array
+    {
+        return [
+            self::ACCESS_MODE_PAID => 'Pago',
+            self::ACCESS_MODE_FREE => 'Gratuito',
+        ];
     }
 
     public function owner(): BelongsTo
