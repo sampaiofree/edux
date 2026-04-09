@@ -60,4 +60,11 @@ class UserFactory extends Factory
             'role' => UserRole::STUDENT->value,
         ]);
     }
+
+    public function teacher(): static
+    {
+        return $this->state(fn () => [
+            'role' => UserRole::TEACHER->value,
+        ]);
+    }
 }

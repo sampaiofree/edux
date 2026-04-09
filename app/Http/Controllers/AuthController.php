@@ -97,7 +97,7 @@ class AuthController extends Controller
 
         $user = $request->user();
         $authenticatedVia = $tenantAuthenticated ? 'tenant' : 'super_admin';
-        $defaultRoute = $user && $user->hasAdminPrivileges()
+        $defaultRoute = $user && $user->hasBackofficeAccess()
             ? route('admin.dashboard')
             : route('dashboard');
 

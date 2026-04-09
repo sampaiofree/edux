@@ -17,9 +17,11 @@
         <a href="{{ route('courses.create') }}" class="edux-btn">
             + Novo curso
         </a>
-        <button type="button" class="edux-btn bg-white text-edux-primary" wire:click="openImportModal">
-            Importar curso
-        </button>
+        @if ($canImportCourses)
+            <button type="button" class="edux-btn bg-white text-edux-primary" wire:click="openImportModal">
+                Importar curso
+            </button>
+        @endif
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
@@ -64,7 +66,7 @@
         {{ $courses->links() }}
     </div>
 
-    @if ($importModalOpen)
+    @if ($canImportCourses && $importModalOpen)
         <div class="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 py-8 sm:py-12">
             <div class="absolute inset-0" wire:click="closeImportModal"></div>
             <div class="relative z-10 w-full max-w-4xl rounded-card bg-white shadow-card">

@@ -318,9 +318,9 @@ class CourseTenantTransferService
     {
         $owner = User::withoutGlobalScopes()->find($ownerId);
 
-        if (! $owner || ($owner->role->value ?? $owner->role) !== UserRole::ADMIN->value || (int) $owner->system_setting_id !== $targetSystemSettingId) {
+        if (! $owner || ! $owner->canOwnCourses() || (int) $owner->system_setting_id !== $targetSystemSettingId) {
             throw ValidationException::withMessages([
-                'owner_id' => 'Selecione um responsável administrador que pertença à escola escolhida.',
+                'owner_id' => 'Selecione um responsável de cursos que pertença à escola escolhida.',
             ]);
         }
     }

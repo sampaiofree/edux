@@ -391,7 +391,7 @@ class SuperAdminAreaTest extends TestCase
             ->actingAs($superAdmin)
             ->get(route('sa.courses.edit', $course->id))
             ->assertOk()
-            ->assertSee('Nenhum administrador disponível para a escola selecionada.', false)
+            ->assertSee('Nenhum responsável de cursos disponível para a escola selecionada.', false)
             ->assertViewHas('ownersByTenant', function (array $ownersByTenant) use ($tenantWithoutAdmins): bool {
                 return ($ownersByTenant[(string) $tenantWithoutAdmins->id] ?? []) === [];
             });

@@ -36,6 +36,7 @@
                     <select name="role" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30 xl:w-52">
                         <option value="all" @selected($role === 'all')>Todos os papéis</option>
                         <option value="admin" @selected($role === 'admin')>Administradores</option>
+                        <option value="teacher" @selected($role === 'teacher')>Professores</option>
                         <option value="student" @selected($role === 'student')>Alunos</option>
                     </select>
                 </label>

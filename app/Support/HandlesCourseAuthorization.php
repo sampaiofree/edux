@@ -13,7 +13,7 @@ trait HandlesCourseAuthorization
             return;
         }
 
-        if ($user->isAdmin() && $user->canAccessSystemSetting($course->system_setting_id)) {
+        if ($user->canManageCourseContent() && $user->canAccessSystemSetting($course->system_setting_id)) {
             return;
         }
 

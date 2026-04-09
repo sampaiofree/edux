@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\SuperAdmin;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\SystemSetting;
@@ -158,9 +157,9 @@ class CourseController extends Controller
     private function ensureOwnerMatchesTenant(int $targetSystemSettingId, int $ownerId): void
     {
         $owner = User::withoutGlobalScopes()->find($ownerId);
-        if (! $owner || ($owner->role->value ?? $owner->role) !== UserRole::ADMIN->value || (int) $owner->system_setting_id !== $targetSystemSettingId) {
+        if (! $owner || ! $owner->canOwnCourses() || (int) $owner->system_setting_id !== $targetSystemSettingId) {
             throw ValidationException::withMessages([
-                'owner_id' => 'Selecione um responsável administrador que pertença à escola escolhida.',
+                'owner_id' => 'Selecione um responsável de cursos que pertença à escola escolhida.',
             ]);
         }
     }
@@ -200,7 +199,7 @@ class CourseController extends Controller
     {
         return User::withoutGlobalScopes()
             ->with('systemSetting')
-            ->where('role', UserRole::ADMIN->value)
+            ->whereIn('role', User::courseOwnerRoleValues())
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'system_setting_id'])
             ->groupBy(fn (User $owner): string => (string) $owner->system_setting_id)

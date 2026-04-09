@@ -227,6 +227,47 @@ class PasswordRecoveryTest extends TestCase
         $this->assertTrue(Hash::check('admin-nova-123', $admin->fresh()->password));
     }
 
+    public function test_teacher_is_redirected_to_admin_dashboard_after_password_reset(): void
+    {
+        Mail::fake();
+
+        $admin = $this->defaultTenantAdmin();
+        $teacher = $this->createTeacherForTenant($admin, [
+            'email' => 'teacher-reset@example.com',
+            'password' => Hash::make('teacher-antiga-123'),
+        ]);
+
+        $this->post(route('password.recovery.store'), [
+            'email' => $teacher->email,
+        ]);
+
+        $sentCode = null;
+
+        Mail::assertSent(PasswordRecoveryCodeMail::class, function (PasswordRecoveryCodeMail $mail) use (&$sentCode, $teacher): bool {
+            $sentCode = $mail->code;
+
+            return $mail->hasTo($teacher->email);
+        });
+
+        $this->withSession([
+            'password_recovery.pending_email' => $teacher->email,
+        ])->post(route('password.recovery.code.verify'), [
+            'code' => $sentCode,
+        ]);
+
+        $resetResponse = $this->withSession([
+            'password_recovery.verified_email' => $teacher->email,
+            'password_recovery.verified_at' => now()->timestamp,
+        ])->post(route('password.recovery.update'), [
+            'password' => 'teacher-nova-123',
+            'password_confirmation' => 'teacher-nova-123',
+        ]);
+
+        $resetResponse->assertRedirect(route('admin.dashboard'));
+        $this->assertAuthenticatedAs($teacher->fresh());
+        $this->assertTrue(Hash::check('teacher-nova-123', $teacher->fresh()->password));
+    }
+
     public function test_resend_respects_cooldown(): void
     {
         Mail::fake();

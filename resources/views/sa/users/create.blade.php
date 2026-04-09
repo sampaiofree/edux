@@ -12,7 +12,7 @@
             <div>
                 <p class="text-sm uppercase tracking-wide text-edux-primary">Usuário global</p>
                 <h1 class="font-display text-3xl text-edux-primary">Cadastrar usuário</h1>
-                <p class="text-sm text-slate-600">Crie administradores ou alunos em qualquer escola, escolhendo explicitamente o tenant de destino.</p>
+                <p class="text-sm text-slate-600">Crie administradores, professores ou alunos em qualquer escola, escolhendo explicitamente o tenant de destino.</p>
             </div>
             <a href="{{ route('sa.users.index') }}" class="edux-btn bg-white text-edux-primary">Voltar para a lista</a>
         </header>
@@ -57,7 +57,7 @@
 
             <div class="space-y-2 text-sm font-semibold text-slate-600">
                 <span>Perfil de acesso</span>
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-3 sm:grid-cols-3">
                     @foreach ($roles as $option)
                         <label class="flex items-center gap-2 rounded-2xl border border-edux-line/60 px-4 py-3 text-sm font-semibold text-slate-600">
                             <input type="radio" name="role" value="{{ $option->value }}" @checked(old('role', \App\Enums\UserRole::STUDENT->value) === $option->value) class="text-edux-primary focus:ring-edux-primary">

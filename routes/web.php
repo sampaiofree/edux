@@ -156,120 +156,127 @@ Route::middleware(['auth'])->group(function (): void {
         ->name('account.deletion-requests.store');
 
     Route::prefix('admin')
-        ->middleware('role:admin')
         ->group(function (): void {
-            Route::view('dashboard', 'dashboard.admin')->name('admin.dashboard');
+            Route::middleware('role:admin,teacher')->group(function (): void {
+                Route::view('dashboard', 'dashboard.admin')->name('admin.dashboard');
 
-            // Gerenciamento de cursos
-            // Formulário de criação de curso
-            Route::get('courses/create', [CourseController::class, 'create'])->name('courses.create');
-            // Persistência de novo curso
-            Route::post('courses', [CourseController::class, 'store'])->name('courses.store');
-            // Edição de curso existente
-            Route::get('courses/{course}/edit', [CourseController::class, 'edit'])->name('courses.edit');
-            // Edita módulos do curso
-            Route::get('courses/{course}/modules', [CourseController::class, 'editModules'])->name('courses.modules.edit'); 
-            // Tela de teste final do curso
-            Route::get('courses/{course}/final-test', [CourseController::class, 'editFinalTest'])->name('courses.final-test.edit');
-            // Atualiza curso (POST porque usa formulário)
-            Route::post('courses/{course}', [CourseController::class, 'update'])->name('courses.update.post');
-            // Exclui curso
-            Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+                // Gerenciamento de cursos
+                // Formulário de criação de curso
+                Route::get('courses/create', [CourseController::class, 'create'])->name('courses.create');
+                // Persistência de novo curso
+                Route::post('courses', [CourseController::class, 'store'])->name('courses.store');
+                // Edição de curso existente
+                Route::get('courses/{course}/edit', [CourseController::class, 'edit'])->name('courses.edit');
+                // Edita módulos do curso
+                Route::get('courses/{course}/modules', [CourseController::class, 'editModules'])->name('courses.modules.edit');
+                // Atualiza curso (POST porque usa formulário)
+                Route::post('courses/{course}', [CourseController::class, 'update'])->name('courses.update.post');
+                // Exclui curso
+                Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+            });
 
-            // Administração e configurações globais
-            // Editor de branding de certificados
-            Route::view('certificates/branding', 'certificates.branding.edit')
-                ->name('certificates.branding.edit');
-            // Compatibilidade: identidade redireciona para configuracoes do sistema
-            Route::get('identity', fn () => redirect()->route('admin.system.edit'))
-                ->name('admin.identity');
-            // Configuracoes gerais do sistema (assets + pixel)
-            Route::view('system', 'admin.system.edit')
-                ->name('admin.system.edit');
-            // Listagem de usuários
-            Route::get('users', [UserController::class, 'index'])
-                ->name('admin.users.index');
-            // Criar novo usuário via formulário
-            Route::get('users/create', fn () => view('admin.users.create'))
-                ->name('admin.users.create');
-            // Editar usuário específico
-            Route::get('users/{user}/edit', [UserController::class, 'edit'])
-                ->name('admin.users.edit');
-            // Atualizar dados do usuário
-            Route::put('users/{user}', [UserController::class, 'update'])
-                ->name('admin.users.update');
-            // Categorias de cursos
-            Route::get('categories', [CategoryController::class, 'index'])->name('admin.categories.index');
-            Route::get('categories/create', [CategoryController::class, 'create'])->name('admin.categories.create');
-            Route::post('categories', [CategoryController::class, 'store'])->name('admin.categories.store');
-            Route::get('categories/{category}/edit', [CategoryController::class, 'edit'])->name('admin.categories.edit');
-            Route::put('categories/{category}', [CategoryController::class, 'update'])->name('admin.categories.update');
-            Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
-            // Lista de pagamentos de certificados
-            Route::view('certificates/payments', 'admin.certificates.payments')
-                ->name('admin.certificates.payments');
-            // Lista de certificados gerados
-            Route::get('certificados-gerados', [GeneratedCertificateController::class, 'index'])
-                ->name('admin.certificates.generated.index');
-            // Download do certificado gerado (admin)
-            Route::get('certificados-gerados/{certificate}/download', [GeneratedCertificateController::class, 'download'])
-                ->name('admin.certificates.generated.download');
-            // Central de notificações administrativas
-            Route::view('notifications', 'admin.notifications.index')
-                ->name('admin.notifications.index');
-            // Disparo manual de e-mails para alunos
-            Route::get('email', [EmailController::class, 'create'])->name('admin.email.create');
-            Route::post('email', [EmailController::class, 'store'])->name('admin.email.store');
-            // Área administrativa Webhooks de pagamento
-            Route::get('webhooks', [PaymentWebhookController::class, 'index'])->name('admin.webhooks.index');
-            Route::get('webhooks/create', [PaymentWebhookController::class, 'create'])->name('admin.webhooks.create');
-            Route::post('webhooks', [PaymentWebhookController::class, 'store'])->name('admin.webhooks.store');
-            Route::get('webhooks/{webhookLink}/edit', [PaymentWebhookController::class, 'edit'])->name('admin.webhooks.edit');
-            Route::put('webhooks/{webhookLink}', [PaymentWebhookController::class, 'update'])->name('admin.webhooks.update');
-            Route::delete('webhooks/{webhookLink}', [PaymentWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
-            Route::post('webhooks/{webhookLink}/simulate', [PaymentWebhookController::class, 'simulate'])->name('admin.webhooks.simulate');
-            Route::post('webhooks/{webhookLink}/field-mappings', [PaymentWebhookController::class, 'upsertFieldMapping'])->name('admin.webhooks.field-mappings.upsert');
-            Route::delete('webhooks/{webhookLink}/field-mappings/{mapping}', [PaymentWebhookController::class, 'removeFieldMapping'])->name('admin.webhooks.field-mappings.destroy');
-            Route::post('webhooks/{webhookLink}/event-mappings', [PaymentWebhookController::class, 'upsertEventMapping'])->name('admin.webhooks.event-mappings.upsert');
-            Route::delete('webhooks/{webhookLink}/event-mappings/{mapping}', [PaymentWebhookController::class, 'removeEventMapping'])->name('admin.webhooks.event-mappings.destroy');
-            Route::post('webhooks/{webhookLink}/product-mappings', [PaymentWebhookController::class, 'upsertProductMapping'])->name('admin.webhooks.product-mappings.upsert');
-            Route::delete('webhooks/{webhookLink}/product-mappings/{mapping}', [PaymentWebhookController::class, 'removeProductMapping'])->name('admin.webhooks.product-mappings.destroy');
-            Route::get('webhooks/{webhookLink}/events', [PaymentWebhookController::class, 'events'])->name('admin.webhooks.events.index');
-            Route::get('webhooks/{webhookLink}/events/{paymentEvent}', [PaymentWebhookController::class, 'showEvent'])->name('admin.webhooks.events.show');
-            Route::delete('webhooks/{webhookLink}/events/{paymentEvent}', [PaymentWebhookController::class, 'destroyEvent'])->name('admin.webhooks.events.destroy');
-            Route::post('webhooks/{webhookLink}/events/{paymentEvent}/replay', [PaymentWebhookController::class, 'replay'])->name('admin.webhooks.events.replay');
-            // Números de WhatsApp para atendimento
-            Route::get('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'index'])->name('admin.support-whatsapp.index');
-            Route::get('whatsapp-atendimento/create', [SupportWhatsappNumberController::class, 'create'])->name('admin.support-whatsapp.create');
-            Route::post('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'store'])->name('admin.support-whatsapp.store');
-            Route::get('whatsapp-atendimento/{supportWhatsappNumber}/edit', [SupportWhatsappNumberController::class, 'edit'])->name('admin.support-whatsapp.edit');
-            Route::put('whatsapp-atendimento/{supportWhatsappNumber}', [SupportWhatsappNumberController::class, 'update'])->name('admin.support-whatsapp.update');
-            Route::delete('whatsapp-atendimento/{supportWhatsappNumber}', [SupportWhatsappNumberController::class, 'destroy'])->name('admin.support-whatsapp.destroy');
-            // Administracao de matriculas
-            Route::get('enroll', [EnrollmentController::class, 'index'])->name('admin.enroll.index');
-            Route::get('enroll/create', [EnrollmentController::class, 'create'])->name('admin.enroll.create');
-            Route::post('enroll', [EnrollmentController::class, 'store'])->name('admin.enroll.store');
-            Route::get('enroll/{enrollment}/edit', [EnrollmentController::class, 'edit'])->name('admin.enroll.edit');
-            Route::put('enroll/{enrollment}', [EnrollmentController::class, 'update'])->name('admin.enroll.update');
-            Route::delete('enroll/{enrollment}', [EnrollmentController::class, 'destroy'])->name('admin.enroll.destroy');
-            // Relatorio de tracking first-party (origens, funil, cliques)
-            Route::view('tracking', 'admin.tracking.index')->name('admin.tracking.index');
-            Route::get('tracking/export/origens', [TrackingReportExportController::class, 'sources'])
-                ->name('admin.tracking.export.sources');
-            Route::get('tracking/export/atribuicoes', [TrackingReportExportController::class, 'attributions'])
-                ->name('admin.tracking.export.attributions');
-            Route::get('account-deletion-requests', [AdminAccountDeletionRequestController::class, 'index'])
-                ->name('admin.account-deletion-requests.index');
-            Route::post('account-deletion-requests/{accountDeletionRequest}/destroy-account', [AdminAccountDeletionRequestController::class, 'destroyAccount'])
-                ->name('admin.account-deletion-requests.destroy-account');
-            Route::post('account-deletion-requests/{accountDeletionRequest}/reject', [AdminAccountDeletionRequestController::class, 'reject'])
-                ->name('admin.account-deletion-requests.reject');
+            Route::middleware('role:admin')->group(function (): void {
+                // Tela de teste final do curso
+                Route::get('courses/{course}/final-test', [CourseController::class, 'editFinalTest'])->name('courses.final-test.edit');
+
+                // Administração e configurações globais
+                // Editor de branding de certificados
+                Route::view('certificates/branding', 'certificates.branding.edit')
+                    ->name('certificates.branding.edit');
+                // Compatibilidade: identidade redireciona para configuracoes do sistema
+                Route::get('identity', fn () => redirect()->route('admin.system.edit'))
+                    ->name('admin.identity');
+                // Configuracoes gerais do sistema (assets + pixel)
+                Route::view('system', 'admin.system.edit')
+                    ->name('admin.system.edit');
+                // Listagem de usuários
+                Route::get('users', [UserController::class, 'index'])
+                    ->name('admin.users.index');
+                // Criar novo usuário via formulário
+                Route::get('users/create', fn () => view('admin.users.create'))
+                    ->name('admin.users.create');
+                // Editar usuário específico
+                Route::get('users/{user}/edit', [UserController::class, 'edit'])
+                    ->name('admin.users.edit');
+                // Atualizar dados do usuário
+                Route::put('users/{user}', [UserController::class, 'update'])
+                    ->name('admin.users.update');
+                // Categorias de cursos
+                Route::get('categories', [CategoryController::class, 'index'])->name('admin.categories.index');
+                Route::get('categories/create', [CategoryController::class, 'create'])->name('admin.categories.create');
+                Route::post('categories', [CategoryController::class, 'store'])->name('admin.categories.store');
+                Route::get('categories/{category}/edit', [CategoryController::class, 'edit'])->name('admin.categories.edit');
+                Route::put('categories/{category}', [CategoryController::class, 'update'])->name('admin.categories.update');
+                Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
+                // Lista de pagamentos de certificados
+                Route::view('certificates/payments', 'admin.certificates.payments')
+                    ->name('admin.certificates.payments');
+                // Lista de certificados gerados
+                Route::get('certificados-gerados', [GeneratedCertificateController::class, 'index'])
+                    ->name('admin.certificates.generated.index');
+                // Download do certificado gerado (admin)
+                Route::get('certificados-gerados/{certificate}/download', [GeneratedCertificateController::class, 'download'])
+                    ->name('admin.certificates.generated.download');
+                // Central de notificações administrativas
+                Route::view('notifications', 'admin.notifications.index')
+                    ->name('admin.notifications.index');
+                // Disparo manual de e-mails para alunos
+                Route::get('email', [EmailController::class, 'create'])->name('admin.email.create');
+                Route::post('email', [EmailController::class, 'store'])->name('admin.email.store');
+                // Área administrativa Webhooks de pagamento
+                Route::get('webhooks', [PaymentWebhookController::class, 'index'])->name('admin.webhooks.index');
+                Route::get('webhooks/create', [PaymentWebhookController::class, 'create'])->name('admin.webhooks.create');
+                Route::post('webhooks', [PaymentWebhookController::class, 'store'])->name('admin.webhooks.store');
+                Route::get('webhooks/{webhookLink}/edit', [PaymentWebhookController::class, 'edit'])->name('admin.webhooks.edit');
+                Route::put('webhooks/{webhookLink}', [PaymentWebhookController::class, 'update'])->name('admin.webhooks.update');
+                Route::delete('webhooks/{webhookLink}', [PaymentWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
+                Route::post('webhooks/{webhookLink}/simulate', [PaymentWebhookController::class, 'simulate'])->name('admin.webhooks.simulate');
+                Route::post('webhooks/{webhookLink}/field-mappings', [PaymentWebhookController::class, 'upsertFieldMapping'])->name('admin.webhooks.field-mappings.upsert');
+                Route::delete('webhooks/{webhookLink}/field-mappings/{mapping}', [PaymentWebhookController::class, 'removeFieldMapping'])->name('admin.webhooks.field-mappings.destroy');
+                Route::post('webhooks/{webhookLink}/event-mappings', [PaymentWebhookController::class, 'upsertEventMapping'])->name('admin.webhooks.event-mappings.upsert');
+                Route::delete('webhooks/{webhookLink}/event-mappings/{mapping}', [PaymentWebhookController::class, 'removeEventMapping'])->name('admin.webhooks.event-mappings.destroy');
+                Route::post('webhooks/{webhookLink}/product-mappings', [PaymentWebhookController::class, 'upsertProductMapping'])->name('admin.webhooks.product-mappings.upsert');
+                Route::delete('webhooks/{webhookLink}/product-mappings/{mapping}', [PaymentWebhookController::class, 'removeProductMapping'])->name('admin.webhooks.product-mappings.destroy');
+                Route::get('webhooks/{webhookLink}/events', [PaymentWebhookController::class, 'events'])->name('admin.webhooks.events.index');
+                Route::get('webhooks/{webhookLink}/events/{paymentEvent}', [PaymentWebhookController::class, 'showEvent'])->name('admin.webhooks.events.show');
+                Route::delete('webhooks/{webhookLink}/events/{paymentEvent}', [PaymentWebhookController::class, 'destroyEvent'])->name('admin.webhooks.events.destroy');
+                Route::post('webhooks/{webhookLink}/events/{paymentEvent}/replay', [PaymentWebhookController::class, 'replay'])->name('admin.webhooks.events.replay');
+                // Números de WhatsApp para atendimento
+                Route::get('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'index'])->name('admin.support-whatsapp.index');
+                Route::get('whatsapp-atendimento/create', [SupportWhatsappNumberController::class, 'create'])->name('admin.support-whatsapp.create');
+                Route::post('whatsapp-atendimento', [SupportWhatsappNumberController::class, 'store'])->name('admin.support-whatsapp.store');
+                Route::get('whatsapp-atendimento/{supportWhatsappNumber}/edit', [SupportWhatsappNumberController::class, 'edit'])->name('admin.support-whatsapp.edit');
+                Route::put('whatsapp-atendimento/{supportWhatsappNumber}', [SupportWhatsappNumberController::class, 'update'])->name('admin.support-whatsapp.update');
+                Route::delete('whatsapp-atendimento/{supportWhatsappNumber}', [SupportWhatsappNumberController::class, 'destroy'])->name('admin.support-whatsapp.destroy');
+                // Administracao de matriculas
+                Route::get('enroll', [EnrollmentController::class, 'index'])->name('admin.enroll.index');
+                Route::get('enroll/create', [EnrollmentController::class, 'create'])->name('admin.enroll.create');
+                Route::post('enroll', [EnrollmentController::class, 'store'])->name('admin.enroll.store');
+                Route::get('enroll/{enrollment}/edit', [EnrollmentController::class, 'edit'])->name('admin.enroll.edit');
+                Route::put('enroll/{enrollment}', [EnrollmentController::class, 'update'])->name('admin.enroll.update');
+                Route::delete('enroll/{enrollment}', [EnrollmentController::class, 'destroy'])->name('admin.enroll.destroy');
+                // Relatorio de tracking first-party (origens, funil, cliques)
+                Route::view('tracking', 'admin.tracking.index')->name('admin.tracking.index');
+                Route::get('tracking/export/origens', [TrackingReportExportController::class, 'sources'])
+                    ->name('admin.tracking.export.sources');
+                Route::get('tracking/export/atribuicoes', [TrackingReportExportController::class, 'attributions'])
+                    ->name('admin.tracking.export.attributions');
+                Route::get('account-deletion-requests', [AdminAccountDeletionRequestController::class, 'index'])
+                    ->name('admin.account-deletion-requests.index');
+                Route::post('account-deletion-requests/{accountDeletionRequest}/destroy-account', [AdminAccountDeletionRequestController::class, 'destroyAccount'])
+                    ->name('admin.account-deletion-requests.destroy-account');
+                Route::post('account-deletion-requests/{accountDeletionRequest}/reject', [AdminAccountDeletionRequestController::class, 'reject'])
+                    ->name('admin.account-deletion-requests.reject');
+            });
         });
 
-    Route::middleware('role:admin')->group(function (): void {
+    Route::middleware('role:admin,teacher')->group(function (): void {
         Route::get('courses/create', fn () => redirect()->route('courses.create'));
         Route::get('courses/{course}/edit', fn ($course) => redirect()->route('courses.edit', $course));
         Route::get('courses/{course}/modules', fn ($course) => redirect()->route('courses.modules.edit', $course));
+    });
+
+    Route::middleware('role:admin')->group(function (): void {
         Route::get('courses/{course}/final-test', fn ($course) => redirect()->route('courses.final-test.edit', $course));
         Route::get('certificates/branding', fn () => redirect()->route('certificates.branding.edit'));
     });

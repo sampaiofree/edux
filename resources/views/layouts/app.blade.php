@@ -25,7 +25,9 @@
 <body class="min-h-screen bg-edux-background text-edux-text" x-data="{ mobileMenu: false }">
     @php
         $user = auth()->user();
-        $isAdmin = $user && $user->isAdmin();
+        $hasBackofficeAccess = $user && $user->hasBackofficeAccess();
+        $hasFullAdminMenu = $user && $user->hasAdminPrivileges();
+        $hasTeacherMenu = $user && $user->isTeacher();
     @endphp
 
     <header class="bg-edux-primary text-white shadow-lg">
@@ -60,7 +62,7 @@
         </div>
         <div class="md:hidden" x-show="mobileMenu" x-collapse>
             <nav class="space-y-2 border-t border-white/10 bg-edux-primary/95 px-4 pb-4 text-white">
-                @if ($isAdmin)
+                @if ($hasFullAdminMenu)
                     <a href="{{ route('admin.users.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Usuarios</a>
                     <a href="{{ route('admin.system.edit') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Sistema</a>
                     <a href="{{ route('certificates.branding.edit') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Certificados</a>
@@ -75,6 +77,8 @@
                     <a href="{{ route('admin.enroll.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Matriculas</a>
                     <a href="{{ route('admin.account-deletion-requests.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Exclusao de contas</a>
                     <a href="{{ route('admin.tracking.index') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Tracking</a>
+                @elseif ($hasTeacherMenu)
+                    <a href="{{ route('admin.dashboard') }}" class="block rounded-xl border border-white/20 px-4 py-3 text-center">Cursos cadastrados</a>
                 @endif
             </nav>
         </div>
@@ -84,25 +88,28 @@
         <x-toast :status="session('status')" :errors="$errors->all()" />
 
         <div class="flex gap-6">
-            @if ($isAdmin)
+            @if ($hasBackofficeAccess)
                 <aside class="sticky top-20 hidden h-fit min-w-[220px] rounded-2xl bg-white p-4 shadow-card md:block">
-                    <p class="mb-3 text-xs font-semibold uppercase text-slate-500">Menu Admin</p>
+                    <p class="mb-3 text-xs font-semibold uppercase text-slate-500">{{ $hasTeacherMenu ? 'Menu Professor' : 'Menu Admin' }}</p>
                     <ul class="space-y-2 text-sm font-semibold text-slate-700">
-                        <li><a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Usuarios</a></li>
-                        <li><a href="{{ route('admin.system.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Sistema</a></li>
-                        <li><a href="{{ route('certificates.branding.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados</a></li>
-                        <li><a href="{{ route('admin.certificates.generated.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados gerados</a></li>
-                        <li><a href="{{ route('admin.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Cursos cadastrados</a></li>
-                        <li><a href="{{ route('admin.categories.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Categorias</a></li>
-                        <!--<li><a href="{{ route('admin.certificates.payments') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Pagamentos certificados</a></li>-->
-                        <li><a href="{{ route('admin.notifications.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Notificacoes</a></li>
-                        <li><a href="{{ route('admin.email.create') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">E-mail para alunos</a></li>
-                        <li><a href="{{ route('admin.webhooks.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Webhooks pagamentos</a></li>
-                        <li><a href="{{ route('admin.support-whatsapp.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">WhatsApp atendimento</a></li>
-                        <li><a href="{{ route('admin.enroll.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Matriculas</a></li>
-                        <li><a href="{{ route('admin.account-deletion-requests.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Exclusao de contas</a></li>
-                        <li><a href="{{ route('admin.tracking.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Tracking</a></li>
-                        
+                        @if ($hasFullAdminMenu)
+                            <li><a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Usuarios</a></li>
+                            <li><a href="{{ route('admin.system.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Sistema</a></li>
+                            <li><a href="{{ route('certificates.branding.edit') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados</a></li>
+                            <li><a href="{{ route('admin.certificates.generated.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Certificados gerados</a></li>
+                            <li><a href="{{ route('admin.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Cursos cadastrados</a></li>
+                            <li><a href="{{ route('admin.categories.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Categorias</a></li>
+                            <!--<li><a href="{{ route('admin.certificates.payments') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Pagamentos certificados</a></li>-->
+                            <li><a href="{{ route('admin.notifications.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Notificacoes</a></li>
+                            <li><a href="{{ route('admin.email.create') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">E-mail para alunos</a></li>
+                            <li><a href="{{ route('admin.webhooks.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Webhooks pagamentos</a></li>
+                            <li><a href="{{ route('admin.support-whatsapp.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">WhatsApp atendimento</a></li>
+                            <li><a href="{{ route('admin.enroll.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Matriculas</a></li>
+                            <li><a href="{{ route('admin.account-deletion-requests.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Exclusao de contas</a></li>
+                            <li><a href="{{ route('admin.tracking.index') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Tracking</a></li>
+                        @elseif ($hasTeacherMenu)
+                            <li><a href="{{ route('admin.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-edux-background">Cursos cadastrados</a></li>
+                        @endif
                     </ul>
                 </aside>
             @endif

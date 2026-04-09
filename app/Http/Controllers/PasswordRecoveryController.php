@@ -169,7 +169,7 @@ class PasswordRecoveryController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        $defaultRoute = $user->hasAdminPrivileges()
+        $defaultRoute = $user->hasBackofficeAccess()
             ? route('admin.dashboard')
             : route('dashboard');
 

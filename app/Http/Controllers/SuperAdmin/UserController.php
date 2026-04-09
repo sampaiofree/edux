@@ -269,6 +269,14 @@ class UserController extends Controller
             }
         }
 
+        if ($targetRole === UserRole::TEACHER->value) {
+            $ownsSystemSetting = SystemSetting::query()->where('owner_user_id', $user->id)->exists();
+
+            if ($ownsSystemSetting) {
+                $messages['role'] = 'Não é possível trocar o papel para professor enquanto o usuário for responsável pela escola.';
+            }
+        }
+
         if ($messages !== []) {
             throw ValidationException::withMessages($messages);
         }

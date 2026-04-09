@@ -90,7 +90,7 @@
                         :class="{ 'cursor-not-allowed bg-slate-100 text-slate-400': availableOwners.length === 0 }"
                     >
                         <template x-if="availableOwners.length === 0">
-                            <option value="">Nenhum administrador disponível</option>
+                            <option value="">Nenhum responsável disponível</option>
                         </template>
 
                         <template x-for="owner in availableOwners" :key="owner.id">
@@ -99,7 +99,7 @@
                     </select>
                     @error('owner_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     <p x-cloak x-show="availableOwners.length === 0" class="text-xs text-amber-600">
-                        Nenhum administrador disponível para a escola selecionada.
+                        Nenhum responsável de cursos disponível para a escola selecionada.
                     </p>
                 </label>
             </div>

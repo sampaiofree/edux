@@ -92,6 +92,16 @@ abstract class TestCase extends BaseTestCase
     /**
      * @param  array<string, mixed>  $attributes
      */
+    protected function createTeacherForTenant(User $admin, array $attributes = []): User
+    {
+        return User::factory()->teacher()->create(array_merge([
+            'system_setting_id' => $admin->system_setting_id,
+        ], $attributes));
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
     protected function defaultTenantStudent(array $attributes = []): User
     {
         return $this->createStudentForTenant($this->defaultTenantAdmin(), $attributes);

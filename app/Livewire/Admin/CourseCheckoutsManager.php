@@ -355,6 +355,8 @@ class CourseCheckoutsManager extends Component
     {
         $user = Auth::user();
 
-        return $user && $user->isAdmin();
+        return $user
+            && $user->hasAdminPrivileges()
+            && $user->canAccessSystemSetting($this->course->system_setting_id);
     }
 }

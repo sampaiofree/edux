@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
 use App\Models\CertificateBranding;
 use App\Models\Course;
 use App\Models\SupportWhatsappNumber;
@@ -74,7 +73,9 @@ class CourseController extends Controller
             'curso_webhook_ids.*.platform' => ['nullable', 'string', 'max:191'],
         ]);
 
-        $courseWebhookIds = $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? []);
+        $courseWebhookIds = $hasAdminPrivileges
+            ? $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? [])
+            : [];
         $this->ensureUniqueCourseWebhookIds($courseWebhookIds);
 
         $ownerId = $hasAdminPrivileges
@@ -103,7 +104,9 @@ class CourseController extends Controller
                     : null,
             ]);
 
-            $this->syncCourseWebhookIds($course, $courseWebhookIds);
+            if ($hasAdminPrivileges) {
+                $this->syncCourseWebhookIds($course, $courseWebhookIds);
+            }
 
             return $course;
         });
@@ -154,6 +157,7 @@ class CourseController extends Controller
     {
         $user = $request->user();
         $this->ensureCanManageCourse($user, $course);
+        abort_unless($user->hasAdminPrivileges(), 403);
 
         $course->load('finalTest.questions.options');
 
@@ -197,7 +201,9 @@ class CourseController extends Controller
             'curso_webhook_ids.*.platform' => ['nullable', 'string', 'max:191'],
         ]);
 
-        $courseWebhookIds = $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? []);
+        $courseWebhookIds = $hasAdminPrivileges
+            ? $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? [])
+            : [];
         $this->ensureUniqueCourseWebhookIds($courseWebhookIds);
 
         DB::transaction(function () use ($course, $courseWebhookIds, $hasAdminPrivileges, $validated): void {
@@ -214,9 +220,11 @@ class CourseController extends Controller
                 'support_whatsapp_mode' => $hasAdminPrivileges
                     ? ($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL)
                     : ($course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL),
-                'support_whatsapp_number_id' => $hasAdminPrivileges && (($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
-                    ? ($validated['support_whatsapp_number_id'] ?? null)
-                    : null,
+                'support_whatsapp_number_id' => $hasAdminPrivileges
+                    ? ((($validated['support_whatsapp_mode'] ?? $course->support_whatsapp_mode ?? Course::SUPPORT_WHATSAPP_MODE_ALL) === Course::SUPPORT_WHATSAPP_MODE_SPECIFIC)
+                        ? ($validated['support_whatsapp_number_id'] ?? null)
+                        : null)
+                    : $course->support_whatsapp_number_id,
             ]);
 
             if ($hasAdminPrivileges && isset($validated['owner_id'])) {
@@ -229,7 +237,9 @@ class CourseController extends Controller
 
             $course->save();
 
-            $this->syncCourseWebhookIds($course, $courseWebhookIds);
+            if ($hasAdminPrivileges) {
+                $this->syncCourseWebhookIds($course, $courseWebhookIds);
+            }
         });
 
         if ($request->boolean('remove_cover_image')) {
@@ -270,7 +280,7 @@ class CourseController extends Controller
     private function owners()
     {
         return User::query()
-            ->where('role', UserRole::ADMIN->value)
+            ->whereIn('role', User::courseOwnerRoleValues())
             ->orderBy('name')
             ->get();
     }
@@ -385,6 +395,10 @@ class CourseController extends Controller
 
     private function syncBrandingUploads(Request $request, Course $course): void
     {
+        if (! $request->user()?->hasAdminPrivileges()) {
+            return;
+        }
+
         $hasUploads = $request->hasFile('certificate_front_background') || $request->hasFile('certificate_back_background');
         $removeFront = $request->boolean('remove_certificate_front_background');
         $removeBack = $request->boolean('remove_certificate_back_background');

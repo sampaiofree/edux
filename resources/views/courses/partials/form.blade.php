@@ -90,7 +90,7 @@
             <input type="datetime-local" name="published_at" value="{{ old('published_at', optional($course->published_at)->format('Y-m-d\TH:i')) }}" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
             @error('published_at') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
         </label>
-        @if ($user->isAdmin())
+        @if ($user->hasAdminPrivileges())
             <label class="space-y-1 text-sm font-semibold text-slate-600">
                 <span>Responsável</span>
                 <select name="owner_id" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
@@ -105,7 +105,7 @@
         @endif
     </div>
 
-    @if ($user->isAdmin())
+    @if ($user->hasAdminPrivileges())
         <div class="rounded-2xl border border-edux-line/70 p-4 space-y-4">
             <div>
                 <p class="text-sm font-semibold text-slate-800">Atendimento via WhatsApp</p>
@@ -147,108 +147,110 @@
         </div>
     @endif
 
-    <div
-        class="rounded-2xl border border-edux-line/70 p-4 space-y-4"
-        x-data="{
-            items: @js($courseWebhookIdsInitial),
-            draftWebhookId: '',
-            draftPlatform: '',
-            error: '',
-            normalize(value) {
-                return String(value ?? '').trim();
-            },
-            add() {
-                const webhookId = this.normalize(this.draftWebhookId);
-                const platform = this.normalize(this.draftPlatform);
+    @if ($user->hasAdminPrivileges())
+        <div
+            class="rounded-2xl border border-edux-line/70 p-4 space-y-4"
+            x-data="{
+                items: @js($courseWebhookIdsInitial),
+                draftWebhookId: '',
+                draftPlatform: '',
+                error: '',
+                normalize(value) {
+                    return String(value ?? '').trim();
+                },
+                add() {
+                    const webhookId = this.normalize(this.draftWebhookId);
+                    const platform = this.normalize(this.draftPlatform);
 
-                if (webhookId === '') {
-                    this.error = 'Informe um ID de webhook antes de adicionar.';
-                    return;
-                }
+                    if (webhookId === '') {
+                        this.error = 'Informe um ID de webhook antes de adicionar.';
+                        return;
+                    }
 
-                const duplicate = this.items.some((item) => this.normalize(item.webhook_id).toLowerCase() === webhookId.toLowerCase());
-                if (duplicate) {
-                    this.error = 'Este ID de webhook já foi adicionado.';
-                    return;
-                }
+                    const duplicate = this.items.some((item) => this.normalize(item.webhook_id).toLowerCase() === webhookId.toLowerCase());
+                    if (duplicate) {
+                        this.error = 'Este ID de webhook já foi adicionado.';
+                        return;
+                    }
 
-                this.items.push({
-                    webhook_id: webhookId,
-                    platform: platform,
-                });
+                    this.items.push({
+                        webhook_id: webhookId,
+                        platform: platform,
+                    });
 
-                this.draftWebhookId = '';
-                this.draftPlatform = '';
-                this.error = '';
+                    this.draftWebhookId = '';
+                    this.draftPlatform = '';
+                    this.error = '';
 
-                this.$nextTick(() => this.$refs.webhookIdInput?.focus());
-            },
-            remove(index) {
-                this.items.splice(index, 1);
-                this.error = '';
-            },
-        }"
-    >
-        <div>
-            <p class="text-sm font-semibold text-slate-800">IDs de webhook</p>
-            <p class="text-xs text-slate-500">Adicione múltiplos IDs por curso. Cada item pode ter uma plataforma opcional.</p>
+                    this.$nextTick(() => this.$refs.webhookIdInput?.focus());
+                },
+                remove(index) {
+                    this.items.splice(index, 1);
+                    this.error = '';
+                },
+            }"
+        >
+            <div>
+                <p class="text-sm font-semibold text-slate-800">IDs de webhook</p>
+                <p class="text-xs text-slate-500">Adicione múltiplos IDs por curso. Cada item pode ter uma plataforma opcional.</p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] md:items-end">
+                <label class="space-y-1 text-sm font-semibold text-slate-600">
+                    <span>ID de webhook</span>
+                    <input
+                        x-ref="webhookIdInput"
+                        x-model="draftWebhookId"
+                        x-on:keydown.enter.prevent="add()"
+                        type="text"
+                        class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                        placeholder="Ex.: 123456"
+                    >
+                </label>
+
+                <label class="space-y-1 text-sm font-semibold text-slate-600">
+                    <span>Plataforma (opcional)</span>
+                    <input
+                        x-model="draftPlatform"
+                        x-on:keydown.enter.prevent="add()"
+                        type="text"
+                        class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                        placeholder="Ex.: Hotmart"
+                    >
+                </label>
+
+                <button type="button" class="edux-btn md:self-end" x-on:click="add()">Adicionar</button>
+            </div>
+
+            <p x-show="error" x-text="error" class="text-xs text-red-500"></p>
+            @error('curso_webhook_ids') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+            @if ($errors->first('curso_webhook_ids.*.webhook_id'))
+                <span class="text-xs text-red-500">{{ $errors->first('curso_webhook_ids.*.webhook_id') }}</span>
+            @endif
+            @if ($errors->first('curso_webhook_ids.*.platform'))
+                <span class="text-xs text-red-500">{{ $errors->first('curso_webhook_ids.*.platform') }}</span>
+            @endif
+
+            <div class="flex flex-wrap gap-2" x-show="items.length > 0">
+                <template x-for="(item, index) in items" :key="`${item.webhook_id}-${index}`">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-edux-line bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                        <span class="font-mono text-xs sm:text-sm" x-text="item.webhook_id"></span>
+                        <span
+                            x-show="item.platform"
+                            class="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+                            x-text="item.platform"
+                        ></span>
+                        <button type="button" class="text-xs font-semibold text-rose-500" x-on:click="remove(index)">Remover</button>
+
+                        <input type="hidden" :name="`curso_webhook_ids[${index}][webhook_id]`" :value="item.webhook_id">
+                        <input type="hidden" :name="`curso_webhook_ids[${index}][platform]`" :value="item.platform ?? ''">
+                    </div>
+                </template>
+            </div>
+
+            <p x-show="items.length === 0" class="text-sm text-slate-500">Nenhum ID de webhook cadastrado ainda.</p>
         </div>
-
-        <div class="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] md:items-end">
-            <label class="space-y-1 text-sm font-semibold text-slate-600">
-                <span>ID de webhook</span>
-                <input
-                    x-ref="webhookIdInput"
-                    x-model="draftWebhookId"
-                    x-on:keydown.enter.prevent="add()"
-                    type="text"
-                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
-                    placeholder="Ex.: 123456"
-                >
-            </label>
-
-            <label class="space-y-1 text-sm font-semibold text-slate-600">
-                <span>Plataforma (opcional)</span>
-                <input
-                    x-model="draftPlatform"
-                    x-on:keydown.enter.prevent="add()"
-                    type="text"
-                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
-                    placeholder="Ex.: Hotmart"
-                >
-            </label>
-
-            <button type="button" class="edux-btn md:self-end" x-on:click="add()">Adicionar</button>
-        </div>
-
-        <p x-show="error" x-text="error" class="text-xs text-red-500"></p>
-        @error('curso_webhook_ids') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
-        @if ($errors->first('curso_webhook_ids.*.webhook_id'))
-            <span class="text-xs text-red-500">{{ $errors->first('curso_webhook_ids.*.webhook_id') }}</span>
-        @endif
-        @if ($errors->first('curso_webhook_ids.*.platform'))
-            <span class="text-xs text-red-500">{{ $errors->first('curso_webhook_ids.*.platform') }}</span>
-        @endif
-
-        <div class="flex flex-wrap gap-2" x-show="items.length > 0">
-            <template x-for="(item, index) in items" :key="`${item.webhook_id}-${index}`">
-                <div class="inline-flex items-center gap-2 rounded-full border border-edux-line bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                    <span class="font-mono text-xs sm:text-sm" x-text="item.webhook_id"></span>
-                    <span
-                        x-show="item.platform"
-                        class="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500"
-                        x-text="item.platform"
-                    ></span>
-                    <button type="button" class="text-xs font-semibold text-rose-500" x-on:click="remove(index)">Remover</button>
-
-                    <input type="hidden" :name="`curso_webhook_ids[${index}][webhook_id]`" :value="item.webhook_id">
-                    <input type="hidden" :name="`curso_webhook_ids[${index}][platform]`" :value="item.platform ?? ''">
-                </div>
-            </template>
-        </div>
-
-        <p x-show="items.length === 0" class="text-sm text-slate-500">Nenhum ID de webhook cadastrado ainda.</p>
-    </div>
+    @endif
 
     <div class="grid gap-4 md:grid-cols-2">
         <label class="space-y-1 text-sm font-semibold text-slate-600">
@@ -272,37 +274,39 @@
         </label>
     </div>
 
-    <div class="rounded-2xl border border-dashed border-edux-line p-4 space-y-4">
-        <p class="font-semibold text-slate-700">Fundos personalizados do certificado</p>
-        <div class="grid gap-4 md:grid-cols-2">
-            <label class="space-y-1 text-sm font-semibold text-slate-600">
-                <span>Frente</span>
-                <input type="file" name="certificate_front_background" accept="image/*" class="w-full rounded-xl border border-edux-line px-4 py-3">
-                @if ($course?->certificateBranding?->front_background_url)
-                    <div class="mt-2 flex items-center gap-3">
-                        <img src="{{ $course->certificateBranding->front_background_url }}" alt="Frente atual" class="h-20 w-20 rounded-xl border border-edux-line object-cover">
-                        <label class="flex items-center gap-2 text-xs font-semibold text-slate-600">
-                            <input type="checkbox" name="remove_certificate_front_background" value="1" class="rounded border-edux-line text-edux-primary focus:ring-edux-primary/50">
-                            <span>Remover frente padrão</span>
-                        </label>
-                    </div>
-                @endif
-            </label>
-            <label class="space-y-1 text-sm font-semibold text-slate-600">
-                <span>Verso</span>
-                <input type="file" name="certificate_back_background" accept="image/*" class="w-full rounded-xl border border-edux-line px-4 py-3">
-                @if ($course?->certificateBranding?->back_background_url)
-                    <div class="mt-2 flex items-center gap-3">
-                        <img src="{{ $course->certificateBranding->back_background_url }}" alt="Verso atual" class="h-20 w-20 rounded-xl border border-edux-line object-cover">
-                        <label class="flex items-center gap-2 text-xs font-semibold text-slate-600">
-                            <input type="checkbox" name="remove_certificate_back_background" value="1" class="rounded border-edux-line text-edux-primary focus:ring-edux-primary/50">
-                            <span>Remover verso padrão</span>
-                        </label>
-                    </div>
-                @endif
-            </label>
+    @if ($user->hasAdminPrivileges())
+        <div class="rounded-2xl border border-dashed border-edux-line p-4 space-y-4">
+            <p class="font-semibold text-slate-700">Fundos personalizados do certificado</p>
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1 text-sm font-semibold text-slate-600">
+                    <span>Frente</span>
+                    <input type="file" name="certificate_front_background" accept="image/*" class="w-full rounded-xl border border-edux-line px-4 py-3">
+                    @if ($course?->certificateBranding?->front_background_url)
+                        <div class="mt-2 flex items-center gap-3">
+                            <img src="{{ $course->certificateBranding->front_background_url }}" alt="Frente atual" class="h-20 w-20 rounded-xl border border-edux-line object-cover">
+                            <label class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                                <input type="checkbox" name="remove_certificate_front_background" value="1" class="rounded border-edux-line text-edux-primary focus:ring-edux-primary/50">
+                                <span>Remover frente padrão</span>
+                            </label>
+                        </div>
+                    @endif
+                </label>
+                <label class="space-y-1 text-sm font-semibold text-slate-600">
+                    <span>Verso</span>
+                    <input type="file" name="certificate_back_background" accept="image/*" class="w-full rounded-xl border border-edux-line px-4 py-3">
+                    @if ($course?->certificateBranding?->back_background_url)
+                        <div class="mt-2 flex items-center gap-3">
+                            <img src="{{ $course->certificateBranding->back_background_url }}" alt="Verso atual" class="h-20 w-20 rounded-xl border border-edux-line object-cover">
+                            <label class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                                <input type="checkbox" name="remove_certificate_back_background" value="1" class="rounded border-edux-line text-edux-primary focus:ring-edux-primary/50">
+                                <span>Remover verso padrão</span>
+                            </label>
+                        </div>
+                    @endif
+                </label>
+            </div>
         </div>
-    </div>
+    @endif
 
     <div class="flex flex-wrap gap-3">
         <button type="submit" class="edux-btn">{{ $isEdit ? 'Salvar alterações' : 'Criar curso' }}</button>

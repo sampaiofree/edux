@@ -191,4 +191,23 @@ class LoginPageTest extends TestCase
         $response->assertCookie(Auth::guard()->getRecallerName());
         $this->assertAuthenticatedAs($user);
     }
+
+    public function test_teacher_is_redirected_to_admin_dashboard_after_login(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $teacher = $this->createTeacherForTenant($admin, [
+            'email' => 'teacher-login@example.com',
+            'password' => 'secret123',
+        ]);
+
+        $response = $this->forceTestHost('cursos.example.test')
+            ->from('http://cursos.example.test/login')
+            ->post('http://cursos.example.test/login', [
+                'email' => $teacher->email,
+                'password' => 'secret123',
+            ]);
+
+        $response->assertRedirect(route('admin.dashboard', absolute: false));
+        $this->assertAuthenticatedAs($teacher->fresh());
+    }
 }

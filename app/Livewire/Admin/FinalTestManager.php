@@ -102,7 +102,11 @@ class FinalTestManager extends Component
     {
         $user = Auth::user();
 
-        if ($user->isAdmin()) {
+        if (
+            $user
+            && $user->hasAdminPrivileges()
+            && $user->canAccessSystemSetting($this->course->system_setting_id)
+        ) {
             return;
         }
 

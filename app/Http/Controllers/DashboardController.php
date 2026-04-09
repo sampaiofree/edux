@@ -12,7 +12,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if ($user && $user->hasAdminPrivileges()) {
+        if ($user && $user->hasBackofficeAccess()) {
             return redirect()->route('admin.dashboard');
         }
 

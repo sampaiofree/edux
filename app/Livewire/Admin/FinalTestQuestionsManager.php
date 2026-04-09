@@ -126,6 +126,8 @@ class FinalTestQuestionsManager extends Component
 
     public function moveQuestion(int $questionId, string $direction): void
     {
+        $this->authorizeUser();
+
         $questions = $this->questions->values();
         $currentIndex = $questions->search(fn ($question) => $question->id === $questionId);
 
@@ -151,6 +153,8 @@ class FinalTestQuestionsManager extends Component
 
     public function reorderQuestions(array $order): void
     {
+        $this->authorizeUser();
+
         foreach ($order as $item) {
             FinalTestQuestion::whereKey($item['value'])->update(['position' => $item['order'] + 1]);
         }
@@ -189,7 +193,11 @@ class FinalTestQuestionsManager extends Component
     {
         $user = Auth::user();
 
-        if ($user->isAdmin()) {
+        if (
+            $user
+            && $user->hasAdminPrivileges()
+            && $user->canAccessSystemSetting($this->finalTest->course->system_setting_id)
+        ) {
             return;
         }
 

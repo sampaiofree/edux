@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -59,6 +62,8 @@ class UserController extends Controller
             'remove_photo' => ['nullable', 'boolean'],
         ]);
 
+        $this->ensureRoleChangeIsAllowed($user, (string) $validated['role']);
+
         $user->fill([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -90,5 +95,25 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.edit', $user)
             ->with('status', 'Usuário atualizado.');
+    }
+
+    private function ensureRoleChangeIsAllowed(User $user, string $targetRole): void
+    {
+        $messages = [];
+
+        $ownsCourses = Course::query()->where('owner_id', $user->id)->exists();
+        $ownsSystemSetting = SystemSetting::query()->where('owner_user_id', $user->id)->exists();
+
+        if ($targetRole === UserRole::STUDENT->value && ($ownsCourses || $ownsSystemSetting)) {
+            $messages['role'] = 'Não é possível trocar o papel para aluno enquanto o usuário for responsável por cursos ou escola.';
+        }
+
+        if ($targetRole === UserRole::TEACHER->value && $ownsSystemSetting) {
+            $messages['role'] = 'Não é possível trocar o papel para professor enquanto o usuário for responsável pela escola.';
+        }
+
+        if ($messages !== []) {
+            throw ValidationException::withMessages($messages);
+        }
     }
 }

@@ -109,7 +109,7 @@ class User extends Authenticatable
         $role = $this->getAttribute('role');
         $roleValue = $role instanceof UserRole ? $role->value : (string) $role;
 
-        if ($roleValue === UserRole::ADMIN->value) {
+        if (in_array($roleValue, [UserRole::ADMIN->value, UserRole::TEACHER->value], true)) {
             $host = null;
 
             try {
@@ -202,6 +202,11 @@ class User extends Authenticatable
         return $this->role === UserRole::ADMIN;
     }
 
+    public function isTeacher(): bool
+    {
+        return $this->role === UserRole::TEACHER;
+    }
+
     public function isSuperAdmin(): bool
     {
         $email = static::normalizeEmailValue($this->email);
@@ -213,6 +218,35 @@ class User extends Authenticatable
     public function hasAdminPrivileges(): bool
     {
         return $this->isAdmin() || $this->isSuperAdmin();
+    }
+
+    public function hasBackofficeAccess(): bool
+    {
+        return $this->hasAdminPrivileges() || $this->isTeacher();
+    }
+
+    public function canManageCourseContent(): bool
+    {
+        return $this->hasBackofficeAccess();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function courseOwnerRoleValues(): array
+    {
+        return [
+            UserRole::ADMIN->value,
+            UserRole::TEACHER->value,
+        ];
+    }
+
+    public function canOwnCourses(): bool
+    {
+        $role = $this->role;
+        $roleValue = $role instanceof UserRole ? $role->value : (string) $role;
+
+        return in_array($roleValue, static::courseOwnerRoleValues(), true);
     }
 
     public function adminContextSystemSettingId(): ?int

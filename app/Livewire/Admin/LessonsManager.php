@@ -426,7 +426,10 @@ class LessonsManager extends Component
     {
         $user = Auth::user();
 
-        return $user && $user->isAdmin();
+        return $user
+            && $this->module->course
+            && $user->canManageCourseContent()
+            && $user->canAccessSystemSetting($this->module->course->system_setting_id);
     }
 
     private function isValidTargetModule(int $moduleId): bool

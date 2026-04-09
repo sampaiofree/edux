@@ -130,6 +130,8 @@ class FinalTestQuestionOptionsManager extends Component
 
     public function moveOption(int $optionId, string $direction): void
     {
+        $this->authorizeUser();
+
         $options = $this->question->options->sortBy('position')->values();
         $currentIndex = $options->search(fn ($option) => $option->id === $optionId);
 
@@ -185,7 +187,11 @@ class FinalTestQuestionOptionsManager extends Component
         $user = Auth::user();
         $course = $this->question->finalTest->course;
 
-        if ($user->isAdmin()) {
+        if (
+            $user
+            && $user->hasAdminPrivileges()
+            && $user->canAccessSystemSetting($course->system_setting_id)
+        ) {
             return;
         }
 

@@ -37,9 +37,11 @@
                 <a href="{{ route('courses.modules.edit', $course) }}" class="edux-btn  ">
                     📚 módulos e aulas
                 </a>
-                <a href="{{ route('courses.final-test.edit', $course) }}" class="edux-btn  ">
-                    🧠 Gerenciar teste final
-                </a>
+                @if ($user->hasAdminPrivileges())
+                    <a href="{{ route('courses.final-test.edit', $course) }}" class="edux-btn  ">
+                        🧠 Gerenciar teste final
+                    </a>
+                @endif
                 <a href="{{ route('courses.public.show', $course) }}" target="_blank" class="edux-btn ">
                     🌐 Página pública
                 </a>
@@ -56,8 +58,10 @@
             ])
         </section>
 
-        <section class="space-y-4 rounded-card bg-white p-6 shadow-card">
-            <livewire:admin.course-checkouts-manager :course-id="$course->id" />
-        </section>
+        @if ($user->hasAdminPrivileges())
+            <section class="space-y-4 rounded-card bg-white p-6 shadow-card">
+                <livewire:admin.course-checkouts-manager :course-id="$course->id" />
+            </section>
+        @endif
     </div>
 @endsection

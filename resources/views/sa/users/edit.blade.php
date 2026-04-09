@@ -66,7 +66,7 @@
 
             <div class="space-y-2 text-sm font-semibold text-slate-600">
                 <span>Perfil de acesso</span>
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-3 sm:grid-cols-3">
                     @foreach ($roles as $option)
                         <label class="flex items-center gap-2 rounded-2xl border border-edux-line/60 px-4 py-3 text-sm font-semibold text-slate-600">
                             <input type="radio" name="role" value="{{ $option->value }}" @checked(old('role', $user->role->value) === $option->value) class="text-edux-primary focus:ring-edux-primary">

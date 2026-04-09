@@ -244,7 +244,7 @@ class CourseForm extends Component
     private function owners()
     {
         return User::query()
-            ->where('role', 'admin')
+            ->whereIn('role', User::courseOwnerRoleValues())
             ->orderBy('name')
             ->get();
     }

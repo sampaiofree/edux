@@ -40,6 +40,8 @@ class Dashboard extends Component
 
     public function openImportModal(): void
     {
+        abort_unless($this->canImportCourses(), 403);
+
         $this->importModalOpen = true;
         $this->importSearch = '';
     }
@@ -52,6 +54,8 @@ class Dashboard extends Component
 
     public function importCourse(int $courseId): void
     {
+        abort_unless($this->canImportCourses(), 403);
+
         $user = auth()->user();
 
         if (! $user instanceof User) {
@@ -86,7 +90,7 @@ class Dashboard extends Component
             ->orderByDesc('created_at')
             ->paginate($this->perPage);
 
-        $globalCourses = $this->importModalOpen
+        $globalCourses = $this->importModalOpen && $this->canImportCourses()
             ? Course::withoutGlobalScopes()
                 ->with(['systemSetting', 'owner'])
                 ->where('is_global', true)
@@ -105,6 +109,14 @@ class Dashboard extends Component
             'stats' => $stats,
             'courses' => $courses,
             'globalCourses' => $globalCourses,
+            'canImportCourses' => $this->canImportCourses(),
         ]);
+    }
+
+    private function canImportCourses(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->hasAdminPrivileges();
     }
 }

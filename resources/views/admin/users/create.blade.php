@@ -9,7 +9,7 @@
                 <p class="text-sm uppercase tracking-wide text-edux-primary">Equipe e alunos</p>
                 <h1 class="font-display text-3xl text-edux-primary">Cadastrar usuário</h1>
                 <p class="text-slate-600 text-sm">
-                    Crie contas para administradores ou alunos manualmente e defina uma senha temporária.
+                    Crie contas para administradores, professores ou alunos e defina uma senha temporária.
                 </p>
             </div>
             <a href="{{ route('admin.users.index') }}" class="edux-btn bg-white text-edux-primary">

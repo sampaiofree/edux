@@ -218,6 +218,8 @@ class ModulesManager extends Component
     {
         $user = Auth::user();
 
-        return $user && $user->isAdmin();
+        return $user
+            && $user->canManageCourseContent()
+            && $user->canAccessSystemSetting($this->course->system_setting_id);
     }
 }

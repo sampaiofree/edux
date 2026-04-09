@@ -16,9 +16,11 @@
                 <a href="{{ route('courses.edit', $course) }}" class="edux-btn bg-white text-edux-primary">
                     Resumo do curso
                 </a>
-                <a href="{{ route('courses.final-test.edit', $course) }}" class="edux-btn bg-white text-edux-primary">
-                    Teste final
-                </a>
+                @if ($user->hasAdminPrivileges())
+                    <a href="{{ route('courses.final-test.edit', $course) }}" class="edux-btn bg-white text-edux-primary">
+                        Teste final
+                    </a>
+                @endif
                 <a href="{{ route('courses.public.show', $course) }}" target="_blank" class="edux-btn">
                     Pagina publica
                 </a>
