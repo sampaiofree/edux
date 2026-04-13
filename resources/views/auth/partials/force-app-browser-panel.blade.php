@@ -1,5 +1,5 @@
 <section
-    class="hidden p-2 text-center sm:p-3"
+    class="hidden p-2 text-center opacity-0 translate-y-3 pointer-events-none transition-all duration-300 ease-out motion-reduce:transform-none motion-reduce:transition-none sm:p-3"
     data-login-force-app-browser="1"
     hidden
 >

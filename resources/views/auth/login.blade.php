@@ -45,29 +45,7 @@
                 data-auth-login-shell="1"
                 data-login-force-app-root="1"
             >
-                <section
-                    class="flex min-h-[280px] items-center justify-center p-4 text-center sm:p-5"
-                    data-login-force-app-loading="1"
-                >
-                    <div class="max-w-sm space-y-5">
-                        <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-edux-primary/10 text-edux-primary">
-                            <svg class="h-7 w-7 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2" />
-                                <circle cx="12" cy="12" r="9" />
-                            </svg>
-                        </span>
-                        <div class="space-y-2">
-                            <p class="text-sm font-semibold uppercase tracking-[0.22em] text-edux-primary">Verificando acesso</p>
-                            <h1 class="font-display text-3xl text-edux-primary">Identificando seu acesso</h1>
-                            <p class="text-sm leading-6 text-slate-600">
-                                Estamos verificando se esta página foi aberta no aplicativo ou no navegador.
-                            </p>
-                        </div>
-                        <div class="mx-auto h-2 w-full max-w-xs overflow-hidden rounded-full bg-slate-200">
-                            <div class="h-full w-1/2 animate-pulse rounded-full bg-edux-primary"></div>
-                        </div>
-                    </div>
-                </section>
+                @include('auth.partials.force-app-loading-panel')
 
                 @include('auth.partials.force-app-browser-panel', [
                     'forceAppTitle' => 'Baixe nosso aplicativo',
@@ -78,7 +56,7 @@
                 ])
 
                 <section
-                    class="hidden p-2 sm:p-3"
+                    class="hidden p-2 opacity-0 translate-y-3 pointer-events-none transition-all duration-300 ease-out motion-reduce:transform-none motion-reduce:transition-none sm:p-3"
                     data-login-force-app-form="1"
                     hidden
                 >

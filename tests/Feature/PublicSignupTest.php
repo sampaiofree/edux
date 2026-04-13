@@ -94,9 +94,68 @@ class PublicSignupTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('data-login-force-app-root="1"', false);
+        $response->assertSee('Carregando');
+        $response->assertSee('Carregando seu acesso');
+        $response->assertSee('Aguarde um instante enquanto preparamos a melhor forma de acesso para voce.');
+        $response->assertDontSee('Identificando seu acesso');
         $response->assertSee('Baixe nosso aplicativo');
         $response->assertSee('Para criar sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e continue por lá.');
         $response->assertSee(route('login', absolute: false), false);
+    }
+
+    public function test_signup_code_page_shows_shared_force_app_loading_copy_when_enabled(): void
+    {
+        $this->createAdminForTenant(
+            ['email' => 'signup-force-app-code@example.com'],
+            [
+                'domain' => 'cursos.signup-force-app-code.example.test',
+                'escola_nome' => 'Escola Signup',
+                'force_app' => true,
+                'play_store_link' => 'https://play.google.com/store/apps/details?id=com.edux.app',
+            ]
+        );
+
+        $response = $this->forceTestHost('cursos.signup-force-app-code.example.test')
+            ->withSession([
+                'signup.pending_name' => 'Aluno Codigo',
+                'signup.pending_email' => 'aluno-codigo@example.com',
+            ])
+            ->get(route('signup.code'));
+
+        $response->assertOk();
+        $response->assertSee('data-login-force-app-root="1"', false);
+        $response->assertSee('Carregando seu acesso');
+        $response->assertSee('Aguarde um instante enquanto preparamos a melhor forma de acesso para voce.');
+        $response->assertDontSee('Identificando seu acesso');
+        $response->assertSee('Para ativar sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e continue por lá.');
+    }
+
+    public function test_signup_password_page_shows_shared_force_app_loading_copy_when_enabled(): void
+    {
+        $this->createAdminForTenant(
+            ['email' => 'signup-force-app-password@example.com'],
+            [
+                'domain' => 'cursos.signup-force-app-password.example.test',
+                'escola_nome' => 'Escola Signup',
+                'force_app' => true,
+                'play_store_link' => 'https://play.google.com/store/apps/details?id=com.edux.app',
+            ]
+        );
+
+        $response = $this->forceTestHost('cursos.signup-force-app-password.example.test')
+            ->withSession([
+                'signup.verified_name' => 'Aluno Senha',
+                'signup.verified_email' => 'aluno-senha@example.com',
+                'signup.verified_at' => now()->timestamp,
+            ])
+            ->get(route('signup.password'));
+
+        $response->assertOk();
+        $response->assertSee('data-login-force-app-root="1"', false);
+        $response->assertSee('Carregando seu acesso');
+        $response->assertSee('Aguarde um instante enquanto preparamos a melhor forma de acesso para voce.');
+        $response->assertDontSee('Identificando seu acesso');
+        $response->assertSee('Para concluir a criação da sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e continue por lá.');
     }
 
     public function test_signup_request_sends_code_for_new_email_and_does_not_create_user_yet(): void

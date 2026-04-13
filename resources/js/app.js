@@ -627,15 +627,6 @@ const isNativeCapacitorPlatform = () => {
     return false;
 };
 
-const toggleVisibility = (element, visible) => {
-    if (! element) {
-        return;
-    }
-
-    element.hidden = ! visible;
-    element.classList.toggle('hidden', ! visible);
-};
-
 const clearLoginForceAppTimers = (root) => {
     const activeTimers = loginForceAppTimers.get(root);
 
@@ -651,17 +642,252 @@ const clearLoginForceAppTimers = (root) => {
     delete root.dataset.loginForceAppPending;
 };
 
+const LOGIN_FORCE_APP_EXIT_MS = 180;
+const LOGIN_FORCE_APP_ENTER_MS = 220;
+const LOGIN_FORCE_APP_TRANSITION_FALLBACK_MS = 80;
+const LOGIN_FORCE_APP_HIDDEN_CLASSES = ['opacity-0', 'translate-y-3', 'pointer-events-none'];
+const LOGIN_FORCE_APP_VISIBLE_CLASSES = ['opacity-100', 'translate-y-0', 'pointer-events-auto'];
+const loginForceAppPanelTransitionCleanups = new WeakMap();
+
+const applyLoginForceAppPanelState = (element, visible) => {
+    if (! element) {
+        return;
+    }
+
+    element.classList.remove(...(visible ? LOGIN_FORCE_APP_HIDDEN_CLASSES : LOGIN_FORCE_APP_VISIBLE_CLASSES));
+    element.classList.add(...(visible ? LOGIN_FORCE_APP_VISIBLE_CLASSES : LOGIN_FORCE_APP_HIDDEN_CLASSES));
+    element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+};
+
+const clearLoginForceAppPanelTransition = (element) => {
+    if (! element) {
+        return;
+    }
+
+    const cleanup = loginForceAppPanelTransitionCleanups.get(element);
+
+    if (! cleanup) {
+        return;
+    }
+
+    cleanup();
+    loginForceAppPanelTransitionCleanups.delete(element);
+};
+
+const waitForLoginForceAppTransition = (element, duration, callback) => {
+    if (! element) {
+        callback();
+
+        return;
+    }
+
+    clearLoginForceAppPanelTransition(element);
+
+    let finished = false;
+    let fallbackId = null;
+
+    const finish = () => {
+        if (finished) {
+            return;
+        }
+
+        finished = true;
+        element.removeEventListener('transitionend', handleTransitionEnd);
+
+        if (fallbackId !== null) {
+            window.clearTimeout(fallbackId);
+        }
+
+        loginForceAppPanelTransitionCleanups.delete(element);
+        callback();
+    };
+
+    const handleTransitionEnd = (event) => {
+        if (event.target !== element) {
+            return;
+        }
+
+        finish();
+    };
+
+    fallbackId = window.setTimeout(finish, duration + LOGIN_FORCE_APP_TRANSITION_FALLBACK_MS);
+    element.addEventListener('transitionend', handleTransitionEnd);
+
+    loginForceAppPanelTransitionCleanups.set(element, () => {
+        finished = true;
+        element.removeEventListener('transitionend', handleTransitionEnd);
+
+        if (fallbackId !== null) {
+            window.clearTimeout(fallbackId);
+        }
+    });
+};
+
+const setLoginForceAppPanelDuration = (element, duration) => {
+    if (! element) {
+        return;
+    }
+
+    element.style.transitionDuration = `${duration}ms`;
+};
+
+const showLoginForceAppPanel = (element, { immediate = false, duration = LOGIN_FORCE_APP_ENTER_MS, onComplete = null } = {}) => {
+    if (! element) {
+        return;
+    }
+
+    clearLoginForceAppPanelTransition(element);
+    setLoginForceAppPanelDuration(element, duration);
+    element.hidden = false;
+    element.removeAttribute('hidden');
+    element.classList.remove('hidden');
+
+    if (immediate) {
+        element.dataset.loginForceAppState = 'visible';
+        applyLoginForceAppPanelState(element, true);
+        onComplete?.();
+
+        return;
+    }
+
+    element.dataset.loginForceAppState = 'entering';
+    applyLoginForceAppPanelState(element, false);
+    void element.offsetHeight;
+
+    window.requestAnimationFrame(() => {
+        if (element.dataset.loginForceAppState !== 'entering') {
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            if (element.dataset.loginForceAppState !== 'entering') {
+                return;
+            }
+
+            applyLoginForceAppPanelState(element, true);
+
+            waitForLoginForceAppTransition(element, duration, () => {
+                if (element.dataset.loginForceAppState !== 'entering') {
+                    return;
+                }
+
+                element.dataset.loginForceAppState = 'visible';
+                onComplete?.();
+            });
+        });
+    });
+};
+
+const hideLoginForceAppPanel = (element, { immediate = false, duration = LOGIN_FORCE_APP_EXIT_MS, onComplete = null } = {}) => {
+    if (! element) {
+        return;
+    }
+
+    clearLoginForceAppPanelTransition(element);
+    setLoginForceAppPanelDuration(element, duration);
+
+    if (immediate) {
+        element.dataset.loginForceAppState = 'hidden';
+        applyLoginForceAppPanelState(element, false);
+        element.hidden = true;
+        element.setAttribute('hidden', 'hidden');
+        element.classList.add('hidden');
+        onComplete?.();
+
+        return;
+    }
+
+    element.dataset.loginForceAppState = 'leaving';
+    applyLoginForceAppPanelState(element, false);
+
+    waitForLoginForceAppTransition(element, duration, () => {
+        if (element.dataset.loginForceAppState !== 'leaving') {
+            return;
+        }
+
+        element.dataset.loginForceAppState = 'hidden';
+        element.hidden = true;
+        element.setAttribute('hidden', 'hidden');
+        element.classList.add('hidden');
+        onComplete?.();
+    });
+};
+
+const measureLoginForceAppPanelHeight = (root, element) => {
+    if (! root || ! element) {
+        return root?.offsetHeight ?? 0;
+    }
+
+    const previous = {
+        hidden: element.hidden,
+        hadHiddenAttribute: element.hasAttribute('hidden'),
+        hadHiddenClass: element.classList.contains('hidden'),
+        position: element.style.position,
+        inset: element.style.inset,
+        width: element.style.width,
+        visibility: element.style.visibility,
+        pointerEvents: element.style.pointerEvents,
+    };
+
+    element.hidden = false;
+    element.removeAttribute('hidden');
+    element.classList.remove('hidden');
+    element.style.position = 'absolute';
+    element.style.inset = '0 auto auto 0';
+    element.style.width = `${root.clientWidth}px`;
+    element.style.visibility = 'hidden';
+    element.style.pointerEvents = 'none';
+
+    const height = element.offsetHeight;
+
+    element.style.position = previous.position;
+    element.style.inset = previous.inset;
+    element.style.width = previous.width;
+    element.style.visibility = previous.visibility;
+    element.style.pointerEvents = previous.pointerEvents;
+    element.hidden = previous.hidden;
+
+    if (previous.hadHiddenAttribute) {
+        element.setAttribute('hidden', 'hidden');
+    } else {
+        element.removeAttribute('hidden');
+    }
+
+    element.classList.toggle('hidden', previous.hadHiddenClass);
+
+    return height;
+};
+
+const lockLoginForceAppRootHeight = (root, targetPanel) => {
+    if (! root) {
+        return;
+    }
+
+    const currentHeight = root.offsetHeight;
+    const targetHeight = measureLoginForceAppPanelHeight(root, targetPanel);
+    root.style.minHeight = `${Math.max(currentHeight, targetHeight)}px`;
+};
+
+const releaseLoginForceAppRootHeight = (root) => {
+    if (! root) {
+        return;
+    }
+
+    root.style.minHeight = '';
+};
+
 const primeLoginForceAppGate = (root, loading, browserPanel, formPanel) => {
     clearLoginForceAppTimers(root);
+    releaseLoginForceAppRootHeight(root);
 
     delete root.dataset.loginForceAppResolved;
     root.dataset.loginForceAppPending = '1';
     root.dataset.loginForceAppContext = 'pending';
     delete document.documentElement.dataset.capacitorNative;
 
-    toggleVisibility(loading, true);
-    toggleVisibility(browserPanel, false);
-    toggleVisibility(formPanel, false);
+    showLoginForceAppPanel(loading, { immediate: true });
+    hideLoginForceAppPanel(browserPanel, { immediate: true });
+    hideLoginForceAppPanel(formPanel, { immediate: true });
 };
 
 const resolveLoginForceAppGate = (root, loading, browserPanel, formPanel, isNative) => {
@@ -671,9 +897,36 @@ const resolveLoginForceAppGate = (root, loading, browserPanel, formPanel, isNati
     root.dataset.loginForceAppResolved = '1';
     root.dataset.loginForceAppContext = isNative ? 'native' : 'browser';
 
-    toggleVisibility(loading, false);
-    toggleVisibility(browserPanel, ! isNative);
-    toggleVisibility(formPanel, isNative);
+    const targetPanel = isNative ? formPanel : browserPanel;
+    const inactivePanel = isNative ? browserPanel : formPanel;
+
+    lockLoginForceAppRootHeight(root, targetPanel);
+    hideLoginForceAppPanel(inactivePanel, { immediate: true });
+
+    hideLoginForceAppPanel(loading, {
+        duration: LOGIN_FORCE_APP_EXIT_MS,
+        onComplete: () => {
+            if (! document.body.contains(root)) {
+                return;
+            }
+
+            showLoginForceAppPanel(targetPanel, {
+                duration: LOGIN_FORCE_APP_ENTER_MS,
+                onComplete: () => {
+                    releaseLoginForceAppRootHeight(root);
+                },
+            });
+        },
+    });
+
+    if (! loading) {
+        showLoginForceAppPanel(targetPanel, {
+            duration: LOGIN_FORCE_APP_ENTER_MS,
+            onComplete: () => {
+                releaseLoginForceAppRootHeight(root);
+            },
+        });
+    }
 };
 
 const initLoginForceAppGate = () => {

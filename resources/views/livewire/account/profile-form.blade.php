@@ -28,7 +28,7 @@
             </label>
         </div>
 
-        <div class="space-y-2 text-sm font-semibold text-slate-600">
+        <!--<div class="space-y-2 text-sm font-semibold text-slate-600">
             <span>Foto de perfil (máx. 500kb)</span>
             <input type="file" wire:model="profile_photo" accept="image/*" class="w-full rounded-xl border border-edux-line px-4 py-3">
             @error('profile_photo') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
@@ -41,7 +41,7 @@
                 @endif
                 <div wire:loading wire:target="profile_photo" class="text-xs text-slate-500">Carregando imagem...</div>
             </div>
-        </div>
+        </div>-->
 
         <div class="space-y-2 text-sm font-semibold text-slate-600">
             <span>Qualificação</span>
