@@ -34,7 +34,14 @@
                 @endif
                 <div class="flex flex-1 flex-col gap-3 p-4">
                     <div class="flex items-center justify-between text-xs text-slate-500">
-                        <span class="font-semibold text-edux-primary">{{ Str::limit($course->title, 26) }}</span>
+                        <div class="flex min-w-0 items-center gap-2">
+                            <span class="truncate font-semibold text-edux-primary">{{ Str::limit($course->title, 26) }}</span>
+                            @if ($course->access_mode === \App\Models\Course::ACCESS_MODE_FREE)
+                                <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                    Gratuito
+                                </span>
+                            @endif
+                        </div>
                         <span @class([
                             'inline-flex rounded-full px-3 py-0.5 text-xs font-semibold',
                             'bg-amber-100 text-amber-800' => $course->status === 'draft',

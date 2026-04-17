@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CertificateBranding;
 use App\Models\Course;
+use App\Models\CourseWebhookId;
 use App\Models\SupportWhatsappNumber;
 use App\Models\User;
 use App\Support\HandlesCourseAuthorization;
@@ -72,13 +73,14 @@ class CourseController extends Controller
             'remove_certificate_back_background' => ['nullable', 'boolean'],
             'curso_webhook_ids' => ['nullable', 'array'],
             'curso_webhook_ids.*.webhook_id' => ['nullable', 'string', 'max:191'],
-            'curso_webhook_ids.*.platform' => ['nullable', 'string', 'max:191'],
-        ]);
+            'curso_webhook_ids.*.platform' => ['nullable', 'required_with:curso_webhook_ids.*.webhook_id', 'string', 'max:191'],
+        ], $this->courseValidationMessages());
 
         $courseWebhookIds = $hasAdminPrivileges
             ? $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? [])
             : [];
         $this->ensureUniqueCourseWebhookIds($courseWebhookIds);
+        $this->ensureCourseWebhookIdsAvailableForTenant($systemSettingId, $courseWebhookIds);
 
         $ownerId = $hasAdminPrivileges
             ? ($validated['owner_id'] ?? $this->defaultOwnerId($user))
@@ -202,13 +204,14 @@ class CourseController extends Controller
             'cover_image' => ['nullable', 'image', 'max:4096'],
             'curso_webhook_ids' => ['nullable', 'array'],
             'curso_webhook_ids.*.webhook_id' => ['nullable', 'string', 'max:191'],
-            'curso_webhook_ids.*.platform' => ['nullable', 'string', 'max:191'],
-        ]);
+            'curso_webhook_ids.*.platform' => ['nullable', 'required_with:curso_webhook_ids.*.webhook_id', 'string', 'max:191'],
+        ], $this->courseValidationMessages());
 
         $courseWebhookIds = $hasAdminPrivileges
             ? $this->normalizeCourseWebhookIds($validated['curso_webhook_ids'] ?? [])
             : [];
         $this->ensureUniqueCourseWebhookIds($courseWebhookIds);
+        $this->ensureCourseWebhookIdsAvailableForTenant((int) $course->system_setting_id, $courseWebhookIds, $course->id);
 
         DB::transaction(function () use ($course, $courseWebhookIds, $hasAdminPrivileges, $validated): void {
             $course->fill([
@@ -315,7 +318,7 @@ class CourseController extends Controller
     }
 
     /**
-     * @return array<int, array{webhook_id:string, platform:?string}>
+     * @return array<int, array{webhook_id:string, platform:string}>
      */
     private function normalizeCourseWebhookIds(mixed $rawCourseWebhookIds): array
     {
@@ -337,9 +340,15 @@ class CourseController extends Controller
                 continue;
             }
 
+            if ($platform === '') {
+                throw ValidationException::withMessages([
+                    'curso_webhook_ids' => 'Cada ID de webhook do curso precisa informar uma plataforma.',
+                ]);
+            }
+
             $normalized[] = [
                 'webhook_id' => $webhookId,
-                'platform' => $platform !== '' ? $platform : null,
+                'platform' => $platform,
             ];
         }
 
@@ -347,7 +356,7 @@ class CourseController extends Controller
     }
 
     /**
-     * @param  array<int, array{webhook_id:string, platform:?string}>  $courseWebhookIds
+     * @param  array<int, array{webhook_id:string, platform:string}>  $courseWebhookIds
      */
     private function ensureUniqueCourseWebhookIds(array $courseWebhookIds): void
     {
@@ -367,7 +376,42 @@ class CourseController extends Controller
     }
 
     /**
-     * @param  array<int, array{webhook_id:string, platform:?string}>  $courseWebhookIds
+     * @param  array<int, array{webhook_id:string, platform:string}>  $courseWebhookIds
+     */
+    private function ensureCourseWebhookIdsAvailableForTenant(int $systemSettingId, array $courseWebhookIds, ?int $ignoreCourseId = null): void
+    {
+        if ($systemSettingId <= 0 || $courseWebhookIds === []) {
+            return;
+        }
+
+        $webhookIds = collect($courseWebhookIds)
+            ->pluck('webhook_id')
+            ->map(fn (string $webhookId): string => trim($webhookId))
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($webhookIds === []) {
+            return;
+        }
+
+        $conflictingWebhookId = CourseWebhookId::query()
+            ->where('system_setting_id', $systemSettingId)
+            ->whereIn('webhook_id', $webhookIds)
+            ->when($ignoreCourseId !== null, fn ($query) => $query->where('course_id', '!=', $ignoreCourseId))
+            ->value('webhook_id');
+
+        if ($conflictingWebhookId === null) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'curso_webhook_ids' => "O ID de webhook [{$conflictingWebhookId}] já está vinculado a outro curso desta escola.",
+        ]);
+    }
+
+    /**
+     * @param  array<int, array{webhook_id:string, platform:string}>  $courseWebhookIds
      */
     private function syncCourseWebhookIds(Course $course, array $courseWebhookIds): void
     {
@@ -377,7 +421,28 @@ class CourseController extends Controller
             return;
         }
 
+        $systemSettingId = (int) ($course->system_setting_id ?? 0) ?: null;
+
+        $courseWebhookIds = array_map(
+            static fn (array $courseWebhookId): array => [
+                'system_setting_id' => $systemSettingId,
+                'webhook_id' => $courseWebhookId['webhook_id'],
+                'platform' => $courseWebhookId['platform'],
+            ],
+            $courseWebhookIds
+        );
+
         $course->courseWebhookIds()->createMany($courseWebhookIds);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function courseValidationMessages(): array
+    {
+        return [
+            'curso_webhook_ids.*.platform.required_with' => 'Cada ID de webhook do curso precisa informar uma plataforma.',
+        ];
     }
 
     private function generateUniqueSlug(string $title, ?int $ignoreId = null): string

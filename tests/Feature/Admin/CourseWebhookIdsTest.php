@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Course;
 use App\Models\CourseWebhookId;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -30,7 +31,7 @@ class CourseWebhookIdsTest extends TestCase
         $response->assertOk();
         $response->assertSee('IDs de webhook', false);
         $response->assertSee('ID de webhook', false);
-        $response->assertSee('Plataforma (opcional)', false);
+        $response->assertSee('Plataforma', false);
         $response->assertSee('Adicionar', false);
     }
 
@@ -49,7 +50,7 @@ class CourseWebhookIdsTest extends TestCase
             ],
             [
                 'webhook_id' => 'EDU-456',
-                'platform' => null,
+                'platform' => 'Eduzz',
             ],
         ]);
 
@@ -75,7 +76,7 @@ class CourseWebhookIdsTest extends TestCase
                 ],
                 [
                     'webhook_id' => 'EDU-456',
-                    'platform' => '',
+                    'platform' => 'Eduzz',
                 ],
             ],
         ]));
@@ -94,7 +95,7 @@ class CourseWebhookIdsTest extends TestCase
         $this->assertDatabaseHas('curso_webhook_ids', [
             'course_id' => $course->id,
             'webhook_id' => 'EDU-456',
-            'platform' => null,
+            'platform' => 'Eduzz',
         ]);
     }
 
@@ -113,7 +114,7 @@ class CourseWebhookIdsTest extends TestCase
             ],
             [
                 'webhook_id' => 'OLD-2',
-                'platform' => null,
+                'platform' => 'Kiwify',
             ],
         ]);
 
@@ -178,7 +179,61 @@ class CourseWebhookIdsTest extends TestCase
         $this->assertDatabaseCount('curso_webhook_ids', 0);
     }
 
-    public function test_different_courses_can_reuse_same_webhook_id(): void
+    public function test_admin_store_rejects_course_webhook_id_without_platform(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this
+            ->from(route('courses.create'))
+            ->actingAs($admin)
+            ->post(route('courses.store'), $this->coursePayload([
+            'title' => 'Curso Sem Plataforma',
+            'curso_webhook_ids' => [
+                [
+                    'webhook_id' => 'GLOBAL-1',
+                    'platform' => '   ',
+                ],
+            ],
+        ]));
+
+        $response->assertRedirect(route('courses.create'));
+        $response->assertSessionHasErrors([
+            'curso_webhook_ids.0.platform' => 'Cada ID de webhook do curso precisa informar uma plataforma.',
+        ]);
+        $this->assertDatabaseMissing('courses', [
+            'title' => 'Curso Sem Plataforma',
+        ]);
+    }
+
+    public function test_admin_update_rejects_course_webhook_id_without_platform(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $course = $this->makeCourse($admin, [
+            'title' => 'Curso Atualizavel',
+            'slug' => 'curso-atualizavel',
+        ]);
+
+        $response = $this
+            ->from(route('courses.edit', $course))
+            ->actingAs($admin)
+            ->post(route('courses.update.post', $course), $this->coursePayload([
+                'title' => 'Curso Atualizavel',
+                'curso_webhook_ids' => [
+                    [
+                        'webhook_id' => 'GLOBAL-1',
+                        'platform' => '',
+                    ],
+                ],
+            ]));
+
+        $response->assertRedirect(route('courses.edit', $course));
+        $response->assertSessionHasErrors([
+            'curso_webhook_ids.0.platform' => 'Cada ID de webhook do curso precisa informar uma plataforma.',
+        ]);
+        $this->assertDatabaseCount('curso_webhook_ids', 0);
+    }
+
+    public function test_same_tenant_courses_cannot_reuse_same_webhook_id(): void
     {
         $admin = User::factory()->admin()->create();
         $firstCourse = $this->makeCourse($admin, [
@@ -191,8 +246,56 @@ class CourseWebhookIdsTest extends TestCase
             'platform' => 'Hotmart',
         ]);
 
-        $response = $this->actingAs($admin)->post(route('courses.store'), $this->coursePayload([
+        $response = $this
+            ->from(route('courses.create'))
+            ->actingAs($admin)
+            ->post(route('courses.store'), $this->coursePayload([
+                'title' => 'Curso Dois',
+                'curso_webhook_ids' => [
+                    [
+                        'webhook_id' => 'GLOBAL-1',
+                        'platform' => 'Eduzz',
+                    ],
+                ],
+            ]));
+
+        $response->assertRedirect(route('courses.create'));
+        $response->assertSessionHasErrors('curso_webhook_ids');
+        $this->assertDatabaseMissing('courses', [
             'title' => 'Curso Dois',
+        ]);
+    }
+
+    public function test_different_tenants_can_reuse_same_webhook_id(): void
+    {
+        $tenantA = SystemSetting::create([
+            'domain' => 'tenant-a.example.test',
+            'escola_nome' => 'Tenant A',
+        ]);
+        $tenantB = SystemSetting::create([
+            'domain' => 'tenant-b.example.test',
+            'escola_nome' => 'Tenant B',
+        ]);
+
+        $adminA = User::factory()->admin()->create([
+            'system_setting_id' => $tenantA->id,
+        ]);
+        $adminB = User::factory()->admin()->create([
+            'system_setting_id' => $tenantB->id,
+        ]);
+
+        $firstCourse = $this->makeCourse($adminA, [
+            'title' => 'Curso Tenant A',
+            'slug' => 'curso-tenant-a',
+        ]);
+
+        $firstCourse->courseWebhookIds()->create([
+            'webhook_id' => 'GLOBAL-1',
+            'platform' => 'Hotmart',
+        ]);
+
+        $response = $this->actingAs($adminB)->post(route('courses.store'), $this->coursePayload([
+            'title' => 'Curso Tenant B',
             'curso_webhook_ids' => [
                 [
                     'webhook_id' => 'GLOBAL-1',
@@ -201,22 +304,11 @@ class CourseWebhookIdsTest extends TestCase
             ],
         ]));
 
-        $secondCourse = Course::query()->where('title', 'Curso Dois')->firstOrFail();
+        $secondCourse = Course::query()->where('title', 'Curso Tenant B')->firstOrFail();
 
         $response->assertRedirect(route('courses.edit', $secondCourse));
         $response->assertSessionHasNoErrors();
-
-        $this->assertSame(2, CourseWebhookId::query()->where('webhook_id', 'GLOBAL-1')->count());
-        $this->assertDatabaseHas('curso_webhook_ids', [
-            'course_id' => $firstCourse->id,
-            'webhook_id' => 'GLOBAL-1',
-            'platform' => 'Hotmart',
-        ]);
-        $this->assertDatabaseHas('curso_webhook_ids', [
-            'course_id' => $secondCourse->id,
-            'webhook_id' => 'GLOBAL-1',
-            'platform' => 'Eduzz',
-        ]);
+        $this->assertSame(2, CourseWebhookId::withoutGlobalScopes()->where('webhook_id', 'GLOBAL-1')->count());
     }
 
     /**

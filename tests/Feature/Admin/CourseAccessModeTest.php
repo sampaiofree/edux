@@ -90,6 +90,29 @@ class CourseAccessModeTest extends TestCase
         $this->assertSame(Course::ACCESS_MODE_PAID, $course->fresh()->access_mode);
     }
 
+    public function test_admin_dashboard_displays_badge_for_free_course(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->makeCourse($admin, [
+            'title' => 'Curso Livre Dashboard',
+            'slug' => 'curso-livre-dashboard',
+            'access_mode' => Course::ACCESS_MODE_FREE,
+        ]);
+        $this->makeCourse($admin, [
+            'title' => 'Curso Pago Dashboard',
+            'slug' => 'curso-pago-dashboard',
+            'access_mode' => Course::ACCESS_MODE_PAID,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Curso Livre Dashboard', false);
+        $response->assertSee('Curso Pago Dashboard', false);
+        $this->assertSame(1, substr_count($response->getContent(), 'Gratuito'));
+    }
+
     public function test_admin_store_defaults_access_mode_to_paid_when_input_is_omitted(): void
     {
         $admin = User::factory()->admin()->create();

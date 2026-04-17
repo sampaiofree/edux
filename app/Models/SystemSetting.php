@@ -187,6 +187,11 @@ class SystemSetting extends Model
         return $this->hasMany(Course::class);
     }
 
+    public function courseWebhookIds(): HasMany
+    {
+        return $this->hasMany(CourseWebhookId::class);
+    }
+
     public function paymentWebhookLinks(): HasMany
     {
         return $this->hasMany(PaymentWebhookLink::class);

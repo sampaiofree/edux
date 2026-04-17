@@ -178,6 +178,11 @@
                         return;
                     }
 
+                    if (platform === '') {
+                        this.error = 'Informe a plataforma do ID de webhook antes de adicionar.';
+                        return;
+                    }
+
                     const duplicate = this.items.some((item) => this.normalize(item.webhook_id).toLowerCase() === webhookId.toLowerCase());
                     if (duplicate) {
                         this.error = 'Este ID de webhook já foi adicionado.';
@@ -203,7 +208,7 @@
         >
             <div>
                 <p class="text-sm font-semibold text-slate-800">IDs de webhook</p>
-                <p class="text-xs text-slate-500">Adicione múltiplos IDs por curso. Cada item pode ter uma plataforma opcional.</p>
+                <p class="text-xs text-slate-500">Adicione múltiplos IDs por curso. Cada item deve informar a plataforma.</p>
             </div>
 
             <div class="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] md:items-end">
@@ -220,7 +225,7 @@
                 </label>
 
                 <label class="space-y-1 text-sm font-semibold text-slate-600">
-                    <span>Plataforma (opcional)</span>
+                    <span>Plataforma</span>
                     <input
                         x-model="draftPlatform"
                         x-on:keydown.enter.prevent="add()"

@@ -433,7 +433,7 @@ class PaymentWebhookProcessor
                 }
             }])
             ->where('webhook_id', $courseReference)
-            ->when($systemSettingId !== null, fn ($query) => $query->whereHas('course', fn ($courseQuery) => $courseQuery->where('system_setting_id', $systemSettingId)))
+            ->when($systemSettingId !== null, fn ($query) => $query->where('system_setting_id', $systemSettingId))
             ->get();
 
         if ($matches->count() !== 1) {
