@@ -21,6 +21,10 @@ return new class extends Migration
         }
 
         Schema::table('curso_webhook_ids', function (Blueprint $table): void {
+            $table->index('course_id', 'curso_webhook_ids_course_id_index');
+        });
+
+        Schema::table('curso_webhook_ids', function (Blueprint $table): void {
             $table->dropUnique('curso_webhook_ids_course_webhook_unique');
             $table->dropIndex('curso_webhook_ids_system_webhook_index');
             $table->unique(['system_setting_id', 'webhook_id'], 'curso_webhook_ids_system_webhook_unique');
@@ -33,6 +37,10 @@ return new class extends Migration
             $table->dropUnique('curso_webhook_ids_system_webhook_unique');
             $table->index(['system_setting_id', 'webhook_id'], 'curso_webhook_ids_system_webhook_index');
             $table->unique(['course_id', 'webhook_id'], 'curso_webhook_ids_course_webhook_unique');
+        });
+
+        Schema::table('curso_webhook_ids', function (Blueprint $table): void {
+            $table->dropIndex('curso_webhook_ids_course_id_index');
         });
     }
 };
