@@ -26,6 +26,12 @@ return new class extends Migration
             });
         }
 
+        if (! $this->hasIndexForColumns('curso_webhook_ids', ['system_setting_id'])) {
+            Schema::table('curso_webhook_ids', function (Blueprint $table): void {
+                $table->index('system_setting_id', 'curso_webhook_ids_system_setting_id_index');
+            });
+        }
+
         if ($this->hasIndexNamed('curso_webhook_ids', 'curso_webhook_ids_course_webhook_unique')) {
             Schema::table('curso_webhook_ids', function (Blueprint $table): void {
                 $table->dropUnique('curso_webhook_ids_course_webhook_unique');
@@ -68,6 +74,12 @@ return new class extends Migration
         if ($this->hasIndexNamed('curso_webhook_ids', 'curso_webhook_ids_course_id_index')) {
             Schema::table('curso_webhook_ids', function (Blueprint $table): void {
                 $table->dropIndex('curso_webhook_ids_course_id_index');
+            });
+        }
+
+        if ($this->hasIndexNamed('curso_webhook_ids', 'curso_webhook_ids_system_setting_id_index')) {
+            Schema::table('curso_webhook_ids', function (Blueprint $table): void {
+                $table->dropIndex('curso_webhook_ids_system_setting_id_index');
             });
         }
     }
