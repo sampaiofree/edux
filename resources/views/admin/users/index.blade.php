@@ -119,7 +119,13 @@
                 </table>
             </div>
 
-            {{ $users->links() }}
+            <div class="flex flex-col gap-3 border-t border-slate-100 pt-4 md:flex-row md:items-center md:justify-between">
+                <p class="text-sm font-medium text-slate-600">
+                    Total de registros: {{ $users->total() }}
+                </p>
+
+                {{ $users->links() }}
+            </div>
         </div>
     </section>
 @endsection

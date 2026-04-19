@@ -36,6 +36,7 @@ class UserIndexAndExportTest extends TestCase
         $response->assertSee('Curso matriculado');
         $response->assertSee('Todos os cursos');
         $response->assertSee('Exportar CSV');
+        $response->assertSeeText('Total de registros: '.User::query()->count());
     }
 
     public function test_admin_can_filter_users_by_created_from(): void
@@ -153,7 +154,29 @@ class UserIndexAndExportTest extends TestCase
         $response->assertOk();
         $response->assertSee($multiCourseUser->name);
         $response->assertDontSee($otherCourseUser->name);
+        $response->assertSeeText('Total de registros: 1');
         $this->assertSame(1, substr_count($response->getContent(), $multiCourseUser->name));
+    }
+
+    public function test_admin_sees_zero_total_when_filters_return_no_results(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $course = $this->createCourseForTenant($admin, 'curso-zero', 'Curso Zero');
+        $user = $this->createStudentForTenant($admin, [
+            'name' => 'Has Enrollment',
+            'email' => 'has-enrollment@example.com',
+        ]);
+
+        $this->enrollUserInCourse($user, $course);
+
+        $response = $this->actingAs($admin)->get(route('admin.users.index', [
+            'search' => 'No Matching User',
+            'course_id' => $course->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertSeeText('Total de registros: 0');
+        $response->assertSee('Nenhum usuário encontrado.');
     }
 
     public function test_admin_can_combine_search_date_and_course_filters(): void
