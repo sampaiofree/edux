@@ -7,12 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\SystemSetting;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
@@ -23,20 +26,46 @@ class UserController extends Controller
 
     public function index(Request $request): View
     {
-        $search = (string) $request->query('search', '');
+        $filters = $this->filters($request);
+        $courses = Course::query()
+            ->orderBy('title')
+            ->get(['id', 'title']);
 
-        $users = User::query()
-            ->when($search, fn ($query) => $query
-                ->where(function ($sub) use ($search) {
-                    $sub->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('whatsapp', 'like', "%{$search}%");
-                }))
-            ->orderBy('name')
+        $users = $this->filteredUsersQuery($filters)
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.users.index', compact('users', 'search'));
+        return view('admin.users.index', [
+            'users' => $users,
+            'search' => $filters['search'],
+            'createdFrom' => $filters['createdFrom'],
+            'createdTo' => $filters['createdTo'],
+            'courseId' => $filters['courseId'],
+            'courses' => $courses,
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $filters = $this->filters($request);
+        $users = $this->filteredUsersQuery($filters)->cursor();
+
+        return $this->streamCsv(
+            'usuarios-filtrados',
+            ['id', 'nome', 'email', 'papel', 'whatsapp', 'data_cadastro'],
+            function ($handle) use ($users): void {
+                foreach ($users as $user) {
+                    fputcsv($handle, [
+                        $user->id,
+                        $user->preferredName(),
+                        $user->email,
+                        $user->role->label(),
+                        $user->whatsapp ?? '',
+                        $user->created_at?->format('Y-m-d H:i:s') ?? '',
+                    ], ';');
+                }
+            }
+        );
     }
 
     public function edit(User $user): View
@@ -115,5 +144,116 @@ class UserController extends Controller
         if ($messages !== []) {
             throw ValidationException::withMessages($messages);
         }
+    }
+
+    /**
+     * @param  array{
+     *     search:string,
+     *     createdFrom:string,
+     *     createdTo:string,
+     *     from:?Carbon,
+     *     to:?Carbon,
+     *     courseId:?int
+     * }  $filters
+     */
+    private function filteredUsersQuery(array $filters): Builder
+    {
+        return User::query()
+            ->when($filters['search'] !== '', function (Builder $query) use ($filters): void {
+                $search = $filters['search'];
+
+                $query->where(function (Builder $subQuery) use ($search): void {
+                    $subQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('whatsapp', 'like', "%{$search}%");
+                });
+            })
+            ->when($filters['from'], fn (Builder $query, Carbon $from) => $query->where('created_at', '>=', $from))
+            ->when($filters['to'], fn (Builder $query, Carbon $to) => $query->where('created_at', '<=', $to))
+            ->when($filters['courseId'] !== null, function (Builder $query) use ($filters): void {
+                $query->whereHas('enrollments', function (Builder $enrollmentQuery) use ($filters): void {
+                    $enrollmentQuery->where('course_id', $filters['courseId']);
+                });
+            })
+            ->orderBy('name');
+    }
+
+    /**
+     * @return array{
+     *     search:string,
+     *     createdFrom:string,
+     *     createdTo:string,
+     *     from:?Carbon,
+     *     to:?Carbon,
+     *     courseId:?int
+     * }
+     */
+    private function filters(Request $request): array
+    {
+        $search = trim((string) $request->query('search', ''));
+        $from = $this->parseDate((string) $request->query('created_from', ''));
+        $to = $this->parseDate((string) $request->query('created_to', ''));
+
+        return [
+            'search' => $search,
+            'createdFrom' => $from?->toDateString() ?? '',
+            'createdTo' => $to?->toDateString() ?? '',
+            'from' => $from?->startOfDay(),
+            'to' => $to?->endOfDay(),
+            'courseId' => $this->resolveCourseFilterId((string) $request->query('course_id', '')),
+        ];
+    }
+
+    private function parseDate(string $value): ?Carbon
+    {
+        if (trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveCourseFilterId(string $value): ?int
+    {
+        $value = trim($value);
+
+        if ($value === '' || ! ctype_digit($value)) {
+            return null;
+        }
+
+        $courseId = (int) $value;
+
+        return Course::query()->whereKey($courseId)->exists()
+            ? $courseId
+            : null;
+    }
+
+    /**
+     * @param  array<int, string>  $header
+     * @param  \Closure(resource): void  $writer
+     */
+    private function streamCsv(string $prefix, array $header, \Closure $writer): StreamedResponse
+    {
+        $filename = sprintf('%s-%s.csv', $prefix, now()->format('Ymd-His'));
+
+        return response()->streamDownload(function () use ($header, $writer): void {
+            $handle = fopen('php://output', 'wb');
+
+            if (! is_resource($handle)) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, $header, ';');
+            $writer($handle);
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        ]);
     }
 }

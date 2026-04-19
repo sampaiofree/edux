@@ -200,6 +200,8 @@ Route::middleware(['auth'])->group(function (): void {
                 // Listagem de usuários
                 Route::get('users', [UserController::class, 'index'])
                     ->name('admin.users.index');
+                Route::get('users/export', [UserController::class, 'export'])
+                    ->name('admin.users.export');
                 // Criar novo usuário via formulário
                 Route::get('users/create', fn () => view('admin.users.create'))
                     ->name('admin.users.create');

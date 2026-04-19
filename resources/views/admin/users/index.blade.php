@@ -3,6 +3,15 @@
 @section('title', 'Usuários')
 
 @section('content')
+    @php
+        $exportQuery = array_filter([
+            'search' => $search,
+            'created_from' => $createdFrom,
+            'created_to' => $createdTo,
+            'course_id' => $courseId,
+        ], static fn ($value): bool => $value !== null && $value !== '');
+    @endphp
+
     <section class="space-y-6">
         <header class="rounded-card bg-white p-6 shadow-card flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -16,18 +25,62 @@
         </header>
 
         <div class="rounded-card bg-white p-6 shadow-card space-y-4">
-            <form method="GET" class="flex flex-col gap-3 md:flex-row">
-                <label class="flex-1 text-sm font-semibold text-slate-600">
-                    <span class="sr-only">Buscar</span>
+            <form method="GET" class="grid gap-3 lg:grid-cols-5">
+                <label class="text-sm font-semibold text-slate-600 lg:col-span-2">
+                    <span>Buscar</span>
                     <input
                         type="search"
                         name="search"
                         value="{{ $search }}"
                         placeholder="Nome, e-mail ou WhatsApp"
-                        class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                        class="mt-1 w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
                     >
                 </label>
-                <button type="submit" class="edux-btn w-full md:w-auto">Buscar</button>
+
+                <label class="text-sm font-semibold text-slate-600">
+                    <span>Cadastro inicial</span>
+                    <input
+                        type="date"
+                        name="created_from"
+                        value="{{ $createdFrom }}"
+                        class="mt-1 w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                    >
+                </label>
+
+                <label class="text-sm font-semibold text-slate-600">
+                    <span>Cadastro final</span>
+                    <input
+                        type="date"
+                        name="created_to"
+                        value="{{ $createdTo }}"
+                        class="mt-1 w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                    >
+                </label>
+
+                <label class="text-sm font-semibold text-slate-600">
+                    <span>Curso matriculado</span>
+                    <select
+                        name="course_id"
+                        class="mt-1 w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                    >
+                        <option value="">Todos os cursos</option>
+                        @foreach ($courses as $course)
+                            <option value="{{ $course->id }}" @selected($courseId === $course->id)>
+                                {{ $course->title }}
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <div class="flex flex-wrap gap-3 lg:col-span-5">
+                    <button type="submit" class="edux-btn w-full md:w-auto">Buscar</button>
+                    <a href="{{ route('admin.users.index') }}" class="edux-btn w-full bg-white text-edux-primary md:w-auto">
+                        Limpar filtros
+                    </a>
+                    <a href="{{ route('admin.users.export', $exportQuery) }}" class="edux-btn w-full bg-white text-edux-primary md:w-auto">
+                        Exportar CSV
+                    </a>
+                </div>
             </form>
 
             <div class="overflow-auto">
