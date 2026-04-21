@@ -346,6 +346,23 @@
                 }
             };
 
+            const isWhatsappHref = (href) => {
+                const normalized = normalizeUrl(href);
+                if (!normalized) return false;
+
+                try {
+                    const url = new URL(normalized);
+                    const hostname = String(url.hostname || '').toLowerCase();
+
+                    return hostname === 'wa.me'
+                        || hostname.endsWith('.wa.me')
+                        || hostname === 'api.whatsapp.com'
+                        || hostname.endsWith('.whatsapp.com');
+                } catch (_) {
+                    return normalized.includes('wa.me/') || normalized.includes('whatsapp.com/');
+                }
+            };
+
             const buildCourseViewContentPayload = (card) => {
                 const courseId = Number(card.dataset.courseId || 0) || null;
                 const courseSlug = String(card.dataset.courseSlug || '').trim();
@@ -410,22 +427,29 @@
                     const currentUrl = normalizeUrl(href);
                     const isWaitlist = waitlistUrl !== '' && currentUrl === waitlistUrl;
                     const isCoursePage = courseUrl !== '' && currentUrl === courseUrl;
+                    const isWhatsappDestination = isWaitlist || isWhatsappHref(currentUrl);
                     const viewContentPayload = buildCourseViewContentPayload(card);
 
-                    window.homeMetaTrackStandard('ViewContent', viewContentPayload);
-                    window.homeMetaTrackStandard('Lead', {
-                        ...viewContentPayload,
-                        lead_channel: isWaitlist ? 'whatsapp' : 'course_page',
-                        destination_type: isWaitlist ? 'whatsapp' : (isCoursePage ? 'course_page' : 'external'),
-                    });
+                    if (isWhatsappDestination) {
+                        window.homeMetaTrackStandard('Lead', {
+                            ...viewContentPayload,
+                            lead_channel: 'whatsapp',
+                            destination_type: 'whatsapp',
+                        });
+                    } else if (isCoursePage) {
+                        window.homeMetaTrackStandard('ViewContent', viewContentPayload);
+                    }
+
                     window.eduxFirstPartyFlush?.();
 
-                    if (!isCoursePage || shouldKeepDefaultNavigation(event, link)) {
+                    if ((!isCoursePage && !isWhatsappDestination) || shouldKeepDefaultNavigation(event, link)) {
                         return;
                     }
 
                     event.preventDefault();
-                    const nextHref = withViewContentPrefiredFlag(href);
+                    const nextHref = isCoursePage
+                        ? withViewContentPrefiredFlag(href)
+                        : href;
 
                     window.setTimeout(() => {
                         window.location.assign(nextHref);

@@ -150,6 +150,10 @@ class HomePageTest extends TestCase
         $response->assertSee('data-course-position="1"', false);
         $response->assertSee('window.homeMetaTrackStandard(\'ViewContent\'', false);
         $response->assertSee('window.homeMetaTrackStandard(\'Lead\'', false);
+        $response->assertSee('const isWhatsappDestination = isWaitlist || isWhatsappHref(currentUrl);', false);
+        $response->assertSee("lead_channel: 'whatsapp'", false);
+        $response->assertSee("} else if (isCoursePage) {", false);
+        $response->assertDontSee("lead_channel: isWaitlist ? 'whatsapp' : 'course_page'", false);
         $response->assertSee("url.searchParams.set('edux_vc_prefired', '1')", false);
     }
 
