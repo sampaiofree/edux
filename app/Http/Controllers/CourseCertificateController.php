@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Certificate;
 use App\Models\CertificateBranding;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Support\EnsuresStudentEnrollment;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -19,7 +20,7 @@ class CourseCertificateController extends Controller
     public function show(Request $request, Course $course, Certificate $certificate): View
     {
         $user = $request->user();
-        $this->ensureEnrollment($user, $course);
+        $enrollment = $this->ensureEnrollment($user, $course);
 
         abort_if($certificate->course_id !== $course->id || $certificate->user_id !== $user->id, 403);
 
@@ -28,15 +29,16 @@ class CourseCertificateController extends Controller
         $issuedAt = $certificate->issued_at ?? now();
         $publicUrl = route('certificates.verify', $certificate->public_token);
 
-        $frontContent = view('learning.certificates.templates.front', [
+        $frontContent = $certificate->front_content ?: view('learning.certificates.templates.front', [
             'course' => $course,
             'branding' => $branding,
             'displayName' => $displayName,
             'issuedAt' => $issuedAt,
             'publicUrl' => $publicUrl,
+            'certificateWorkloadMinutes' => $enrollment->effectiveCertificateWorkloadMinutes($course),
         ])->render();
 
-        $backContent = view('learning.certificates.templates.back', [
+        $backContent = $certificate->back_content ?: view('learning.certificates.templates.back', [
             'course' => $course,
             'branding' => $branding,
         ])->render();
@@ -81,7 +83,12 @@ class CourseCertificateController extends Controller
         $branding = $this->resolveBranding($course);
         $publicUrl = route('certificates.verify', $certificate->public_token);
         $qrDataUri = $this->qrDataUri($publicUrl);
-        $frontContent = view('learning.certificates.templates.front', [
+        $enrollment = Enrollment::query()
+            ->where('course_id', $course->id)
+            ->where('user_id', $certificate->user_id)
+            ->first();
+
+        $frontContent = $certificate->front_content ?: view('learning.certificates.templates.front', [
             'course' => $course,
             'branding' => $branding,
             'displayName' => $certificate->user->preferredName(),
@@ -89,9 +96,10 @@ class CourseCertificateController extends Controller
             'publicUrl' => $publicUrl,
             'qrDataUri' => $qrDataUri,
             'mode' => 'pdf',
+            'certificateWorkloadMinutes' => $enrollment?->effectiveCertificateWorkloadMinutes($course),
         ])->render();
 
-        $backContent = view('learning.certificates.templates.back', [
+        $backContent = $certificate->back_content ?: view('learning.certificates.templates.back', [
             'course' => $course,
             'branding' => $branding,
             'mode' => 'pdf',

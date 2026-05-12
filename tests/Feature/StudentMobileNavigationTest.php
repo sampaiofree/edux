@@ -168,15 +168,28 @@ class StudentMobileNavigationTest extends TestCase
 
     public function test_certificate_index_links_to_full_page_generation_flow_without_modal_markup(): void
     {
+        $admin = $this->defaultTenantAdmin();
         $student = $this->defaultTenantStudent([
             'email' => 'aluno-modal-cert@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-modal-cert', 'Curso Modal Cert');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
         ]);
 
         $response = $this->actingAs($student)->get(route('certificado.index'));
 
         $response->assertOk();
-        $response->assertSee('href="'.route('certificado.create').'"', false);
+        $response->assertSee($course->title);
+        $response->assertSee('href="'.route('certificado.create', ['course_id' => $course->id]).'"', false);
         $response->assertSee('Gerar certificado');
+        $response->assertSee('Gerar novo certificado');
         $response->assertDontSee('data-certificate-modal-shell="1"', false);
         $response->assertDontSee('modalOpen', false);
     }
@@ -216,6 +229,16 @@ class StudentMobileNavigationTest extends TestCase
         ]);
         $course = $this->createCourseForTenant($admin, 'curso-cert-index', 'Curso Cert Index');
 
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'certificate_issuance_blocked' => true,
+        ]);
+
         $certificate = Certificate::create([
             'course_id' => $course->id,
             'user_id' => $student->id,
@@ -237,6 +260,71 @@ class StudentMobileNavigationTest extends TestCase
         $this->assertStringContainsString('data-certificate-download-url="'.route('learning.courses.certificate.download', [$course, $certificate]).'"', $html);
         $this->assertStringContainsString('data-certificate-public-url="'.route('certificates.verify', $certificate->public_token).'"', $html);
         $this->assertStringContainsString('data-native-label="Compartilhar PDF"', $html);
+        $this->assertStringContainsString('Baixar certificado', $html);
+    }
+
+    public function test_certificate_index_lists_only_accessible_enrolled_courses(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-cert-access@example.com',
+        ]);
+        $accessibleCourse = $this->createCourseForTenant($admin, 'curso-cert-access', 'Curso Cert Access');
+        $blockedCourse = $this->createCourseForTenant($admin, 'curso-cert-blocked', 'Curso Cert Blocked');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $accessibleCourse->id,
+            'user_id' => $student->id,
+            'progress_percent' => 45,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+        ]);
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $blockedCourse->id,
+            'user_id' => $student->id,
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::BLOCKED->value,
+        ]);
+
+        $response = $this->actingAs($student)->get(route('certificado.index'));
+
+        $response->assertOk();
+        $response->assertSee($accessibleCourse->title);
+        $response->assertSee('Progresso 45%');
+        $response->assertSee('Gerar certificado');
+        $response->assertDontSee($blockedCourse->title);
+    }
+
+    public function test_certificate_index_shows_support_action_when_certificate_issuance_is_blocked(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $admin->systemSetting->update([
+            'school_whatsapp' => '55 (11) 99999-0000',
+        ]);
+        $student = $this->defaultTenantStudent([
+            'email' => 'aluno-cert-issuance-blocked@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-cert-issuance-blocked', 'Curso Cert Issuance Blocked');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'progress_percent' => 100,
+            'completed_at' => now(),
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'certificate_issuance_blocked' => true,
+        ]);
+
+        $response = $this->actingAs($student)->get(route('certificado.index'));
+
+        $response->assertOk();
+        $response->assertSee($course->title);
+        $response->assertSee(Enrollment::CERTIFICATE_ISSUANCE_BLOCKED_MESSAGE);
+        $response->assertSee('Falar com suporte');
+        $this->assertStringContainsString('https://wa.me/5511999990000?text=', $response->getContent());
     }
 
     public function test_student_dashboard_lists_free_courses_when_student_has_no_enrollments(): void

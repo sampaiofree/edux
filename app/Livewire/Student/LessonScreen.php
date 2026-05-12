@@ -6,6 +6,7 @@ use App\Models\Certificate;
 use App\Models\CertificateBranding;
 use App\Models\CertificatePayment;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\LessonCompletion;
 use App\Models\SystemSetting;
@@ -110,6 +111,11 @@ class LessonScreen extends Component
 
     public function requestCertificate(): void
     {
+        if (! $this->certificate && $this->enrollment?->certificate_issuance_blocked) {
+            $this->errorMessage = Enrollment::CERTIFICATE_ISSUANCE_BLOCKED_MESSAGE;
+            return;
+        }
+
         if (! $this->certificate && ! $this->hasPaidCertificate) {
             $this->errorMessage = 'Antes de emitir o certificado finalize o pagamento. Use a aba "Suporte" para receber instruÃ§Ãµes.';
             return;
@@ -146,6 +152,7 @@ class LessonScreen extends Component
                 'publicUrl' => $publicUrl,
                 'settings' => $settings,
                 'qrDataUri' => $qrDataUri,
+                'certificateWorkloadMinutes' => $this->enrollment->effectiveCertificateWorkloadMinutes($this->course),
             ])->render();
 
             $certificate->back_content = view('learning.certificates.templates.back', [

@@ -52,7 +52,9 @@ class PublicSignupTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('data-login-force-app-root="1"', false);
-        $response->assertSee('Ainda não tem conta? Criar conta');
+        $response->assertSee('data-login-force-app-browser-form="1"', false);
+        $response->assertSee('Ainda não tem conta?');
+        $response->assertSee('Criar conta');
         $response->assertSee(route('signup.create', absolute: false), false);
     }
 

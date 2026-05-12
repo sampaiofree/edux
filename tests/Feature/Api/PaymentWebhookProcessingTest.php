@@ -79,6 +79,12 @@ class PaymentWebhookProcessingTest extends TestCase
             'course_id' => $course->id,
             'access_status' => EnrollmentAccessStatus::ACTIVE->value,
         ]);
+        $enrollment = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->firstOrFail();
+        $this->assertFalse($enrollment->certificate_issuance_blocked);
+        $this->assertNull($enrollment->certificate_issuance_block_reason);
         $this->assertDatabaseHas('tracking_events', [
             'event_name' => 'PurchaseApproved',
             'event_source' => 'payment_webhook',
@@ -128,6 +134,137 @@ class PaymentWebhookProcessingTest extends TestCase
         ]);
         Mail::assertSent(WelcomePaymentUser::class, 1);
         Mail::assertNotSent(CourseEnrollmentNotification::class);
+    }
+
+    public function test_register_get_query_can_block_certificate_issuance(): void
+    {
+        [$link, $course, $courseWebhookId] = $this->buildWebhookContext();
+
+        $payload = $this->webhookPayload(
+            'student-certificate-blocked@example.com',
+            $courseWebhookId,
+            'Aluno Certificado Bloqueado',
+            '5511955550000'
+        );
+        $payload['certificate_blocked'] = '1';
+        $payload['certificate_block_reason'] = 'Pagamento pendente';
+
+        $response = $this->get('/api/webhooks/in/'.$link->endpoint_uuid.'?'.http_build_query($payload, '', '&', PHP_QUERY_RFC3986));
+
+        $user = User::query()->where('email', 'student-certificate-blocked@example.com')->firstOrFail();
+        $enrollment = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_CREATED);
+
+        $this->assertTrue($enrollment->certificate_issuance_blocked);
+        $this->assertSame('Pagamento pendente', $enrollment->certificate_issuance_block_reason);
+    }
+
+    public function test_register_json_payload_can_block_certificate_issuance_with_mapped_fields(): void
+    {
+        [$link, $course, $courseWebhookId] = $this->buildWebhookContext();
+
+        $payload = $this->webhookPayload(
+            'student-certificate-mapped@example.com',
+            $courseWebhookId,
+            'Aluno Certificado Mapeado',
+            '5511955551111'
+        );
+        $payload['certificate'] = [
+            'blocked' => 'sim',
+            'reason' => 'Contrato pendente',
+        ];
+
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $payload);
+
+        $user = User::query()->where('email', 'student-certificate-mapped@example.com')->firstOrFail();
+        $enrollment = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $response->assertJsonPath('details.enrollment_result', PaymentWebhookProcessor::ENROLLMENT_CREATED);
+
+        $this->assertTrue($enrollment->certificate_issuance_blocked);
+        $this->assertSame('Contrato pendente', $enrollment->certificate_issuance_block_reason);
+    }
+
+    public function test_register_without_certificate_block_field_preserves_existing_certificate_block(): void
+    {
+        [$link, $course, $courseWebhookId] = $this->buildWebhookContext();
+
+        $user = User::factory()->create([
+            'system_setting_id' => $course->system_setting_id,
+            'email' => 'student-preserve-certificate-block@example.com',
+        ]);
+
+        Enrollment::create([
+            'course_id' => $course->id,
+            'user_id' => $user->id,
+            'progress_percent' => 0,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'completed_at' => null,
+            'certificate_issuance_blocked' => true,
+            'certificate_issuance_block_reason' => 'Analise interna',
+        ]);
+
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $this->webhookPayload(
+            'student-preserve-certificate-block@example.com',
+            $courseWebhookId,
+            'Aluno Preservar Bloqueio'
+        ));
+
+        $enrollment = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $this->assertTrue($enrollment->certificate_issuance_blocked);
+        $this->assertSame('Analise interna', $enrollment->certificate_issuance_block_reason);
+    }
+
+    public function test_register_with_certificate_block_zero_unblocks_existing_certificate_issuance(): void
+    {
+        [$link, $course, $courseWebhookId] = $this->buildWebhookContext();
+
+        $user = User::factory()->create([
+            'system_setting_id' => $course->system_setting_id,
+            'email' => 'student-unblock-certificate@example.com',
+        ]);
+
+        Enrollment::create([
+            'course_id' => $course->id,
+            'user_id' => $user->id,
+            'progress_percent' => 0,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'completed_at' => null,
+            'certificate_issuance_blocked' => true,
+            'certificate_issuance_block_reason' => 'Pagamento pendente',
+        ]);
+
+        $payload = $this->webhookPayload(
+            'student-unblock-certificate@example.com',
+            $courseWebhookId,
+            'Aluno Liberar Certificado'
+        );
+        $payload['certificate_blocked'] = '0';
+
+        $response = $this->postJson('/api/webhooks/in/'.$link->endpoint_uuid, $payload);
+
+        $enrollment = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->firstOrFail();
+
+        $this->assertWebhookResponse($response, 200, 'processed', 'approved', 'approve');
+        $this->assertFalse($enrollment->certificate_issuance_blocked);
+        $this->assertNull($enrollment->certificate_issuance_block_reason);
     }
 
     public function test_get_webhook_hmac_uses_query_string_as_signature_payload(): void
@@ -793,6 +930,8 @@ class PaymentWebhookProcessingTest extends TestCase
             [PaymentFieldMapping::FIELD_BUYER_EMAIL, 'customer.email'],
             [PaymentFieldMapping::FIELD_COURSE_ID, 'course.id'],
             [PaymentFieldMapping::FIELD_BUYER_WHATSAPP, 'customer.whatsapp'],
+            [PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCKED, 'certificate.blocked'],
+            [PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON, 'certificate.reason'],
         ];
 
         foreach ($mappings as [$fieldKey, $jsonPath]) {

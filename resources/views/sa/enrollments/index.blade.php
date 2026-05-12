@@ -64,6 +64,11 @@
                                     @else
                                         <span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Ativo</span>
                                     @endif
+                                    @if ($enrollment->certificate_issuance_blocked)
+                                        <p class="mt-1">
+                                            <span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">Certificado bloqueado</span>
+                                        </p>
+                                    @endif
                                 </td>
                                 <td class="py-3">{{ $enrollment->progress_percent ?? 0 }}%</td>
                                 <td class="py-3">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\CertificateBranding;
 use App\Models\Course;
+use App\Models\Enrollment;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -61,7 +62,12 @@ class GeneratedCertificateController extends Controller
             ? route('certificates.verify', $certificate->public_token)
             : null;
         $qrDataUri = $this->qrDataUri($publicUrl);
-        $frontContent = view('learning.certificates.templates.front', [
+        $enrollment = Enrollment::query()
+            ->where('course_id', $course->id)
+            ->where('user_id', $certificate->user_id)
+            ->first();
+
+        $frontContent = $certificate->front_content ?: view('learning.certificates.templates.front', [
             'course' => $course,
             'branding' => $branding,
             'displayName' => $certificate->user->preferredName(),
@@ -69,9 +75,10 @@ class GeneratedCertificateController extends Controller
             'publicUrl' => $publicUrl,
             'qrDataUri' => $qrDataUri,
             'mode' => 'pdf',
+            'certificateWorkloadMinutes' => $enrollment?->effectiveCertificateWorkloadMinutes($course),
         ])->render();
 
-        $backContent = view('learning.certificates.templates.back', [
+        $backContent = $certificate->back_content ?: view('learning.certificates.templates.back', [
             'course' => $course,
             'branding' => $branding,
             'mode' => 'pdf',

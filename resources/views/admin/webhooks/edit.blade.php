@@ -117,6 +117,8 @@
                     'buyer_email' => 'Email do aluno/comprador',
                     'course_id' => 'ID externo do curso; comparado com curso_webhook_ids.webhook_id',
                     'buyer_whatsapp' => 'WhatsApp do aluno/comprador; salvo em users.whatsapp',
+                    'certificate_issuance_blocked' => 'Use 1/true/sim para bloquear e 0/false/nao para liberar',
+                    'certificate_issuance_block_reason' => 'Observacao interna opcional para o bloqueio do certificado',
                 ];
             @endphp
             <h2 class="font-semibold text-edux-primary">Mapeamento de campos</h2>

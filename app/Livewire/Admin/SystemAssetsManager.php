@@ -26,6 +26,8 @@ class SystemAssetsManager extends Component
 
     public ?string $escola_cnpj = null;
 
+    public ?string $school_whatsapp = null;
+
     public ?string $owner_user_id = null;
 
     public ?string $meta_ads_pixel = null;
@@ -113,6 +115,7 @@ class SystemAssetsManager extends Component
             'domain' => $this->domainRules(),
             'escola_nome' => ['nullable', 'string', 'max:255'],
             'escola_cnpj' => ['nullable', 'string', 'max:32'],
+            'school_whatsapp' => ['nullable', 'string', 'max:32'],
             'meta_ads_pixel' => ['nullable', 'string', 'max:64'],
             'play_store_link' => ['nullable', 'string', 'url', 'max:2048'],
             'apple_store_link' => ['nullable', 'string', 'url', 'max:2048'],
@@ -169,6 +172,7 @@ class SystemAssetsManager extends Component
             'domain' => $this->domainRules(),
             'escola_nome' => ['nullable', 'string', 'max:255'],
             'escola_cnpj' => ['nullable', 'string', 'max:32'],
+            'school_whatsapp' => ['nullable', 'string', 'max:32'],
             'play_store_link' => ['nullable', 'string', 'url', 'max:2048'],
             'apple_store_link' => ['nullable', 'string', 'url', 'max:2048'],
             'force_app' => ['boolean'],
@@ -183,6 +187,7 @@ class SystemAssetsManager extends Component
         $domain = SystemSetting::normalizeDomain($this->domain);
         $escolaNome = trim((string) ($this->escola_nome ?? ''));
         $escolaCnpj = trim((string) ($this->escola_cnpj ?? ''));
+        $schoolWhatsapp = trim((string) ($this->school_whatsapp ?? ''));
         $playStoreLink = $this->normalizeOptional($this->play_store_link);
         $appleStoreLink = $this->normalizeOptional($this->apple_store_link);
 
@@ -190,6 +195,7 @@ class SystemAssetsManager extends Component
             'domain' => $domain,
             'escola_nome' => $escolaNome !== '' ? $escolaNome : null,
             'escola_cnpj' => $escolaCnpj !== '' ? $escolaCnpj : null,
+            'school_whatsapp' => $schoolWhatsapp !== '' ? $schoolWhatsapp : null,
             'play_store_link' => $playStoreLink,
             'apple_store_link' => $appleStoreLink,
             'force_app' => $this->force_app,
@@ -426,6 +432,7 @@ class SystemAssetsManager extends Component
         $this->domain = $this->settings->domain;
         $this->escola_nome = $this->settings->escola_nome;
         $this->escola_cnpj = $this->settings->escola_cnpj;
+        $this->school_whatsapp = $this->settings->school_whatsapp;
         $this->owner_user_id = $this->settings->owner_user_id !== null ? (string) $this->settings->owner_user_id : null;
         $this->meta_ads_pixel = $this->settings->meta_ads_pixel;
         $this->play_store_link = $this->settings->play_store_link;

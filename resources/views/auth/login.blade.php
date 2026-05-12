@@ -41,7 +41,7 @@
             </div>
         @else
             <div
-                class="mx-auto max-w-lg rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.08),_transparent_52%),linear-gradient(180deg,#ffffff,_#f8fafc)] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur sm:p-7"
+                class="mx-auto max-w-lg sm:p-7"
                 data-auth-login-shell="1"
                 data-login-force-app-root="1"
             >
@@ -49,10 +49,9 @@
 
                 @include('auth.partials.force-app-browser-panel', [
                     'forceAppTitle' => 'Baixe nosso aplicativo',
-                    'forceAppDescription' => 'Para entrar na sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e faça login por lá.',
-                    'forceAppLinks' => [
-                        ['href' => route('signup.create'), 'label' => 'Ainda não tem conta? Criar conta'],
-                    ],
+                    'forceAppDescription' => 'Baixe o aplicativo Portal JE para uma experiência melhor. Você também pode entrar pelo navegador abaixo.',
+                    'forceAppBrowserLoginForm' => true,
+                    'forceAppLinks' => [],
                 ])
 
                 <section

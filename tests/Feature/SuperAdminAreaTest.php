@@ -514,6 +514,7 @@ class SuperAdminAreaTest extends TestCase
             'manual_override' => true,
             'manual_override_by' => $adminA->id,
             'manual_override_at' => Carbon::parse('2026-03-05 10:00:00'),
+            'certificate_workload_minutes' => 300,
         ])->save();
 
         $existingTargetEnrollment = $this->createEnrollmentFor($course, $targetStudent);
@@ -527,6 +528,7 @@ class SuperAdminAreaTest extends TestCase
             'manual_override' => false,
             'manual_override_by' => null,
             'manual_override_at' => null,
+            'certificate_workload_minutes' => 180,
         ])->save();
 
         LessonCompletion::create([
@@ -685,6 +687,7 @@ class SuperAdminAreaTest extends TestCase
             'manual_override_at' => '2026-03-05 10:00:00',
             'access_block_reason' => null,
             'access_blocked_at' => null,
+            'certificate_workload_minutes' => 180,
         ]);
 
         $this->assertDatabaseHas('lesson_completions', [
@@ -775,6 +778,7 @@ class SuperAdminAreaTest extends TestCase
             'email_verified_at' => Carbon::parse('2026-03-01 09:00:00'),
         ]);
         $enrollment = $this->createEnrollmentFor($course, $sourceStudent);
+        $enrollment->forceFill(['certificate_workload_minutes' => 240])->save();
         LessonCompletion::create([
             'lesson_id' => $lesson->id,
             'user_id' => $sourceStudent->id,
@@ -827,6 +831,7 @@ class SuperAdminAreaTest extends TestCase
             'id' => $enrollment->id,
             'user_id' => $clonedStudent->id,
             'system_setting_id' => $tenantB->id,
+            'certificate_workload_minutes' => 240,
         ]);
         $this->assertDatabaseHas('lesson_completions', [
             'lesson_id' => $lesson->id,
@@ -867,6 +872,9 @@ class SuperAdminAreaTest extends TestCase
                 'access_block_reason' => 'manual-check',
                 'access_blocked_at' => now()->format('Y-m-d H:i:s'),
                 'manual_override' => '1',
+                'certificate_issuance_blocked' => '1',
+                'certificate_issuance_block_reason' => 'pendência documental',
+                'certificate_workload_hours' => '2.5',
             ])
             ->assertRedirect(route('sa.enrollments.edit', $enrollment->id));
 
@@ -877,6 +885,9 @@ class SuperAdminAreaTest extends TestCase
             'access_status' => EnrollmentAccessStatus::BLOCKED->value,
             'access_block_reason' => 'manual-check',
             'manual_override' => true,
+            'certificate_issuance_blocked' => true,
+            'certificate_issuance_block_reason' => 'pendência documental',
+            'certificate_workload_minutes' => 150,
         ]);
     }
 

@@ -42,6 +42,14 @@ class PaymentWebhookProcessor
 
     public const ENROLLMENT_NONE = 'none';
 
+    private const DIRECT_CERTIFICATE_BLOCKED_KEY = 'certificate_blocked';
+
+    private const DIRECT_CERTIFICATE_BLOCK_REASON_KEY = 'certificate_block_reason';
+
+    private const CERTIFICATE_BLOCK_TRUE_VALUES = ['1', 'true', 'yes', 'sim', 'on', 'bloqueado'];
+
+    private const CERTIFICATE_BLOCK_FALSE_VALUES = ['0', 'false', 'no', 'nao', 'não', 'off'];
+
     public function __construct(
         private readonly JsonPathExtractor $extractor,
         private readonly TenantMailManager $tenantMailManager,
@@ -110,6 +118,10 @@ class PaymentWebhookProcessor
                 'email' => $extracted['buyer_email'],
                 'course_id' => $extracted['course_id'],
                 'whatsapp' => $extracted['buyer_whatsapp'],
+                'certificate_issuance_blocked' => $extracted['certificate_issuance_blocked_present']
+                    ? $extracted['certificate_issuance_blocked']
+                    : null,
+                'certificate_issuance_block_reason' => $extracted['certificate_issuance_block_reason'],
                 'resolved_action' => $internalAction->value,
             ]);
 
@@ -198,6 +210,10 @@ class PaymentWebhookProcessor
                 'email' => $base['buyer_email'],
                 'course_id' => $base['course_id'],
                 'whatsapp' => $base['buyer_whatsapp'],
+                'certificate_blocked' => $base['certificate_issuance_blocked_present']
+                    ? $base['certificate_issuance_blocked']
+                    : null,
+                'certificate_block_reason' => $base['certificate_issuance_block_reason'],
             ],
             'resolved_action' => $action->value,
             'resolved_course' => [
@@ -214,7 +230,15 @@ class PaymentWebhookProcessor
     /**
      * @param  array<string, mixed>  $payload
      * @param  \Illuminate\Support\Collection<string, PaymentFieldMapping>  $fieldMappings
-     * @return array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}
+     * @return array{
+     *     buyer_name:?string,
+     *     buyer_email:?string,
+     *     course_id:?string,
+     *     buyer_whatsapp:?string,
+     *     certificate_issuance_blocked:?bool,
+     *     certificate_issuance_blocked_present:bool,
+     *     certificate_issuance_block_reason:?string
+     * }
      */
     private function extractMappedFields(array $payload, Collection $fieldMappings): array
     {
@@ -222,12 +246,28 @@ class PaymentWebhookProcessor
         $buyerEmail = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_BUYER_EMAIL));
         $courseId = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_COURSE_ID));
         $buyerWhatsapp = $this->toString($this->valueFromMapping($payload, $fieldMappings, PaymentFieldMapping::FIELD_BUYER_WHATSAPP));
+        $certificateBlockedRaw = $this->mappedOrDirectValue(
+            $payload,
+            $fieldMappings,
+            PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCKED,
+            self::DIRECT_CERTIFICATE_BLOCKED_KEY
+        );
+        $certificateBlocked = $this->toNullableBoolean($certificateBlockedRaw);
+        $certificateBlockReason = $this->toString($this->mappedOrDirectValue(
+            $payload,
+            $fieldMappings,
+            PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON,
+            self::DIRECT_CERTIFICATE_BLOCK_REASON_KEY
+        ));
 
         return [
             'buyer_name' => $buyerName,
             'buyer_email' => $buyerEmail,
             'course_id' => $courseId,
             'buyer_whatsapp' => $buyerWhatsapp,
+            'certificate_issuance_blocked' => $certificateBlocked,
+            'certificate_issuance_blocked_present' => $certificateBlocked !== null,
+            'certificate_issuance_block_reason' => $certificateBlockReason,
         ];
     }
 
@@ -265,7 +305,21 @@ class PaymentWebhookProcessor
     }
 
     /**
-     * @param  array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}  $extracted
+     * @param  \Illuminate\Support\Collection<string, PaymentFieldMapping>  $fieldMappings
+     */
+    private function mappedOrDirectValue(array $payload, Collection $fieldMappings, string $fieldKey, string $directKey): mixed
+    {
+        $mappedValue = $this->valueFromMapping($payload, $fieldMappings, $fieldKey);
+
+        if ($this->hasExtractedFieldValue($mappedValue)) {
+            return $mappedValue;
+        }
+
+        return array_key_exists($directKey, $payload) ? $payload[$directKey] : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $extracted
      * @return array{
      *     status:PaymentProcessingStatus,
      *     reason:string,
@@ -314,7 +368,14 @@ class PaymentWebhookProcessor
         $entitlement->last_payment_event_id = $event->id;
         $entitlement->save();
 
-        $enrollmentResult = $this->syncEnrollmentAccess($user, $course, 'approve');
+        $enrollmentResult = $this->syncEnrollmentAccess(
+            $user,
+            $course,
+            'approve',
+            (bool) ($extracted['certificate_issuance_blocked_present'] ?? false),
+            $extracted['certificate_issuance_blocked'] ?? null,
+            $extracted['certificate_issuance_block_reason'] ?? null
+        );
 
         if (! $userResult['was_created'] && $enrollmentResult['was_created']) {
             $this->sendEnrollmentNotification($user, $course);
@@ -332,7 +393,7 @@ class PaymentWebhookProcessor
     }
 
     /**
-     * @param  array{buyer_name:?string,buyer_email:?string,course_id:?string,buyer_whatsapp:?string}  $extracted
+     * @param  array<string, mixed>  $extracted
      * @return array{
      *     status:PaymentProcessingStatus,
      *     reason:string,
@@ -523,8 +584,14 @@ class PaymentWebhookProcessor
     /**
      * @return array{enrollment:Enrollment,was_created:bool,enrollment_result:string}
      */
-    private function syncEnrollmentAccess(User $user, Course $course, string $reason): array
-    {
+    private function syncEnrollmentAccess(
+        User $user,
+        Course $course,
+        string $reason,
+        bool $hasCertificateIssuanceBlockValue = false,
+        ?bool $certificateIssuanceBlocked = null,
+        ?string $certificateIssuanceBlockReason = null,
+    ): array {
         $enrollment = Enrollment::query()->firstOrCreate(
             [
                 'system_setting_id' => $course->system_setting_id ?: $user->system_setting_id,
@@ -539,6 +606,13 @@ class PaymentWebhookProcessor
         );
         $wasCreated = $enrollment->wasRecentlyCreated;
         $previousStatus = $wasCreated ? null : $this->enrollmentStatusValue($enrollment->access_status);
+
+        $this->applyCertificateIssuanceBlock(
+            $enrollment,
+            $hasCertificateIssuanceBlockValue,
+            $certificateIssuanceBlocked,
+            $certificateIssuanceBlockReason
+        );
 
         if ($enrollment->manual_override) {
             if ($enrollment->access_status !== EnrollmentAccessStatus::ACTIVE) {
@@ -595,6 +669,30 @@ class PaymentWebhookProcessor
             'was_created' => $wasCreated,
             'enrollment_result' => $this->resolveEnrollmentResult($previousStatus, $this->enrollmentStatusValue($enrollment->access_status), $wasCreated),
         ];
+    }
+
+    private function applyCertificateIssuanceBlock(
+        Enrollment $enrollment,
+        bool $hasCertificateIssuanceBlockValue,
+        ?bool $certificateIssuanceBlocked,
+        ?string $certificateIssuanceBlockReason,
+    ): void {
+        if (! $hasCertificateIssuanceBlockValue) {
+            return;
+        }
+
+        $blocked = $certificateIssuanceBlocked === true;
+
+        $enrollment->forceFill([
+            'certificate_issuance_blocked' => $blocked,
+            'certificate_issuance_block_reason' => $blocked
+                ? $this->toString($certificateIssuanceBlockReason)
+                : null,
+        ]);
+
+        if ($enrollment->isDirty(['certificate_issuance_blocked', 'certificate_issuance_block_reason'])) {
+            $enrollment->save();
+        }
     }
 
     private function sendEnrollmentNotification(User $user, Course $course): void
@@ -772,6 +870,49 @@ class PaymentWebhookProcessor
         $text = trim((string) $value);
 
         return $text !== '' ? Str::limit($text, 191, '') : null;
+    }
+
+    private function toNullableBoolean(mixed $value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return match ((float) $value) {
+                1.0 => true,
+                0.0 => false,
+                default => null,
+            };
+        }
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $text = Str::lower(trim($value));
+        if ($text === '') {
+            return null;
+        }
+
+        if (in_array($text, self::CERTIFICATE_BLOCK_TRUE_VALUES, true)) {
+            return true;
+        }
+
+        if (in_array($text, self::CERTIFICATE_BLOCK_FALSE_VALUES, true)) {
+            return false;
+        }
+
+        return null;
+    }
+
+    private function hasExtractedFieldValue(mixed $value): bool
+    {
+        if (is_bool($value) || is_int($value) || is_float($value)) {
+            return true;
+        }
+
+        return is_string($value) && trim($value) !== '';
     }
 
     private function toCurrency(mixed $value): ?string

@@ -36,6 +36,7 @@ class SystemSetting extends Model
         'mail_from_name',
         'escola_nome',
         'escola_cnpj',
+        'school_whatsapp',
         'meta_ads_pixel',
         'play_store_link',
         'apple_store_link',
@@ -243,6 +244,19 @@ class SystemSetting extends Model
         $fallback = trim((string) config('mail.from.name', config('app.name', 'Edux')));
 
         return trim((string) ($this->mail_from_name ?: ($schoolName !== '' ? $schoolName : $fallback)));
+    }
+
+    public function schoolWhatsappLink(?string $message = null): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $this->school_whatsapp);
+
+        if (! $digits) {
+            return null;
+        }
+
+        $query = filled($message) ? '?text='.rawurlencode($message) : '';
+
+        return "https://wa.me/{$digits}{$query}";
     }
 
     public function assetUrl(?string $column): ?string

@@ -105,6 +105,7 @@ class GeneratedCertificatesManager extends Component
             'publicUrl' => $publicUrl,
             'cpf' => $formattedCpf,
             'qrDataUri' => $qrDataUri,
+            'certificateWorkloadMinutes' => $enrollment->effectiveCertificateWorkloadMinutes($course),
         ])->render();
 
         $backContent = view('learning.certificates.templates.back', [

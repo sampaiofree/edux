@@ -38,10 +38,14 @@ class PaymentWebhookFieldMappingsTest extends TestCase
         $response->assertSee('Email', false);
         $response->assertSee('curso_id', false);
         $response->assertSee('WhatsApp', false);
+        $response->assertSee('Bloquear certificado', false);
+        $response->assertSee('Motivo bloqueio certificado', false);
         $response->assertSee('name="field_mappings[buyer_name][json_path]"', false);
         $response->assertSee('name="field_mappings[buyer_email][json_path]"', false);
         $response->assertSee('name="field_mappings[course_id][json_path]"', false);
         $response->assertSee('name="field_mappings[buyer_whatsapp][json_path]"', false);
+        $response->assertSee('name="field_mappings[certificate_issuance_blocked][json_path]"', false);
+        $response->assertSee('name="field_mappings[certificate_issuance_block_reason][json_path]"', false);
         $response->assertDontSee('Mapeamento de eventos', false);
         $response->assertDontSee('Mapeamento produto -> curso', false);
     }
@@ -85,6 +89,10 @@ class PaymentWebhookFieldMappingsTest extends TestCase
             'course' => [
                 'id' => 'CURSO-123',
             ],
+            'certificate' => [
+                'blocked' => 'sim',
+                'reason' => 'Pagamento pendente',
+            ],
         ];
 
         $response = $this
@@ -96,6 +104,8 @@ class PaymentWebhookFieldMappingsTest extends TestCase
                     'buyer_email' => ['json_path' => ''],
                     'course_id' => ['json_path' => 'course.id'],
                     'buyer_whatsapp' => ['json_path' => 'customer.whatsapp'],
+                    'certificate_issuance_blocked' => ['json_path' => 'certificate.blocked'],
+                    'certificate_issuance_block_reason' => ['json_path' => 'certificate.reason'],
                 ],
             ]);
 
@@ -116,6 +126,16 @@ class PaymentWebhookFieldMappingsTest extends TestCase
             'payment_webhook_link_id' => $link->id,
             'field_key' => PaymentFieldMapping::FIELD_BUYER_WHATSAPP,
             'json_path' => 'customer.whatsapp',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCKED,
+            'json_path' => 'certificate.blocked',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON,
+            'json_path' => 'certificate.reason',
         ]);
         $this->assertDatabaseMissing('payment_field_mappings', [
             'payment_webhook_link_id' => $link->id,
@@ -138,6 +158,8 @@ class PaymentWebhookFieldMappingsTest extends TestCase
             'whatsapp' => '5562995772922',
             'email' => 'sampaio.free@gmail.com',
             'curso' => '123',
+            'certificate_blocked' => '1',
+            'certificate_block_reason' => 'Contrato pendente',
         ]);
 
         $response = $this->actingAs($admin)->get(route('admin.webhooks.edit', $link));
@@ -148,6 +170,8 @@ class PaymentWebhookFieldMappingsTest extends TestCase
         $response->assertSee('value="email"', false);
         $response->assertSee('value="whatsapp"', false);
         $response->assertSee('value="curso"', false);
+        $response->assertSee('value="certificate_blocked"', false);
+        $response->assertSee('value="certificate_block_reason"', false);
     }
 
     public function test_admin_can_save_field_mappings_from_latest_received_event_payload_without_simulation_session(): void
@@ -160,6 +184,8 @@ class PaymentWebhookFieldMappingsTest extends TestCase
             'whatsapp' => '5562995772922',
             'email' => 'sampaio.free@gmail.com',
             'curso' => '123',
+            'certificate_blocked' => '1',
+            'certificate_block_reason' => 'Contrato pendente',
         ]);
 
         $response = $this
@@ -170,6 +196,8 @@ class PaymentWebhookFieldMappingsTest extends TestCase
                     'buyer_email' => ['json_path' => 'email'],
                     'course_id' => ['json_path' => 'curso'],
                     'buyer_whatsapp' => ['json_path' => 'whatsapp'],
+                    'certificate_issuance_blocked' => ['json_path' => 'certificate_blocked'],
+                    'certificate_issuance_block_reason' => ['json_path' => 'certificate_block_reason'],
                 ],
             ]);
 
@@ -196,6 +224,16 @@ class PaymentWebhookFieldMappingsTest extends TestCase
             'field_key' => PaymentFieldMapping::FIELD_BUYER_WHATSAPP,
             'json_path' => 'whatsapp',
         ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCKED,
+            'json_path' => 'certificate_blocked',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON,
+            'json_path' => 'certificate_block_reason',
+        ]);
     }
 
     public function test_admin_can_save_valid_json_paths_even_without_reference_payload(): void
@@ -211,6 +249,8 @@ class PaymentWebhookFieldMappingsTest extends TestCase
                     'buyer_email' => ['json_path' => 'email'],
                     'course_id' => ['json_path' => 'items.*.curso'],
                     'buyer_whatsapp' => ['json_path' => 'buyer.whatsapp'],
+                    'certificate_issuance_blocked' => ['json_path' => 'certificate.blocked'],
+                    'certificate_issuance_block_reason' => ['json_path' => 'certificate.reason'],
                 ],
             ]);
 
@@ -236,6 +276,16 @@ class PaymentWebhookFieldMappingsTest extends TestCase
             'payment_webhook_link_id' => $link->id,
             'field_key' => PaymentFieldMapping::FIELD_BUYER_WHATSAPP,
             'json_path' => 'buyer.whatsapp',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCKED,
+            'json_path' => 'certificate.blocked',
+        ]);
+        $this->assertDatabaseHas('payment_field_mappings', [
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON,
+            'json_path' => 'certificate.reason',
         ]);
     }
 
@@ -305,6 +355,18 @@ class PaymentWebhookFieldMappingsTest extends TestCase
             'json_path' => 'customer.whatsapp',
             'is_required' => false,
         ]);
+        PaymentFieldMapping::create([
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCKED,
+            'json_path' => 'certificate.blocked',
+            'is_required' => false,
+        ]);
+        PaymentFieldMapping::create([
+            'payment_webhook_link_id' => $link->id,
+            'field_key' => PaymentFieldMapping::FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON,
+            'json_path' => 'certificate.reason',
+            'is_required' => false,
+        ]);
 
         $response = $this
             ->actingAs($admin)
@@ -319,6 +381,10 @@ class PaymentWebhookFieldMappingsTest extends TestCase
                     'course' => [
                         'id' => 'CURSO-PREVIEW',
                     ],
+                    'certificate' => [
+                        'blocked' => 'sim',
+                        'reason' => 'Pagamento pendente',
+                    ],
                 ], JSON_THROW_ON_ERROR),
             ]);
 
@@ -328,6 +394,9 @@ class PaymentWebhookFieldMappingsTest extends TestCase
         $response->assertSee('preview@example.com', false);
         $response->assertSee('CURSO-PREVIEW', false);
         $response->assertSee('5511988887777', false);
+        $response->assertSee('certificate_blocked', false);
+        $response->assertSee('true', false);
+        $response->assertSee('Pagamento pendente', false);
         $response->assertSee('resolved_action', false);
         $response->assertSee('approve', false);
         $response->assertSee((string) $course->id, false);

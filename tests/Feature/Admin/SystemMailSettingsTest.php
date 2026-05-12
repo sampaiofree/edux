@@ -44,6 +44,7 @@ class SystemMailSettingsTest extends TestCase
         $response->assertSee('Enviar e-mail de teste', false);
         $response->assertSee('Link Play Store', false);
         $response->assertSee('Link Apple Store', false);
+        $response->assertSee('WhatsApp oficial da escola', false);
         $response->assertSee('Forçar app', false);
     }
 
@@ -148,6 +149,28 @@ class SystemMailSettingsTest extends TestCase
         $this->assertSame('https://play.google.com/store/apps/details?id=com.edux.app', $setting->play_store_link);
         $this->assertSame('https://apps.apple.com/br/app/edux/id123456789', $setting->apple_store_link);
         $this->assertTrue($setting->force_app);
+    }
+
+    public function test_admin_can_save_school_whatsapp(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(SystemAssetsManager::class)
+            ->set('domain', 'cursos.school-whatsapp.test')
+            ->set('escola_nome', 'Escola WhatsApp')
+            ->set('school_whatsapp', ' 55 (11) 99999-0000 ')
+            ->call('saveSchoolIdentity')
+            ->assertHasNoErrors();
+
+        $setting = $admin->systemSetting->fresh();
+
+        $this->assertSame('55 (11) 99999-0000', $setting->school_whatsapp);
+        $this->assertSame(
+            'https://wa.me/5511999990000?text=Ol%C3%A1%21',
+            $setting->schoolWhatsappLink('Olá!')
+        );
     }
 
     public function test_admin_normalizes_empty_app_store_links_and_keeps_force_app_false_when_unchecked(): void

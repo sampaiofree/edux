@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\EnrollmentAccessStatus;
 use App\Livewire\Certificado\Checkout;
+use App\Livewire\Student\LessonScreen;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Enrollment;
@@ -11,6 +12,8 @@ use App\Models\FinalTest;
 use App\Models\FinalTestAttempt;
 use App\Models\FinalTestQuestion;
 use App\Models\FinalTestQuestionOption;
+use App\Models\Lesson;
+use App\Models\Module;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -67,12 +70,166 @@ class CertificateAppFlowTest extends TestCase
 
         $this->assertNotNull($certificate->public_token);
         $this->assertNotNull($certificate->issued_at);
+        $this->assertStringContainsString('Com carga horária de 1 horas', $certificate->front_content);
 
         $indexResponse = $this->actingAs($student)->get(route('certificado.index'));
 
         $indexResponse->assertOk();
         $indexResponse->assertSee('Certificado emitido com sucesso!');
         $indexResponse->assertSee($course->title);
+    }
+
+    public function test_generated_certificate_uses_custom_enrollment_workload_when_present(): void
+    {
+        Http::fake([
+            'https://api.qrserver.com/*' => Http::response('fake-qr', 200, ['Content-Type' => 'image/png']),
+        ]);
+
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'cert-custom-workload@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-custom-workload', 'Curso Custom Workload');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'certificate_workload_minutes' => 240,
+        ]);
+
+        $this->actingAs($student);
+
+        Livewire::test(Checkout::class)
+            ->set('courseId', $course->id)
+            ->set('completionDate', now()->format('Y-m-d'))
+            ->set('completionConfirmed', 'yes')
+            ->call('generateCertificate')
+            ->assertRedirect(route('certificado.index'));
+
+        $certificate = Certificate::query()
+            ->where('course_id', $course->id)
+            ->where('user_id', $student->id)
+            ->firstOrFail();
+
+        $this->assertStringContainsString('Com carga horária de 4 horas', $certificate->front_content);
+    }
+
+    public function test_existing_certificate_show_prefers_saved_content_until_regenerated(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'cert-saved-content@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-saved-content', 'Curso Saved Content');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'certificate_workload_minutes' => 240,
+        ]);
+
+        $certificate = Certificate::create([
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'number' => 'CERT-SAVED-CONTENT',
+            'issued_at' => now(),
+            'front_content' => '<p>Conteudo salvo com carga antiga</p>',
+            'back_content' => '<p>Verso salvo</p>',
+        ]);
+        $certificate->forceFill(['public_token' => 'cert-saved-content-token'])->save();
+
+        $response = $this->actingAs($student)
+            ->get(route('learning.courses.certificate.show', [$course, $certificate]));
+
+        $response->assertOk();
+        $response->assertSee('Conteudo salvo com carga antiga', false);
+        $response->assertSee('Verso salvo', false);
+        $response->assertDontSee('Com carga horária de 4 horas', false);
+    }
+
+    public function test_blocked_certificate_issuance_does_not_generate_certificate_from_checkout(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'cert-blocked-checkout@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-cert-blocked-checkout', 'Curso Cert Blocked Checkout');
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'certificate_issuance_blocked' => true,
+        ]);
+
+        $this->actingAs($student);
+
+        Livewire::test(Checkout::class)
+            ->set('courseId', $course->id)
+            ->set('completionDate', now()->format('Y-m-d'))
+            ->set('completionConfirmed', 'yes')
+            ->call('generateCertificate')
+            ->assertSet('errorMessage', Enrollment::CERTIFICATE_ISSUANCE_BLOCKED_MESSAGE);
+
+        $this->assertDatabaseMissing('certificates', [
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+        ]);
+    }
+
+    public function test_blocked_certificate_issuance_does_not_generate_certificate_from_lesson_screen(): void
+    {
+        $admin = $this->defaultTenantAdmin();
+        $student = $this->defaultTenantStudent([
+            'email' => 'cert-blocked-lesson@example.com',
+        ]);
+        $course = $this->createCourseForTenant($admin, 'curso-cert-blocked-lesson', 'Curso Cert Blocked Lesson');
+        $module = Module::create([
+            'course_id' => $course->id,
+            'title' => 'Modulo 1',
+            'position' => 1,
+        ]);
+        $lesson = Lesson::create([
+            'module_id' => $module->id,
+            'title' => 'Aula 1',
+            'content' => 'Conteudo',
+            'position' => 1,
+        ]);
+
+        Enrollment::create([
+            'system_setting_id' => $admin->system_setting_id,
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+            'completed_at' => now(),
+            'progress_percent' => 100,
+            'access_status' => EnrollmentAccessStatus::ACTIVE->value,
+            'certificate_issuance_blocked' => true,
+        ]);
+
+        $this->actingAs($student);
+
+        Livewire::test(LessonScreen::class, [
+            'courseId' => $course->id,
+            'lessonId' => $lesson->id,
+        ])
+            ->call('requestCertificate')
+            ->assertSet('errorMessage', Enrollment::CERTIFICATE_ISSUANCE_BLOCKED_MESSAGE);
+
+        $this->assertDatabaseMissing('certificates', [
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+        ]);
     }
 
     public function test_passed_final_test_shows_certificate_cta_and_prefills_generate_page(): void

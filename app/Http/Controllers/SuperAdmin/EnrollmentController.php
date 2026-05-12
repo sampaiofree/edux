@@ -105,7 +105,13 @@ class EnrollmentController extends Controller
             'access_block_reason' => ['nullable', 'string', 'max:255'],
             'access_blocked_at' => ['nullable', 'date'],
             'manual_override' => ['nullable', 'boolean'],
+            'certificate_issuance_blocked' => ['nullable', 'boolean'],
+            'certificate_issuance_block_reason' => ['nullable', 'string', 'max:255'],
+            'certificate_workload_hours' => ['nullable', 'numeric', 'min:0.01', 'max:10000'],
         ]);
+
+        $certificateIssuanceBlocked = (bool) ($validated['certificate_issuance_blocked'] ?? false);
+        $certificateIssuanceBlockReason = trim((string) ($validated['certificate_issuance_block_reason'] ?? ''));
 
         $enrollment->update([
             'system_setting_id' => (int) $validated['system_setting_id'],
@@ -117,6 +123,13 @@ class EnrollmentController extends Controller
             'access_block_reason' => $validated['access_block_reason'] ?? null,
             'access_blocked_at' => $validated['access_blocked_at'] ?? null,
             'manual_override' => $request->boolean('manual_override'),
+            'certificate_issuance_blocked' => $certificateIssuanceBlocked,
+            'certificate_issuance_block_reason' => $certificateIssuanceBlocked
+                ? ($certificateIssuanceBlockReason !== '' ? $certificateIssuanceBlockReason : null)
+                : null,
+            'certificate_workload_minutes' => $this->certificateWorkloadMinutesFromHours(
+                $validated['certificate_workload_hours'] ?? null
+            ),
         ]);
 
         return redirect()
@@ -170,5 +183,16 @@ class EnrollmentController extends Controller
             ->with('systemSetting')
             ->orderBy('name')
             ->get();
+    }
+
+    private function certificateWorkloadMinutesFromHours(mixed $hours): ?int
+    {
+        $value = trim((string) ($hours ?? ''));
+
+        if ($value === '') {
+            return null;
+        }
+
+        return max(1, (int) round(((float) $value) * 60));
     }
 }

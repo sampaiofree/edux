@@ -5,6 +5,9 @@
 @section('content')
     @php
         $tenantLabel = static fn ($tenant) => trim((string) ($tenant?->escola_nome ?? '')) ?: trim((string) ($tenant?->domain ?? 'Sem tenant'));
+        $defaultWorkloadLabel = $enrollment->course?->duration_minutes
+            ? \App\Models\Enrollment::formatWorkloadHours((int) $enrollment->course->duration_minutes) . 'h'
+            : null;
     @endphp
 
     <section class="space-y-6">
@@ -65,6 +68,15 @@
 
             <div class="grid gap-4 md:grid-cols-2">
                 <label class="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Carga horária do certificado (horas)</span>
+                    <input type="number" min="0.01" step="0.01" name="certificate_workload_hours" value="{{ old('certificate_workload_hours', $enrollment->certificateWorkloadHoursForInput() ?? '') }}" placeholder="{{ $defaultWorkloadLabel ? 'Herdando do curso: ' . $defaultWorkloadLabel : 'Herdando do curso' }}" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                    <span class="text-xs font-normal text-slate-500">Deixe em branco para herdar a carga horária do curso{{ $defaultWorkloadLabel ? ' (' . $defaultWorkloadLabel . ')' : '' }}.</span>
+                    @error('certificate_workload_hours') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </label>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-2 text-sm font-semibold text-slate-600">
                     <span>Status de acesso</span>
                     <select name="access_status" required class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
                         <option value="active" @selected(old('access_status', $enrollment->access_status?->value ?? $enrollment->access_status) === 'active')>Ativo</option>
@@ -94,6 +106,23 @@
                     </span>
                     <span class="text-xs font-normal text-slate-500">Mantém o acesso ativo até que um admin remova o override.</span>
                     @error('manual_override') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </label>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-2 text-sm font-semibold text-slate-600">
+                    <span class="flex items-center gap-2">
+                        <input type="checkbox" name="certificate_issuance_blocked" value="1" @checked(old('certificate_issuance_blocked', (bool) $enrollment->certificate_issuance_blocked)) class="rounded border border-edux-line text-edux-primary focus:ring-edux-primary/40">
+                        Bloquear emissão do certificado
+                    </span>
+                    <span class="text-xs font-normal text-slate-500">O aluno mantém acesso ao curso, mas não consegue gerar certificado enquanto este campo estiver marcado.</span>
+                    @error('certificate_issuance_blocked') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Motivo interno do bloqueio</span>
+                    <input type="text" name="certificate_issuance_block_reason" value="{{ old('certificate_issuance_block_reason', $enrollment->certificate_issuance_block_reason) }}" placeholder="Ex.: pendência documental, pagamento em análise" class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30">
+                    @error('certificate_issuance_block_reason') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </label>
             </div>
 

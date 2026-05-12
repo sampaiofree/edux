@@ -14,6 +14,8 @@ class Enrollment extends Model
     use BelongsToSystemSetting;
     use HasFactory;
 
+    public const CERTIFICATE_ISSUANCE_BLOCKED_MESSAGE = 'A emissão do certificado deste curso está temporariamente bloqueada. Fale com o suporte da escola para liberar seu certificado.';
+
     protected $fillable = [
         'system_setting_id',
         'course_id',
@@ -26,6 +28,9 @@ class Enrollment extends Model
         'manual_override',
         'manual_override_by',
         'manual_override_at',
+        'certificate_issuance_blocked',
+        'certificate_issuance_block_reason',
+        'certificate_workload_minutes',
     ];
 
     protected function casts(): array
@@ -36,6 +41,8 @@ class Enrollment extends Model
             'access_blocked_at' => 'datetime',
             'manual_override' => 'boolean',
             'manual_override_at' => 'datetime',
+            'certificate_issuance_blocked' => 'boolean',
+            'certificate_workload_minutes' => 'integer',
         ];
     }
 
@@ -69,6 +76,39 @@ class Enrollment extends Model
     public function manualOverrideByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'manual_override_by');
+    }
+
+    public function effectiveCertificateWorkloadMinutes(?Course $course = null): ?int
+    {
+        if ($this->certificate_workload_minutes !== null && (int) $this->certificate_workload_minutes > 0) {
+            return (int) $this->certificate_workload_minutes;
+        }
+
+        $course ??= $this->relationLoaded('course') ? $this->course : $this->course()->first();
+        $minutes = $course?->duration_minutes;
+
+        return $minutes !== null && (int) $minutes > 0 ? (int) $minutes : null;
+    }
+
+    public function certificateWorkloadHoursForInput(): ?string
+    {
+        if ($this->certificate_workload_minutes === null) {
+            return null;
+        }
+
+        return self::formatWorkloadHours((int) $this->certificate_workload_minutes, '.');
+    }
+
+    public static function formatWorkloadHours(?int $minutes, string $decimalSeparator = ','): ?string
+    {
+        if ($minutes === null || $minutes <= 0) {
+            return null;
+        }
+
+        $hours = $minutes / 60;
+        $label = rtrim(rtrim(number_format($hours, 2, $decimalSeparator, ''), '0'), $decimalSeparator);
+
+        return $label !== '' ? $label : null;
     }
 
     public function scopeAccessible(Builder $query): Builder

@@ -89,8 +89,19 @@
                     @error('completionConfirmed') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </label>
 
+                @if ($certificateIssuanceBlocked)
+                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        <p>{{ \App\Models\Enrollment::CERTIFICATE_ISSUANCE_BLOCKED_MESSAGE }}</p>
+                        @if ($supportUrl)
+                            <a href="{{ $supportUrl }}" target="_blank" rel="noopener" class="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                Falar com suporte
+                            </a>
+                        @endif
+                    </div>
+                @endif
+
                 @php
-                    $disableGenerate = $enrollments->isEmpty() || ! $courseId || $completionConfirmed !== 'yes';
+                    $disableGenerate = $enrollments->isEmpty() || ! $courseId || $completionConfirmed !== 'yes' || $certificateIssuanceBlocked;
                 @endphp
 
                 <button

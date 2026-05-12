@@ -66,6 +66,20 @@
             </label>
 
             <label class="space-y-1 text-sm font-semibold text-slate-600">
+                <span>WhatsApp oficial da escola</span>
+                <input
+                    type="text"
+                    wire:model.defer="school_whatsapp"
+                    placeholder="Ex.: 5511999999999"
+                    class="w-full rounded-xl border border-edux-line px-4 py-3 focus:border-edux-primary focus:ring-edux-primary/30"
+                >
+                @error('school_whatsapp')
+                    <p class="text-xs text-red-500">{{ $message }}</p>
+                @enderror
+                <p class="text-xs text-slate-500">Usado no botão de suporte quando a emissão do certificado estiver bloqueada.</p>
+            </label>
+
+            <label class="space-y-1 text-sm font-semibold text-slate-600">
                 <span>Link Play Store</span>
                 <input
                     type="url"

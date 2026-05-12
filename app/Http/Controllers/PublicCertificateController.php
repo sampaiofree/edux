@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use App\Models\CertificateBranding;
+use App\Models\Enrollment;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Http;
@@ -18,15 +19,17 @@ class PublicCertificateController extends Controller
             ->firstOrFail();
 
         $branding = $this->resolveBranding($certificate->course);
-        $frontContent = view('learning.certificates.templates.front', [
+        $enrollment = $this->certificateEnrollment($certificate);
+        $frontContent = $certificate->front_content ?: view('learning.certificates.templates.front', [
             'course' => $certificate->course,
             'branding' => $branding,
             'displayName' => $certificate->user->preferredName(),
             'issuedAt' => $certificate->issued_at ?? now(),
             'publicUrl' => route('certificates.verify', $certificate->public_token),
+            'certificateWorkloadMinutes' => $enrollment?->effectiveCertificateWorkloadMinutes($certificate->course),
         ])->render();
 
-        $backContent = view('learning.certificates.templates.back', [
+        $backContent = $certificate->back_content ?: view('learning.certificates.templates.back', [
             'course' => $certificate->course,
             'branding' => $branding,
         ])->render();
@@ -37,6 +40,7 @@ class PublicCertificateController extends Controller
             'user' => $certificate->user,
             'frontContent' => $frontContent,
             'backContent' => $backContent,
+            'certificateWorkloadMinutes' => $enrollment?->effectiveCertificateWorkloadMinutes($certificate->course),
             'downloadUrl' => route('certificates.verify.download', $certificate->public_token),
         ]);
     }
@@ -78,7 +82,8 @@ class PublicCertificateController extends Controller
             ? route('certificates.verify', $certificate->public_token)
             : null;
         $qrDataUri = $this->qrDataUri($publicUrl);
-        $frontContent = view('learning.certificates.templates.front', [
+        $enrollment = $this->certificateEnrollment($certificate);
+        $frontContent = $certificate->front_content ?: view('learning.certificates.templates.front', [
             'course' => $course,
             'branding' => $branding,
             'displayName' => $certificate->user->preferredName(),
@@ -86,9 +91,10 @@ class PublicCertificateController extends Controller
             'publicUrl' => $publicUrl,
             'qrDataUri' => $qrDataUri,
             'mode' => 'pdf',
+            'certificateWorkloadMinutes' => $enrollment?->effectiveCertificateWorkloadMinutes($course),
         ])->render();
 
-        $backContent = view('learning.certificates.templates.back', [
+        $backContent = $certificate->back_content ?: view('learning.certificates.templates.back', [
             'course' => $course,
             'branding' => $branding,
             'mode' => 'pdf',
@@ -101,6 +107,14 @@ class PublicCertificateController extends Controller
         $dompdf->render();
 
         return $dompdf;
+    }
+
+    private function certificateEnrollment(Certificate $certificate): ?Enrollment
+    {
+        return Enrollment::withoutGlobalScopes()
+            ->where('course_id', $certificate->course_id)
+            ->where('user_id', $certificate->user_id)
+            ->first();
     }
 
     private function qrDataUri(?string $publicUrl): ?string

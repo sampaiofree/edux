@@ -258,9 +258,14 @@ class CourseTenantTransferService
     ): void {
         $finalStatus = $this->mergeAccessStatus($sourceEnrollment, $destinationEnrollment);
         $manualOverride = (bool) $sourceEnrollment->manual_override || (bool) $destinationEnrollment->manual_override;
+        $certificateIssuanceBlocked = (bool) $sourceEnrollment->certificate_issuance_blocked
+            || (bool) $destinationEnrollment->certificate_issuance_blocked;
 
         $manualOverrideSource = $this->pickManualOverrideSource($sourceEnrollment, $destinationEnrollment);
         $blockedSource = $this->pickBlockedSource($sourceEnrollment, $destinationEnrollment);
+        $certificateIssuanceBlockedSource = $sourceEnrollment->certificate_issuance_blocked
+            ? $sourceEnrollment
+            : ($destinationEnrollment->certificate_issuance_blocked ? $destinationEnrollment : null);
 
         $destinationEnrollment->forceFill([
             'system_setting_id' => $targetSystemSettingId,
@@ -279,6 +284,12 @@ class CourseTenantTransferService
             'manual_override' => $manualOverride,
             'manual_override_by' => $manualOverride ? $manualOverrideSource?->manual_override_by : null,
             'manual_override_at' => $manualOverride ? $manualOverrideSource?->manual_override_at : null,
+            'certificate_issuance_blocked' => $certificateIssuanceBlocked,
+            'certificate_issuance_block_reason' => $certificateIssuanceBlocked
+                ? $certificateIssuanceBlockedSource?->certificate_issuance_block_reason
+                : null,
+            'certificate_workload_minutes' => $destinationEnrollment->certificate_workload_minutes
+                ?? $sourceEnrollment->certificate_workload_minutes,
         ])->save();
     }
 

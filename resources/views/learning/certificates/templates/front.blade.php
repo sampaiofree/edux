@@ -12,9 +12,10 @@ use Illuminate\Support\Facades\Storage;
         ->isoFormat('D [de] MMMM [de] YYYY');
     $courseStartLabel = optional($course?->created_at)->format('d/m/Y') ?? '01/01/2024';
     $courseEndLabel = $issuedAtInstance->format('d/m/Y');
-    $workloadLabel = $course && $course->duration_minutes
-        ? round($course->duration_minutes / 60, 1) . ' horas'
-        : 'x horas';
+    $workloadMinutes = $certificateWorkloadMinutes ?? $course?->duration_minutes;
+    $workloadLabel = $workloadMinutes
+        ? \App\Models\Enrollment::formatWorkloadHours((int) $workloadMinutes)
+        : 'x';
     $backgroundUrl = $branding?->front_background_url;
     $qrUrl = null;
 

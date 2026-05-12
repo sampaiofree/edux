@@ -109,6 +109,11 @@ class Checkout extends Component
             return null;
         }
 
+        if ($enrollment->certificate_issuance_blocked) {
+            $this->errorMessage = Enrollment::CERTIFICATE_ISSUANCE_BLOCKED_MESSAGE;
+            return null;
+        }
+
         $course = $enrollment->course;
         $issuedAt = $this->resolveIssuedAt($validated['completionDate'] ?? null, $enrollment);
         $branding = $this->resolveBranding($course);
@@ -140,6 +145,7 @@ class Checkout extends Component
             'settings' => $settings,
             'cpf' => $formattedCpf,
             'qrDataUri' => $qrDataUri,
+            'certificateWorkloadMinutes' => $enrollment->effectiveCertificateWorkloadMinutes($course),
         ])->render();
 
         $backContent = view('learning.certificates.templates.back', [
@@ -165,6 +171,7 @@ class Checkout extends Component
         $courseName = $this->course?->title;
         $formattedCompletionDate = $this->formattedCompletionDate();
         $formattedCpf = $this->formatCpf($this->cpf);
+        $certificateIssuanceBlocked = (bool) $this->enrollment?->certificate_issuance_blocked;
 
         return view('livewire.certificado.checkout', [
             'enrollments' => $enrollments,
@@ -172,6 +179,8 @@ class Checkout extends Component
             'courseName' => $courseName,
             'formattedCompletionDate' => $formattedCompletionDate,
             'formattedCpf' => $formattedCpf,
+            'certificateIssuanceBlocked' => $certificateIssuanceBlocked,
+            'supportUrl' => $this->certificateSupportUrl(),
         ]);
     }
 
@@ -276,6 +285,17 @@ class Checkout extends Component
             substr($cpf, 3, 3),
             substr($cpf, 6, 3),
             substr($cpf, 9, 2),
+        );
+    }
+
+    private function certificateSupportUrl(): ?string
+    {
+        if (! $this->course) {
+            return null;
+        }
+
+        return SystemSetting::current()->schoolWhatsappLink(
+            "Olá! Preciso de ajuda para liberar a emissão do certificado do curso {$this->course->title}."
         );
     }
 

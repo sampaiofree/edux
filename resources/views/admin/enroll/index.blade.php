@@ -78,6 +78,13 @@
                                     @if ($enrollment->manual_override)
                                         <p class="mt-1 text-xs text-edux-primary">Override manual</p>
                                     @endif
+                                    @if ($enrollment->certificate_issuance_blocked)
+                                        <p class="mt-1">
+                                            <span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
+                                                Certificado bloqueado
+                                            </span>
+                                        </p>
+                                    @endif
                                 </td>
                                 <td class="py-3">{{ $enrollment->completed_at?->format('d/m/Y H:i') ?? '-' }}</td>
                                 <td class="py-3">{{ $enrollment->created_at?->format('d/m/Y H:i') ?? '-' }}</td>

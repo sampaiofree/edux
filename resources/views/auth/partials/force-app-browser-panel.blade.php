@@ -68,6 +68,15 @@
             @endif
         </div>
 
+        @if (($forceAppBrowserLoginForm ?? false) === true)
+            <div
+                class="rounded-[1.5rem] border border-slate-200 bg-white p-5 text-left shadow-[0_16px_35px_rgba(15,23,42,0.08)] sm:p-6"
+                data-login-force-app-browser-form="1"
+            >
+                @include('auth.partials.login-form', ['class' => 'max-w-none'])
+            </div>
+        @endif
+
         @php($forceAppLinks = $forceAppLinks ?? [])
         @if ($forceAppLinks !== [])
             <div class="space-y-2 text-sm font-semibold">

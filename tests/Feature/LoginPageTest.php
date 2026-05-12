@@ -94,15 +94,27 @@ class LoginPageTest extends TestCase
         $response->assertSee('data-login-force-app-root="1"', false);
         $response->assertSee('data-login-force-app-loading="1"', false);
         $response->assertSee('data-login-force-app-browser="1"', false);
+        $response->assertSee('data-login-force-app-browser-form="1"', false);
         $response->assertSee('data-login-force-app-form="1"', false);
         $response->assertSee('Carregando');
         $response->assertSee('Carregando seu acesso');
         $response->assertSee('Aguarde um instante enquanto preparamos a melhor forma de acesso para voce.');
         $response->assertDontSee('Identificando seu acesso');
         $response->assertSee('Baixe nosso aplicativo');
-        $response->assertSee('Para entrar na sua conta, use o aplicativo Portal JE. Baixe o app na loja do seu celular e faça login por lá.');
+        $response->assertSee('Baixe o aplicativo Portal JE para uma experiência melhor. Você também pode entrar pelo navegador abaixo.');
         $response->assertSee('Abrir na Play Store');
         $response->assertSee('Abrir na App Store');
+        $response->assertSee('Acesse sua conta');
+        $response->assertSee('Recuperar senha');
+        $response->assertSee('name="email"', false);
+        $response->assertSee('name="password"', false);
+        $response->assertSee('Entrar');
+        $response->assertSeeInOrder([
+            'Baixe nosso aplicativo',
+            'Abrir na Play Store',
+            'data-login-force-app-browser-form="1"',
+            'Acesse sua conta',
+        ], false);
         $response->assertSee('href="https://play.google.com/store/apps/details?id=com.edux.app"', false);
         $response->assertSee('href="https://apps.apple.com/br/app/edux/id123456789"', false);
     }

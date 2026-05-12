@@ -18,6 +18,10 @@ class PaymentFieldMapping extends Model
 
     public const FIELD_BUYER_WHATSAPP = 'buyer_whatsapp';
 
+    public const FIELD_CERTIFICATE_ISSUANCE_BLOCKED = 'certificate_issuance_blocked';
+
+    public const FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON = 'certificate_issuance_block_reason';
+
     protected $fillable = [
         'payment_webhook_link_id',
         'field_key',
@@ -42,6 +46,8 @@ class PaymentFieldMapping extends Model
             self::FIELD_BUYER_EMAIL => 'Email',
             self::FIELD_COURSE_ID => 'curso_id',
             self::FIELD_BUYER_WHATSAPP => 'WhatsApp',
+            self::FIELD_CERTIFICATE_ISSUANCE_BLOCKED => 'Bloquear certificado',
+            self::FIELD_CERTIFICATE_ISSUANCE_BLOCK_REASON => 'Motivo bloqueio certificado',
         ];
     }
 
