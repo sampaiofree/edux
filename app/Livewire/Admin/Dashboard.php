@@ -17,6 +17,7 @@ class Dashboard extends Component
 
     public string $search = '';
     public string $status = 'all';
+    public string $viewMode = 'cards';
     public string $importSearch = '';
     public int $perPage = 5;
     public bool $importModalOpen = false;
@@ -26,6 +27,7 @@ class Dashboard extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => 'all'],
+        'viewMode' => ['except' => 'cards', 'as' => 'view'],
     ];
 
     public function updatingSearch(): void
@@ -34,6 +36,11 @@ class Dashboard extends Component
     }
 
     public function updatingStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingViewMode(): void
     {
         $this->resetPage();
     }
@@ -84,11 +91,14 @@ class Dashboard extends Component
             'final_tests' => FinalTest::count(),
         ];
 
-        $courses = Course::with(['owner', 'modules.lessons', 'finalTest'])
+        $viewMode = $this->normalizedViewMode();
+        $perPage = $viewMode === 'list' ? 50 : $this->perPage;
+
+        $courses = Course::with(['owner', 'modules.lessons', 'finalTest', 'courseWebhookIds'])
             ->when($this->search, fn ($query) => $query->where('title', 'like', '%'.$this->search.'%'))
             ->when($this->status !== 'all', fn ($query) => $query->where('status', $this->status))
             ->orderByDesc('created_at')
-            ->paginate($this->perPage);
+            ->paginate($perPage);
 
         $globalCourses = $this->importModalOpen && $this->canImportCourses()
             ? Course::withoutGlobalScopes()
@@ -108,6 +118,7 @@ class Dashboard extends Component
         return view('livewire.admin.dashboard', [
             'stats' => $stats,
             'courses' => $courses,
+            'viewMode' => $viewMode,
             'globalCourses' => $globalCourses,
             'canImportCourses' => $this->canImportCourses(),
         ]);
@@ -118,5 +129,14 @@ class Dashboard extends Component
         $user = auth()->user();
 
         return $user instanceof User && $user->hasAdminPrivileges();
+    }
+
+    private function normalizedViewMode(): string
+    {
+        if (! in_array($this->viewMode, ['cards', 'list'], true)) {
+            $this->viewMode = 'cards';
+        }
+
+        return $this->viewMode;
     }
 }

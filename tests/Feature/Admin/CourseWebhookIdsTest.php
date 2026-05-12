@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Livewire\Admin\Dashboard;
 use App\Models\Course;
 use App\Models\CourseWebhookId;
 use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class CourseWebhookIdsTest extends TestCase
@@ -309,6 +311,42 @@ class CourseWebhookIdsTest extends TestCase
         $response->assertRedirect(route('courses.edit', $secondCourse));
         $response->assertSessionHasNoErrors();
         $this->assertSame(2, CourseWebhookId::withoutGlobalScopes()->where('webhook_id', 'GLOBAL-1')->count());
+    }
+
+    public function test_admin_dashboard_list_mode_shows_course_webhook_ids_and_uses_fifty_items_per_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $course = $this->makeCourse($admin, [
+            'title' => 'Curso Lista Webhook',
+            'slug' => 'curso-lista-webhook',
+        ]);
+
+        $course->courseWebhookIds()->createMany([
+            [
+                'webhook_id' => 'LIST-A',
+                'platform' => 'Hotmart',
+            ],
+            [
+                'webhook_id' => 'LIST-B',
+                'platform' => 'Eduzz',
+            ],
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard', ['view' => 'list']));
+
+        $response->assertOk();
+        $response->assertSee('data-admin-dashboard-course-list="1"', false);
+        $response->assertSee('LIST-A', false);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->set('viewMode', 'list')
+            ->assertSee('data-admin-dashboard-course-list="1"', false)
+            ->assertSee('Curso Lista Webhook', false)
+            ->assertSee('IDs de webhook:', false)
+            ->assertSee('LIST-A', false)
+            ->assertSee('LIST-B', false)
+            ->assertViewHas('courses', fn ($courses): bool => $courses->perPage() === 50);
     }
 
     /**

@@ -14,6 +14,30 @@
                 <option value="archived">Arquivado</option>
             </select>
         </label>
+        <div class="flex rounded-xl border border-edux-line bg-slate-50 p-1 text-sm font-semibold text-slate-600">
+            <button
+                type="button"
+                wire:click="$set('viewMode', 'cards')"
+                @class([
+                    'rounded-lg px-3 py-2 transition',
+                    'bg-white text-edux-primary shadow-sm' => $viewMode === 'cards',
+                    'hover:text-edux-primary' => $viewMode !== 'cards',
+                ])
+            >
+                Cards
+            </button>
+            <button
+                type="button"
+                wire:click="$set('viewMode', 'list')"
+                @class([
+                    'rounded-lg px-3 py-2 transition',
+                    'bg-white text-edux-primary shadow-sm' => $viewMode === 'list',
+                    'hover:text-edux-primary' => $viewMode !== 'list',
+                ])
+            >
+                Lista
+            </button>
+        </div>
         <a href="{{ route('courses.create') }}" class="edux-btn">
             + Novo curso
         </a>
@@ -24,50 +48,115 @@
         @endif
     </div>
 
-    <div class="grid gap-4 md:grid-cols-3">
-        @forelse ($courses as $course)
-            <article class="rounded-card bg-white shadow-card overflow-hidden flex flex-col" wire:key="course-{{ $course->id }}">
-                @if ($course->coverImageUrl())
-                    <img src="{{ $course->coverImageUrl() }}" alt="{{ $course->title }}" class="h-36 w-full object-cover">
-                @else
-                    <div class="h-36 w-full bg-edux-background flex items-center justify-center text-slate-400 text-sm">Sem imagem</div>
-                @endif
-                <div class="flex flex-1 flex-col gap-3 p-4">
-                    <div class="flex items-center justify-between text-xs text-slate-500">
-                        <div class="flex min-w-0 items-center gap-2">
-                            <span class="truncate font-semibold text-edux-primary">{{ Str::limit($course->title, 26) }}</span>
-                            @if ($course->access_mode === \App\Models\Course::ACCESS_MODE_FREE)
-                                <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                                    Gratuito
-                                </span>
-                            @endif
-                        </div>
-                        <span @class([
-                            'inline-flex rounded-full px-3 py-0.5 text-xs font-semibold',
-                            'bg-amber-100 text-amber-800' => $course->status === 'draft',
-                            'bg-emerald-100 text-emerald-800' => $course->status === 'published',
-                            'bg-slate-200 text-slate-700' => $course->status === 'archived',
-                        ])>
-                            {{ ucfirst($course->status) }}
-                        </span>
-                    </div>
-                    <p class="text-xs text-slate-500">Responsável: {{ $course->owner->name }}</p>
-                    <div class="mt-auto flex gap-2 text-sm">
-                        <a href="{{ route('courses.edit', $course) }}" class="edux-btn flex-1 bg-white text-edux-primary">Editar</a>
-                        <form method="POST" action="{{ route('courses.destroy', $course) }}" class="flex-1" onsubmit="return confirm('Remover curso?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="edux-btn w-full bg-red-500 text-white">Excluir</button>
-                        </form>
-                    </div>
-                </div>
-            </article>
-        @empty
-            <div class="rounded-card bg-white p-6 text-center text-slate-500 shadow-card md:col-span-3">
-                Nenhum curso encontrado.
+    @if ($viewMode === 'list')
+        <div class="overflow-hidden rounded-card bg-white shadow-card" data-admin-dashboard-course-list="1">
+            <div class="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_120px_170px] gap-4 border-b border-edux-line bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid">
+                <span>Curso</span>
+                <span>Responsável</span>
+                <span>Status</span>
+                <span class="text-right">Ações</span>
             </div>
-        @endforelse
-    </div>
+            <div class="divide-y divide-edux-line">
+                @forelse ($courses as $course)
+                    <article
+                        class="grid gap-4 px-4 py-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_120px_170px] md:items-center"
+                        wire:key="course-list-{{ $course->id }}"
+                    >
+                        <div class="min-w-0 space-y-2">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <a href="{{ route('courses.edit', $course) }}" class="font-semibold text-edux-primary hover:underline">
+                                    {{ $course->title }}
+                                </a>
+                                @if ($course->access_mode === \App\Models\Course::ACCESS_MODE_FREE)
+                                    <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                        Gratuito
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                                <span class="font-semibold text-slate-600">IDs de webhook:</span>
+                                @forelse ($course->courseWebhookIds as $courseWebhookId)
+                                    <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-700">
+                                        {{ $courseWebhookId->webhook_id }}
+                                    </span>
+                                @empty
+                                    <span>nenhum registrado</span>
+                                @endforelse
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600 md:truncate">{{ $course->owner->name }}</p>
+                        <div>
+                            <span @class([
+                                'inline-flex rounded-full px-3 py-0.5 text-xs font-semibold',
+                                'bg-amber-100 text-amber-800' => $course->status === 'draft',
+                                'bg-emerald-100 text-emerald-800' => $course->status === 'published',
+                                'bg-slate-200 text-slate-700' => $course->status === 'archived',
+                            ])>
+                                {{ ucfirst($course->status) }}
+                            </span>
+                        </div>
+                        <div class="flex gap-2 text-sm md:justify-end">
+                            <a href="{{ route('courses.edit', $course) }}" class="edux-btn bg-white px-4 py-2 text-edux-primary">Editar</a>
+                            <form method="POST" action="{{ route('courses.destroy', $course) }}" onsubmit="return confirm('Remover curso?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="edux-btn bg-red-500 px-4 py-2 text-white">Excluir</button>
+                            </form>
+                        </div>
+                    </article>
+                @empty
+                    <div class="px-6 py-10 text-center text-slate-500">
+                        Nenhum curso encontrado.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    @else
+        <div class="grid gap-4 md:grid-cols-3">
+            @forelse ($courses as $course)
+                <article class="rounded-card bg-white shadow-card overflow-hidden flex flex-col" wire:key="course-{{ $course->id }}">
+                    @if ($course->coverImageUrl())
+                        <img src="{{ $course->coverImageUrl() }}" alt="{{ $course->title }}" class="h-36 w-full object-cover">
+                    @else
+                        <div class="h-36 w-full bg-edux-background flex items-center justify-center text-slate-400 text-sm">Sem imagem</div>
+                    @endif
+                    <div class="flex flex-1 flex-col gap-3 p-4">
+                        <div class="flex items-center justify-between text-xs text-slate-500">
+                            <div class="flex min-w-0 items-center gap-2">
+                                <span class="truncate font-semibold text-edux-primary">{{ Str::limit($course->title, 26) }}</span>
+                                @if ($course->access_mode === \App\Models\Course::ACCESS_MODE_FREE)
+                                    <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                        Gratuito
+                                    </span>
+                                @endif
+                            </div>
+                            <span @class([
+                                'inline-flex rounded-full px-3 py-0.5 text-xs font-semibold',
+                                'bg-amber-100 text-amber-800' => $course->status === 'draft',
+                                'bg-emerald-100 text-emerald-800' => $course->status === 'published',
+                                'bg-slate-200 text-slate-700' => $course->status === 'archived',
+                            ])>
+                                {{ ucfirst($course->status) }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500">Responsável: {{ $course->owner->name }}</p>
+                        <div class="mt-auto flex gap-2 text-sm">
+                            <a href="{{ route('courses.edit', $course) }}" class="edux-btn flex-1 bg-white text-edux-primary">Editar</a>
+                            <form method="POST" action="{{ route('courses.destroy', $course) }}" class="flex-1" onsubmit="return confirm('Remover curso?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="edux-btn w-full bg-red-500 text-white">Excluir</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="rounded-card bg-white p-6 text-center text-slate-500 shadow-card md:col-span-3">
+                    Nenhum curso encontrado.
+                </div>
+            @endforelse
+        </div>
+    @endif
 
     <div>
         {{ $courses->links() }}
